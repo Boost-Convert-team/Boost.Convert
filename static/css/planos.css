@@ -1,0 +1,124 @@
+.pricing-page {
+    display: grid;
+    grid-template-columns: minmax(280px, .42fr) minmax(0, 1fr);
+    gap: clamp(48px, 7vw, 112px);
+    align-items: start;
+    padding-top: 112px;
+    padding-bottom: 118px;
+}
+
+.pricing-page .section-heading {
+    position: sticky;
+    top: 132px;
+    max-width: 430px;
+    margin: 0;
+    text-align: left;
+}
+
+.pricing-page .section-heading h1 {
+    font-size: clamp(38px, 3.6vw, 58px);
+}
+
+.pricing-page .section-heading p {
+    margin-left: 0;
+    max-width: 370px;
+}
+
+.plans-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, .82fr) minmax(300px, 1fr);
+    gap: 32px;
+    max-width: none;
+    margin: 0;
+    align-items: start;
+}
+
+.plan-card {
+    position: relative;
+    padding: 34px;
+    overflow: hidden;
+}
+
+.plan-card:not(.featured) {
+    padding-left: 0;
+    padding-right: 0;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.plan-card:not(.featured):hover {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.plan-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(240, 138, 36, .06), transparent 46%);
+    opacity: 0;
+    transition: opacity 1200ms var(--ease-air);
+}
+
+.plan-card:hover::before {
+    opacity: 1;
+}
+
+.plan-card.featured {
+    border-color: rgba(240, 138, 36, .30);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 244, 232, .82), rgba(255, 255, 255, .92)),
+        #fff;
+    box-shadow: 0 24px 70px rgba(88, 58, 24, .075);
+    transition: transform 820ms var(--ease-air), box-shadow 820ms var(--ease-air), border-color 820ms var(--ease-air);
+}
+
+.plan-card.featured:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 30px 86px rgba(88, 58, 24, .085);
+}
+
+.plan-card h3 {
+    margin: 18px 0 10px;
+    color: #243f3c;
+    font-size: 20px;
+    font-weight: var(--weight-logo);
+}
+
+.plan-card p {
+    color: var(--muted);
+    font-weight: var(--weight-ui);
+    line-height: 1.55;
+}
+
+.plan-price {
+    margin: 18px 0;
+    color: #213f3c;
+    font-size: 38px;
+    font-weight: var(--weight-logo);
+}
+
+.plan-list {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0 28px;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+}
+
+.plan-list li {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+}
+
+.plan-list svg {
+    width: 16px;
+    height: 16px;
+    color: var(--orange-deep);
+}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Ferramentas - BoostConvert AI{% endblock %}
+
+{% block content %}
+<main class="page-section tools-page">
+    <div class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="wand-sparkles" aria-hidden="true"></i> Biblioteca de convers&otilde;es</div>
+        <h1>Escolha uma ferramenta e envie seus arquivos.</h1>
+        <p>Organiza&ccedil;&atilde;o simples, categorias limpas e limites transparentes para cada tipo de arquivo.</p>
+    </div>
+
+    <div class="tools-layout">
+        <aside class="tools-sidebar reveal" aria-label="Categorias">
+            {% for category, category_tools in tools.items() %}
+                {% set category_id = category|lower|replace(' ', '-') %}
+                <a href="#{{ category_id }}">
+                    <span>{{ category }}</span>
+                    <span>{{ category_tools|length }}</span>
+                </a>
+            {% endfor %}
+            <a href="#extras"><span>OCR</span><span>em breve</span></a>
+            <a href="#extras"><span>AI Tools</span><span>em breve</span></a>
+        </aside>
+
+        <div class="tools-content reveal">
+            {% for category, category_tools in tools.items() %}
+                {% set category_id = category|lower|replace(' ', '-') %}
+                <section class="tools-section" id="{{ category_id }}">
+                    <div class="section-header">
+                        <div>
+                            <h2>{{ category }}</h2>
+                            <p>{{ category_tools|length }} ferramentas dispon&iacute;veis</p>
+                        </div>
+                        <span class="mini-icon">
+                            {% if 'Imagem' in category or 'image' in category|lower %}
+                                <i data-lucide="image" aria-hidden="true"></i>
+                            {% elif 'Video' in category or 'deo' in category %}
+                                <i data-lucide="clapperboard" aria-hidden="true"></i>
+                            {% elif 'Audio' in category or 'udio' in category %}
+                                <i data-lucide="audio-lines" aria-hidden="true"></i>
+                            {% else %}
+                                <i data-lucide="file-text" aria-hidden="true"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="tools-grid">
+                        {% for tool in category_tools %}
+                            {% set tool_page_route = "/tools" ~ tool.route|replace("/convert", "") %}
+                            <article class="tool-card">
+                                <span class="tool-icon"><i data-lucide="arrow-right-left" aria-hidden="true"></i></span>
+                                <h3 class="tool-title">{{ tool.name }}</h3>
+                                <p class="tool-accept">Aceita {{ tool.accept }} &middot; FREE at&eacute; {{ tool.limits.free_upload_limit_label }}</p>
+                                <a class="tool-link" href="{{ tool_page_route }}" data-convert-route="{{ tool.route }}" data-accept="{{ tool.accept }}">
+                                    Converter
+                                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                </a>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+
+            <section class="tools-section" id="extras">
+                <div class="section-header">
+                    <div>
+                        <h2>OCR, Compress&atilde;o e AI Tools</h2>
+                        <p>Espa&ccedil;o reservado para recursos avan&ccedil;ados sem poluir a interface atual.</p>
+                    </div>
+                </div>
+                <div class="tools-grid">
+                    <article class="tool-card">
+                        <span class="tool-icon"><i data-lucide="scan-text" aria-hidden="true"></i></span>
+                        <h3 class="tool-title">OCR de documentos</h3>
+                        <p class="tool-accept">Extra&ccedil;&atilde;o de texto para PDFs e imagens.</p>
+                        <span class="tool-link">Em breve</span>
+                    </article>
+                    <article class="tool-card">
+                        <span class="tool-icon"><i data-lucide="archive" aria-hidden="true"></i></span>
+                        <h3 class="tool-title">Compress&atilde;o inteligente</h3>
+                        <p class="tool-accept">Redu&ccedil;&atilde;o de tamanho com controle de qualidade.</p>
+                        <span class="tool-link">Em breve</span>
+                    </article>
+                    <article class="tool-card">
+                        <span class="tool-icon"><i data-lucide="bot" aria-hidden="true"></i></span>
+                        <h3 class="tool-title">AI Tools</h3>
+                        <p class="tool-accept">Fluxos assistidos para preparar arquivos.</p>
+                        <span class="tool-link">Em breve</span>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}

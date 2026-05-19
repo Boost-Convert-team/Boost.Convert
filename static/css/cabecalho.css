@@ -1,0 +1,85 @@
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 92px;
+    padding: 0 40px;
+    background: rgba(255, 255, 255, .94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(18px);
+    transition:
+        min-height 720ms var(--ease-air),
+        background-color 720ms var(--ease-air),
+        box-shadow 720ms var(--ease-air),
+        border-color 720ms var(--ease-air),
+        backdrop-filter 720ms var(--ease-air);
+}
+
+.topbar.is-scrolled {
+    min-height: 84px;
+    background: rgba(255, 255, 255, .94);
+    border-bottom-color: rgba(234, 223, 211, .76);
+    box-shadow: 0 10px 32px rgba(88, 58, 24, .045);
+    backdrop-filter: blur(22px);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text);
+    font-family: var(--font-main);
+    font-weight: var(--weight-logo);
+}
+
+.brand-logo {
+    display: block;
+    width: 250px;
+    height: 62px;
+    border-radius: 4px;
+    object-fit: cover;
+    object-position: center;
+    mix-blend-mode: multiply;
+    transition: transform 720ms var(--ease-air), filter 720ms var(--ease-air);
+}
+
+.brand:hover .brand-logo {
+    transform: translateY(-1px);
+    filter: saturate(1.04);
+}
+
+.topnav,
+.top-actions {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.topnav a {
+    position: relative;
+    padding: 8px 10px;
+    margin: -8px -10px;
+    border-radius: 999px;
+    color: #294541;
+    font-size: 15px;
+    font-weight: var(--weight-ui-medium);
+    transition:
+        color 640ms var(--ease-air),
+        background-color 640ms var(--ease-air),
+        transform 640ms var(--ease-air),
+        opacity 640ms var(--ease-air);
+}
+
+.topnav a:hover {
+    color: #203f3a;
+    background: rgba(240, 138, 36, .06);
+    transform: translateY(-1px);
+}
+
+.topnav a:focus-visible {
+    outline: 0;
+    color: #203f3a;
+    background: rgba(240, 138, 36, .10);
+}

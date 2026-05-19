@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Planos - BoostConvert AI{% endblock %}
+
+{% block content %}
+<main class="page-section pricing-page">
+    <div class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="badge-dollar-sign" aria-hidden="true"></i> Assinatura</div>
+        <h1>Pague pelo ritmo que voc&ecirc; precisa.</h1>
+        <p>Comece com limites claros e fa&ccedil;a upgrade quando seus arquivos pedirem mais espa&ccedil;o.</p>
+    </div>
+
+    <div class="plans-grid reveal">
+        <article class="plan-card">
+            <span class="account-icon"><i data-lucide="sparkle" aria-hidden="true"></i></span>
+            <h3>FREE</h3>
+            <p>Para testar convers&otilde;es essenciais com uma experi&ecirc;ncia limpa.</p>
+            <div class="plan-price">R$ 0</div>
+            <ul class="plan-list">
+                <li><i data-lucide="check" aria-hidden="true"></i> 10 usos por dia</li>
+                <li><i data-lucide="check" aria-hidden="true"></i> Uploads por categoria</li>
+                <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es em lote reduzido</li>
+            </ul>
+            <a class="button button-secondary" href="{{ url_for('home.tools') }}">Usar gr&aacute;tis</a>
+        </article>
+
+        <article class="plan-card featured">
+            <span class="account-icon"><i data-lucide="rocket" aria-hidden="true"></i></span>
+            <h3>PRO</h3>
+            <p>Para trabalhar com arquivos maiores, lotes amplos e menos interrup&ccedil;&otilde;es.</p>
+            <div class="plan-price">Pro</div>
+            <ul class="plan-list">
+                <li><i data-lucide="check" aria-hidden="true"></i> Acesso ampliado &agrave;s ferramentas</li>
+                <li><i data-lucide="check" aria-hidden="true"></i> Limites de upload maiores</li>
+                <li><i data-lucide="check" aria-hidden="true"></i> Mais arquivos por lote</li>
+            </ul>
+
+            {% if not current_user.is_authenticated %}
+                <a class="button button-primary" href="{{ url_for('auth.login') }}">
+                    Fazer login
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
+            {% elif current_user.plano == "pro" and current_user.status_assinatura == "active" %}
+                <span class="button button-secondary">Plano PRO ativo</span>
+            {% elif current_user.plano == "free" %}
+                <form id="checkout-form" data-loading-form>
+                    <button class="button button-primary" type="submit">
+                        Assinar PRO
+                        <i data-lucide="arrow-right" aria-hidden="true"></i>
+                    </button>
+                </form>
+            {% else %}
+                <p>Plano: {{ current_user.plano }} · Status: {{ current_user.status_assinatura }}</p>
+            {% endif %}
+        </article>
+    </div>
+
+    {% if current_user.is_authenticated %}
+        <section class="status-card reveal" style="margin-top: 24px;">
+            <h2>Resumo da conta</h2>
+            <dl class="details-list">
+                <div class="details-row">
+                    <dt>Email</dt>
+                    <dd>{{ current_user.email }}</dd>
+                </div>
+                <div class="details-row">
+                    <dt>Plano atual</dt>
+                    <dd>{{ current_user.plano }}</dd>
+                </div>
+                <div class="details-row">
+                    <dt>Status</dt>
+                    <dd>{{ current_user.status_assinatura }}</dd>
+                </div>
+            </dl>
+        </section>
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.plano == "free" %}
+        <section class="status-card reveal" style="margin-top: 24px;">
+            <h2>Teste de webhook</h2>
+            <p>Controle de desenvolvimento mantido para simular aprova&ccedil;&atilde;o de pagamento.</p>
+            <form action="{{ url_for('webhook.payment_webhook') }}" method="POST" data-loading-form>
+                <input type="hidden" name="event" value="payment_approved">
+                <input type="hidden" name="user_id" value="{{ current_user.id }}">
+                <button class="button button-secondary" type="submit">Simular pagamento aprovado</button>
+            </form>
+        </section>
+    {% endif %}
+</main>
+
+<script>
+    const form = document.getElementById("checkout-form");
+
+    if (form) {
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const response = await fetch("/checkout/pro", {
+                method: "POST"
+            });
+
+            const data = await response.json();
+
+            if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            } else {
+                alert("Erro ao iniciar pagamento");
+            }
+        });
+    }
+</script>
+{% endblock %}

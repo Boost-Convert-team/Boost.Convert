@@ -1,0 +1,107 @@
+.converter-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 32px;
+    align-items: start;
+}
+
+.converter-form {
+    display: grid;
+    gap: 22px;
+}
+
+.converter-options {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+.converter-options legend {
+    padding: 0 8px;
+    color: #2b4642;
+    font-weight: var(--weight-ui-medium);
+}
+
+.converter-option-field,
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.converter-option-field label,
+.form-field label {
+    color: #2d4743;
+    font-size: 14px;
+    font-weight: var(--weight-ui-medium);
+}
+
+.converter-option-field input,
+.converter-option-field select,
+.form-field input {
+    min-height: 48px;
+    width: 100%;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition:
+        border-color 680ms var(--ease-air),
+        box-shadow 680ms var(--ease-air),
+        background-color 680ms var(--ease-air),
+        transform 420ms var(--ease-air);
+}
+
+.converter-option-field input:focus,
+.converter-option-field select:focus,
+.form-field input:focus {
+    border-color: var(--orange);
+    background: #fff;
+    box-shadow: var(--focus-ring);
+    transform: translateY(-1px);
+}
+
+.side-panel {
+    display: grid;
+    gap: 16px;
+}
+
+.side-note {
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: transform 760ms var(--ease-air), box-shadow 760ms var(--ease-air), border-color 760ms var(--ease-air);
+}
+
+.side-note:hover {
+    transform: translateY(-2px);
+    border-color: rgba(240, 138, 36, .22);
+    box-shadow: var(--shadow-lift);
+}
+
+.side-note h3 {
+    margin: 0 0 10px;
+    color: #243f3c;
+    font-size: 17px;
+    font-weight: var(--weight-logo);
+}
+
+.side-note p,
+.side-note li {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: var(--weight-ui);
+    line-height: 1.55;
+}
+
+.side-note ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-left: 18px;
+}
