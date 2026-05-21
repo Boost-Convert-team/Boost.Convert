@@ -17,6 +17,165 @@ document.addEventListener("DOMContentLoaded", () => {
     updateTopbar();
     window.addEventListener("scroll", updateTopbar, { passive: true });
 
+    const megaDropdown = document.querySelector(".mega-dropdown");
+    if (megaDropdown) {
+        const megaMenu = megaDropdown.querySelector(".mega-menu");
+        let megaCloseTimer;
+
+        const openMegaMenu = () => {
+            window.clearTimeout(megaCloseTimer);
+            megaDropdown.classList.add("is-open");
+        };
+
+        const closeMegaMenu = () => {
+            window.clearTimeout(megaCloseTimer);
+            megaCloseTimer = window.setTimeout(() => {
+                megaDropdown.classList.remove("is-open");
+            }, 260);
+        };
+
+        megaDropdown.addEventListener("pointerenter", openMegaMenu);
+        megaDropdown.addEventListener("pointerleave", closeMegaMenu);
+        megaDropdown.addEventListener("focusin", openMegaMenu);
+        megaDropdown.addEventListener("focusout", (event) => {
+            if (!megaDropdown.contains(event.relatedTarget)) closeMegaMenu();
+        });
+
+        if (megaMenu) {
+            megaMenu.addEventListener("pointerenter", openMegaMenu);
+            megaMenu.addEventListener("pointerleave", closeMegaMenu);
+        }
+    }
+
+    const searchForm = document.querySelector("[data-tool-search]");
+    const searchInput = searchForm?.querySelector("[data-tool-search-input]");
+    const searchResults = searchForm?.querySelector("[data-tool-search-results]");
+    const searchDataElement = document.getElementById("tool-search-data");
+
+    if (searchForm && searchInput && searchResults && searchDataElement) {
+        const toolSearchIndex = parseToolSearchIndex(searchDataElement);
+        let activeSearchIndex = 0;
+        let currentSearchResults = [];
+
+        const closeToolSearch = () => {
+            searchForm.classList.remove("is-open");
+            searchResults.innerHTML = "";
+            currentSearchResults = [];
+            activeSearchIndex = 0;
+        };
+
+        const openToolSearch = () => {
+            if (currentSearchResults.length || searchInput.value.trim()) {
+                searchForm.classList.add("is-open");
+            }
+        };
+
+        const setActiveSearchResult = (index) => {
+            activeSearchIndex = Math.max(0, Math.min(index, currentSearchResults.length - 1));
+            searchResults.querySelectorAll(".tool-search-result").forEach((item, itemIndex) => {
+                item.classList.toggle("is-active", itemIndex === activeSearchIndex);
+                item.setAttribute("aria-selected", itemIndex === activeSearchIndex ? "true" : "false");
+            });
+        };
+
+        const renderToolSearch = () => {
+            const query = searchInput.value.trim();
+            searchResults.innerHTML = "";
+
+            if (!query) {
+                closeToolSearch();
+                return;
+            }
+
+            currentSearchResults = getToolSearchMatches(toolSearchIndex, query).slice(0, 7);
+
+            if (!currentSearchResults.length) {
+                const empty = document.createElement("div");
+                empty.className = "tool-search-empty";
+                empty.textContent = "Nenhuma ferramenta encontrada";
+                searchResults.appendChild(empty);
+                searchForm.classList.add("is-open");
+                return;
+            }
+
+            currentSearchResults.forEach((entry, index) => {
+                const link = document.createElement("a");
+                link.className = "tool-search-result";
+                link.href = entry.url;
+                link.setAttribute("role", "option");
+                link.setAttribute("aria-selected", index === activeSearchIndex ? "true" : "false");
+                if (index === activeSearchIndex) link.classList.add("is-active");
+
+                const icon = document.createElement("span");
+                icon.className = "tool-search-icon";
+                const iconGlyph = document.createElement("i");
+                iconGlyph.setAttribute("data-lucide", entry.icon || "file");
+                iconGlyph.setAttribute("aria-hidden", "true");
+                icon.appendChild(iconGlyph);
+
+                const copy = document.createElement("span");
+                const title = document.createElement("strong");
+                title.textContent = entry.label;
+                const category = document.createElement("small");
+                category.textContent = entry.category;
+                copy.append(title, category);
+
+                const chip = document.createElement("span");
+                chip.className = "tool-search-chip";
+                chip.textContent = entry.category;
+
+                link.append(icon, copy, chip);
+                link.addEventListener("mouseenter", () => setActiveSearchResult(index));
+                searchResults.appendChild(link);
+            });
+
+            searchForm.classList.add("is-open");
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        searchInput.addEventListener("input", () => {
+            activeSearchIndex = 0;
+            renderToolSearch();
+        });
+
+        searchInput.addEventListener("focus", openToolSearch);
+
+        searchInput.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeToolSearch();
+                searchInput.blur();
+                return;
+            }
+
+            if (!currentSearchResults.length) return;
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setActiveSearchResult(activeSearchIndex + 1);
+            }
+
+            if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setActiveSearchResult(activeSearchIndex - 1);
+            }
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                window.location.href = currentSearchResults[activeSearchIndex]?.url || currentSearchResults[0].url;
+            }
+        });
+
+        searchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const firstResult = currentSearchResults[activeSearchIndex] || currentSearchResults[0];
+            if (firstResult) window.location.href = firstResult.url;
+        });
+
+        document.addEventListener("pointerdown", (event) => {
+            if (!searchForm.contains(event.target)) closeToolSearch();
+        });
+    }
+
     const revealElements = document.querySelectorAll(".reveal");
     if ("IntersectionObserver" in window) {
         const revealObserver = new IntersectionObserver((entries, observer) => {
@@ -140,7 +299,79 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 260);
         });
     });
+
+    const toolsPage = document.querySelector(".tools-page");
+    const toolNavLinks = toolsPage ? Array.from(toolsPage.querySelectorAll(".tools-sidebar a[href^='#']")) : [];
+    const toolSections = toolsPage ? Array.from(toolsPage.querySelectorAll(".tools-section[id]")) : [];
+    if (toolNavLinks.length && toolSections.length) {
+        const setActiveTool = (id) => {
+            toolNavLinks.forEach((link) => {
+                link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`);
+            });
+        };
+
+        const updateActiveTool = () => {
+            const checkpoint = window.scrollY + 150;
+            const current = toolSections.reduce((active, section) => {
+                return section.offsetTop <= checkpoint ? section : active;
+            }, toolSections[0]);
+            if (current?.id) setActiveTool(current.id);
+        };
+
+        updateActiveTool();
+        window.addEventListener("scroll", updateActiveTool, { passive: true });
+    }
 });
+
+function parseToolSearchIndex(element) {
+    try {
+        return JSON.parse(element.textContent || "[]").map((entry) => ({
+            ...entry,
+            searchText: normalizeSearch(`${entry.label || ""} ${entry.category || ""} ${entry.aliases || ""}`)
+        }));
+    } catch {
+        return [];
+    }
+}
+
+function getToolSearchMatches(index, query) {
+    const normalizedQuery = normalizeSearch(query);
+    const tokens = normalizedQuery.split(" ").filter(Boolean);
+    if (!tokens.length) return [];
+
+    return index
+        .map((entry) => {
+            let score = 0;
+            const label = normalizeSearch(entry.label || "");
+            const category = normalizeSearch(entry.category || "");
+            const searchText = entry.searchText || "";
+
+            if (label === normalizedQuery) score += 140;
+            if (label.includes(normalizedQuery)) score += 90;
+            if (searchText.includes(normalizedQuery)) score += 72;
+            if (tokens.every((token) => searchText.includes(token))) score += 52;
+            if (tokens.some((token) => label.startsWith(token))) score += 26;
+            if (tokens.some((token) => category.includes(token))) score += 10;
+
+            tokens.forEach((token) => {
+                if (label.includes(token)) score += 14;
+                if (searchText.includes(token)) score += 5;
+            });
+
+            return { ...entry, score };
+        })
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+}
+
+function normalizeSearch(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
 
 function formatBytes(bytes) {
     if (!bytes) return "0 KB";

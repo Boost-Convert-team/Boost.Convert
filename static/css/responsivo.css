@@ -19,6 +19,56 @@
     }
 }
 
+@media (max-width: 1320px) and (min-width: 1181px) {
+    .ab-hero {
+        grid-template-columns: minmax(420px, .86fr) minmax(550px, 1.14fr);
+        gap: 28px;
+        padding-inline: 64px;
+    }
+
+    .ab-hero h1 {
+        font-size: clamp(58px, 5vw, 68px);
+    }
+
+    .hero-actions,
+    .hero-metrics {
+        max-width: 540px;
+    }
+
+    .hero-actions .button-secondary {
+        min-width: 224px;
+    }
+
+    .hero-metrics {
+        gap: 18px;
+    }
+
+    .hero-metrics div {
+        grid-template-columns: 40px max-content;
+        gap: 9px;
+    }
+
+    .hero-metrics .mini-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .hero-orbit {
+        min-height: 550px;
+    }
+
+    .orbit-card {
+        width: 96px;
+        min-height: 118px;
+        padding: 14px;
+    }
+
+    .orbit-core {
+        width: 266px;
+        min-height: 336px;
+    }
+}
+
 @media (max-width: 1180px) {
     .page-section {
         padding: 76px 48px;
@@ -28,6 +78,10 @@
         grid-template-columns: 1fr;
         min-height: auto;
         padding: 88px 64px 80px;
+        background:
+            radial-gradient(circle at 78% 36%, rgba(255, 184, 106, .20), transparent 34%),
+            linear-gradient(180deg, #fff 0, rgba(252, 248, 243, .68) 100%),
+            var(--bg);
     }
 
     .ab-hero-copy {
@@ -47,13 +101,18 @@
         left: 0;
     }
 
-    .conversion-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .hero-orbit {
+        width: min(760px, 100%);
+        min-height: 640px;
+        margin: 0 auto;
     }
 
     .price-editorial,
     .suite-heading,
-    .workspace-story,
+    .home-plans,
+    .toolscape,
+    .pricing-account,
+    .pricing-dev,
     .tools-layout,
     .converter-grid,
     .pricing-page {
@@ -64,31 +123,245 @@
         align-items: start;
     }
 
-    .integrations-stage {
+    .toolscape {
         min-height: auto;
-        padding: 100px 64px 0;
+        padding: 76px 64px 82px;
     }
 
-    .integration-floating {
+    .toolscape::before {
+        opacity: .26;
+    }
+
+    .simple-flow-section {
+        padding: 82px 64px 92px;
+    }
+
+    .simple-flow-header {
+        max-width: 740px;
+    }
+
+    .simple-flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        max-width: 740px;
+        margin-top: 46px;
+    }
+
+    .simple-flow::before {
         display: none;
     }
 
-    .integration-grid {
-        position: relative;
-        left: auto;
-        right: auto;
-        bottom: auto;
-        margin: 96px -64px 0;
+    .flow-card {
+        min-height: 210px;
+    }
+
+    .ecosystem-header {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        max-width: 720px;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    .ecosystem-header .eyebrow {
+        margin: 0 auto;
+    }
+
+    .ecosystem-header h2 {
+        margin-bottom: 0;
+    }
+
+    .ecosystem-header p {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 620px;
+    }
+
+    .ecosystem-board {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+        margin-top: 38px;
+        padding: 18px;
+    }
+
+    .workflow-rail {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .ecosystem-side {
+        grid-template-columns: minmax(220px, .42fr) 1fr;
+        grid-template-rows: auto;
+    }
+
+    .system-note {
+        min-height: auto;
+    }
+
+    .integrations-stage {
+        min-height: auto;
+        padding: 100px 64px;
+    }
+
+    .conversion-showcase {
+        padding: 78px 64px 86px;
+    }
+
+    .format-ecosystem {
+        padding: 82px 64px 90px;
+    }
+
+    .format-cloud {
+        min-height: 540px;
+        max-width: 760px;
+    }
+
+    .ecosystem-center h2 {
+        font-size: clamp(48px, 7.2vw, 70px);
+    }
+
+    .badge-pdf {
+        left: 5%;
+        top: 12%;
+    }
+
+    .badge-docx {
+        right: 5%;
+        top: 12%;
+    }
+
+    .badge-ocr {
+        left: 0;
+    }
+
+    .badge-ai {
+        right: 0;
+    }
+
+    .badge-png {
+        left: 7%;
+    }
+
+    .badge-webp {
+        right: 7%;
+    }
+
+    .badge-mp4,
+    .badge-mp3 {
+        top: 0;
+    }
+
+    .showcase-copy {
+        max-width: 760px;
+    }
+
+    .showcase-stage {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+        margin-top: 38px;
+    }
+
+    .showcase-main {
+        min-height: 340px;
+    }
+
+    .showcase-secondary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mini-transform {
+        min-height: 102px;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .ops-copy {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        max-width: 760px;
+        text-align: center;
+    }
+
+    .ops-copy .eyebrow {
+        margin: 0 auto;
+    }
+
+    .ops-copy p {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 640px;
+    }
+
+    .ops-system {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+        padding: 22px;
+    }
+
+    .ops-pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ops-pipeline::before {
+        display: none;
+    }
+
+    .ops-side {
+        grid-template-columns: minmax(220px, .42fr) 1fr;
+    }
+
+    .ops-side .text-link {
+        grid-column: 1 / -1;
+    }
+
+    .file-workspace-story {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 88px 64px;
+        gap: 46px;
+    }
+
+    .workspace-art-copy {
+        max-width: 760px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .workspace-art-copy p {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .workspace-art-stage {
+        width: min(760px, 100%);
+        min-height: 540px;
+        margin: 0 auto;
+    }
+
+    .paper-stack {
+        left: 3%;
+        width: 180px;
+        height: 200px;
+    }
+
+    .live-document {
+        left: 27%;
+        width: min(340px, 50%);
+    }
+
+    .workspace-output {
+        right: 3%;
     }
 
     .suite-section {
-        padding-left: 48px;
-        padding-right: 48px;
+        padding: 88px 64px 96px;
     }
 
     .suite-heading {
         gap: 28px;
         text-align: center;
+        margin-bottom: 56px;
     }
 
     .suite-heading h2,
@@ -99,24 +372,71 @@
 
     .suite-panels {
         grid-template-columns: 1fr;
+        max-width: 760px;
+        gap: 18px;
     }
 
     .suite-card {
+        --card-lift: 0px;
+        min-height: 480px;
+    }
+
+    .suite-card-flow,
+    .suite-card-ocr,
+    .suite-card-organize {
+        min-height: 480px;
+    }
+
+    .suite-visual {
+        min-height: 316px;
+    }
+
+    .account-workspace {
+        padding: 84px 64px;
+    }
+
+    .home-plans {
+        padding: 92px 64px;
+        gap: 56px;
+    }
+
+    .home-plans::before {
+        display: none;
+    }
+
+    .home-plans-copy {
+        max-width: 720px;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    .home-plans-copy p {
+        max-width: 620px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .home-plan-cards {
+        grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    }
+
+    .account-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .account-actions {
+        justify-content: flex-start;
+    }
+
+    .account-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .account-recent {
+        grid-column: span 2;
+        grid-row: auto;
         min-height: auto;
-        border-left: 0;
-        border-top: 1px solid var(--line);
-    }
-
-    .suite-card:first-child {
-        border-top: 0;
-    }
-
-    .workspace-picture {
-        min-height: 520px;
-    }
-
-    .workspace-text {
-        padding: 76px 64px 86px;
     }
 
     .pricing-page .plans-grid,
@@ -124,9 +444,173 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .tool-card.is-featured {
+        grid-column: span 1;
+    }
+
+    .pricing-hero {
+        padding: 82px 48px 96px;
+        gap: 46px;
+    }
+
+    .pricing-copy {
+        max-width: 720px;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    .pricing-copy p {
+        max-width: 640px;
+        margin: 0 auto;
+    }
+
+    .pricing-stage {
+        grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+        gap: 20px;
+    }
+
+    .pricing-account,
+    .pricing-dev {
+        padding: 76px 64px;
+    }
+
     .tools-sidebar {
         position: static;
+        border-radius: 22px;
+    }
+
+    .tools-layout {
+        max-width: 760px;
+        padding: 22px;
+        gap: 30px;
+    }
+
+    .topbar {
+        padding-inline: 26px;
+    }
+
+    .brand-logo {
+        width: 214px;
+        height: 54px;
+    }
+
+    .mega-trigger,
+    .nav-link {
+        padding-inline: 9px;
+        font-size: 13px;
+    }
+
+    .header-search {
+        flex-basis: 260px;
+        min-width: 210px;
+    }
+
+    .mega-menu {
+        width: min(940px, calc(100vw - 40px));
+    }
+
+    .mega-menu-inner {
+        padding: 18px;
+    }
+
+    .mega-columns {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .mega-column h3 {
+        padding: 0 6px;
+        font-size: 12px;
+    }
+
+    .mega-tool {
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 8px;
+        min-height: 42px;
+        padding: 8px 6px;
+        border-radius: 15px;
+    }
+
+    .mega-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 11px;
+    }
+
+    .mega-tool strong {
+        font-size: 12px;
+    }
+
+    .mega-tool small {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 1024px) and (min-width: 781px) {
+    .topbar {
+        flex-wrap: wrap;
+        row-gap: 14px;
+        padding-top: 17px;
+        padding-bottom: 16px;
+    }
+
+    .mega-nav {
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-search {
+        order: 4;
+        flex: 0 1 min(520px, 100%);
+        margin: 0 auto;
+    }
+
+    .mega-trigger,
+    .nav-link {
+        min-height: 38px;
+        padding: 0 13px;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        background: rgba(255, 255, 255, .62);
+        box-shadow: inset 0 0 0 1px rgba(234, 223, 211, .68);
+        white-space: nowrap;
+    }
+
+    .mega-trigger-all {
+        background: rgba(255, 244, 232, .76);
+    }
+
+    .mega-menu {
+        top: 100%;
+        width: min(900px, calc(100vw - 32px));
+    }
+
+    .mega-menu-inner {
+        max-height: calc(100vh - 178px);
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 900px) and (min-width: 781px) {
+    .mega-columns {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .mega-tool {
+        min-height: 44px;
+        padding: 7px;
+    }
+
+    .mega-tool strong {
+        font-size: 12px;
+    }
+
+    .mega-tool small {
+        font-size: 10px;
     }
 }
 
@@ -147,8 +631,60 @@
     .topnav {
         order: 3;
         width: 100%;
-        justify-content: space-between;
-        gap: 12px;
+        justify-content: flex-start;
+        gap: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .header-search {
+        order: 4;
+        flex: 0 0 100%;
+        min-width: 0;
+    }
+
+    .header-search input {
+        min-height: 44px;
+        font-size: 13px;
+    }
+
+    .tool-search-results {
+        left: 0;
+        width: 100%;
+        transform: translate3d(0, -8px, 0) scale(.985);
+    }
+
+    .header-search.is-open .tool-search-results {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .topnav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mega-dropdown {
+        flex: 0 0 auto;
+    }
+
+    .mega-trigger,
+    .nav-link {
+        min-height: 38px;
+        padding: 0 13px;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        background: rgba(255, 255, 255, .62);
+        box-shadow: inset 0 0 0 1px rgba(234, 223, 211, .72);
+        white-space: nowrap;
+    }
+
+    .mega-trigger-all {
+        background: rgba(255, 244, 232, .74);
+    }
+
+    .mega-menu {
+        display: none;
     }
 
     .top-actions {
@@ -172,7 +708,8 @@
         padding: 58px 22px 48px;
         gap: 46px;
         background:
-            linear-gradient(112deg, #fff 0 64%, rgba(255, 244, 232, .62) 64% 100%),
+            radial-gradient(circle at 92% 34%, rgba(255, 184, 106, .18), transparent 30%),
+            linear-gradient(180deg, #fff 0, rgba(252, 248, 243, .72) 100%),
             var(--bg);
     }
 
@@ -212,15 +749,143 @@
         flex-direction: column;
     }
 
+    .hero-actions .button,
+    .hero-actions .button-secondary {
+        width: 100%;
+        min-width: 0;
+    }
+
     .hero-metrics {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         display: grid;
         gap: 22px;
         margin-top: 56px;
     }
 
+    .hero-metrics div {
+        grid-template-columns: 48px 1fr;
+    }
+
     .hero-device {
         min-height: 560px;
+    }
+
+    .hero-orbit {
+        min-height: 520px;
+        margin-top: 8px;
+    }
+
+    .orbit-glow {
+        width: 420px;
+        max-width: 100%;
+        height: 330px;
+    }
+
+    .orbit-ring-one {
+        width: 420px;
+        max-width: 108%;
+        height: 360px;
+    }
+
+    .orbit-ring-two {
+        width: 300px;
+        max-width: 78%;
+        height: 260px;
+    }
+
+    .orbit-core {
+        width: 210px;
+        min-height: 292px;
+        padding: 22px 20px 20px;
+        border-radius: 24px;
+    }
+
+    .orbit-core > span {
+        padding: 7px 10px;
+        font-size: 11px;
+    }
+
+    .orbit-core > svg {
+        width: 54px;
+        height: 54px;
+        margin-top: 24px;
+    }
+
+    .orbit-core strong {
+        margin-top: 18px;
+        font-size: 24px;
+    }
+
+    .orbit-core small {
+        font-size: 12px;
+    }
+
+    .orbit-core div {
+        margin-top: 26px;
+        padding: 12px;
+        font-size: 11px;
+    }
+
+    .orbit-card {
+        width: 78px;
+        min-height: 94px;
+        gap: 8px;
+        padding: 11px;
+        border-radius: 12px;
+    }
+
+    .orbit-card strong {
+        font-size: 10px;
+    }
+
+    .orbit-card svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .orbit-card small {
+        font-size: 10px;
+    }
+
+    .orbit-img {
+        left: 4%;
+        top: 22px;
+    }
+
+    .orbit-webp {
+        left: 0;
+        top: 154px;
+    }
+
+    .orbit-ocr {
+        left: 3%;
+        bottom: 48px;
+    }
+
+    .orbit-video {
+        right: 5%;
+        top: 34px;
+    }
+
+    .orbit-ai {
+        right: 0;
+        top: 166px;
+    }
+
+    .orbit-mp4 {
+        right: 4%;
+        bottom: 58px;
+    }
+
+    .orbit-docx,
+    .orbit-zip,
+    .dot-c {
+        display: none;
+    }
+
+    .orbit-dot {
+        width: 6px;
+        height: 6px;
     }
 
     .desktop-panel {
@@ -266,34 +931,182 @@
         height: 118px;
     }
 
-    .conversion-strip {
+    .toolscape {
+        padding: 62px 22px 66px;
+    }
+
+    .simple-flow-section {
+        padding: 64px 22px 72px;
+    }
+
+    .simple-flow-header {
+        gap: 14px;
+    }
+
+    .simple-flow-header h2 {
+        font-size: 38px;
+    }
+
+    .simple-flow-header p {
+        font-size: 16px;
+        line-height: 1.62;
+    }
+
+    .simple-flow {
         grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 34px;
+    }
+
+    .flow-card {
         min-height: auto;
+        grid-template-columns: 54px minmax(0, 1fr);
+        justify-items: start;
+        gap: 14px;
+        padding: 18px;
+        text-align: left;
+        animation: none;
     }
 
-    .conversion-strip a {
-        padding: 32px 22px 30px 82px;
-        border-left: 0;
-        border-top: 1px dashed rgba(234, 223, 211, .88);
+    .flow-index {
+        position: absolute;
+        top: 18px;
+        right: 18px;
     }
 
-    .conversion-strip a:first-child {
-        border-top: 0;
+    .flow-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 17px;
     }
 
-    .conversion-strip a::before {
-        top: 34px;
-        left: 22px;
+    .flow-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .flow-copy strong {
+        font-size: 18px;
+    }
+
+    .flow-copy small {
+        margin-top: 5px;
+    }
+
+    .ecosystem-header {
+        gap: 12px;
+        justify-items: center;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    .ecosystem-header .eyebrow {
+        margin: 0 auto;
+    }
+
+    .ecosystem-header h2 {
+        font-size: 38px;
+    }
+
+    .ecosystem-header p {
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 16px;
+    }
+
+    .ecosystem-board {
+        display: grid;
+        gap: 12px;
+        margin-top: 32px;
+        padding: 12px;
+        border-radius: 26px;
+    }
+
+    .workflow-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-radius: 20px;
+    }
+
+    .workflow-rail::before {
+        display: none;
+    }
+
+    .workflow-step,
+    .workflow-step:nth-child(2) {
+        min-height: auto;
+        padding: 14px;
+        border-bottom: 1px solid rgba(234, 223, 211, .58);
+    }
+
+    .workflow-step:nth-child(odd) {
+        border-right: 1px solid rgba(234, 223, 211, .58);
+    }
+
+    .workflow-step:nth-child(3) {
+        border-bottom: 0;
+    }
+
+    .workflow-step:last-child {
+        border-bottom: 0;
+    }
+
+    .workflow-step small {
+        display: none;
+    }
+
+    .workspace-preview {
+        min-height: auto;
+        padding: 12px;
+        border-radius: 22px;
+        animation: none;
+    }
+
+    .workspace-preview-top,
+    .workspace-row,
+    .workspace-command {
+        border-radius: 16px;
+    }
+
+    .workspace-preview-top {
+        align-items: center;
+        flex-direction: row;
+    }
+
+    .workspace-row {
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .workspace-row em {
+        grid-column: auto;
+    }
+
+    .file-token {
+        width: 34px;
         height: 34px;
     }
 
-    .conversion-strip strong {
-        margin-top: 0;
-        font-size: 20px;
+    .workspace-command {
+        grid-template-columns: 28px minmax(0, 1fr) 34px;
     }
 
-    .conversion-strip span {
-        max-width: none;
+    .workspace-command span {
+        white-space: normal;
+    }
+
+    .ecosystem-side {
+        grid-template-columns: 1fr;
+    }
+
+    .system-note,
+    .format-chain {
+        border-radius: 20px;
+        padding: 16px;
+    }
+
+    .system-note strong {
+        font-size: 34px;
     }
 
     .price-editorial {
@@ -311,74 +1124,487 @@
         font-size: 16px;
     }
 
-    .integrations-stage {
-        padding: 82px 22px 0;
+    .pricing-hero {
+        padding: 72px 22px;
+        gap: 40px;
+        background:
+            radial-gradient(circle at 82% 28%, rgba(240, 138, 36, .13), transparent 30%),
+            linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(252, 248, 243, .96)),
+            var(--bg);
     }
 
-    .integration-copy {
+    .pricing-copy {
+        text-align: left;
+        margin: 0;
+    }
+
+    .pricing-copy h1 {
+        font-size: 42px;
+    }
+
+    .pricing-copy p {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .pricing-stage {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .plan-free,
+    .plan-pro {
+        min-height: auto;
+        margin-top: 0;
+        padding: 28px;
+        border-radius: 24px;
+        animation: none;
+    }
+
+    .plan-pro {
+        order: 0;
+    }
+
+    .plan-badge {
+        position: static;
+        margin-bottom: 22px;
+    }
+
+    .plan-list {
+        margin-top: 30px;
+    }
+
+    .plan-free .button,
+    .plan-action {
+        margin-top: 34px;
+    }
+
+    .plan-price {
+        font-size: 64px;
+    }
+
+    .pricing-account,
+    .pricing-dev {
+        grid-template-columns: 1fr;
+        padding: 64px 22px;
+    }
+
+    .pricing-dev form {
+        justify-self: start;
+    }
+
+    .integrations-stage {
+        padding: 72px 22px;
+    }
+
+    .conversion-showcase {
+        padding: 62px 22px 68px;
+    }
+
+    .format-ecosystem {
+        padding: 64px 22px 72px;
+    }
+
+    .format-cloud {
+        min-height: 610px;
+        place-items: center;
+    }
+
+    .format-cloud::before {
+        width: 112%;
+        height: 390px;
+    }
+
+    .format-cloud::after {
+        width: 88%;
+        height: 270px;
+    }
+
+    .ecosystem-center {
+        gap: 14px;
+        max-width: 330px;
+    }
+
+    .ecosystem-center h2 {
+        font-size: 42px;
+    }
+
+    .ecosystem-center p {
+        max-width: 310px;
+        margin-bottom: 8px;
+        font-size: 16px;
+        line-height: 1.58;
+    }
+
+    .ecosystem-center .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .format-badge {
+        min-height: 40px;
+        gap: 8px;
+        padding: 0 13px;
+        font-size: 13px;
+    }
+
+    .format-badge svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .badge-pdf {
+        left: 0;
+        top: 5%;
+    }
+
+    .badge-docx {
+        right: 0;
+        top: 8%;
+    }
+
+    .badge-ocr {
+        left: 2%;
+        top: 24%;
+    }
+
+    .badge-ai {
+        right: 3%;
+        top: 28%;
+    }
+
+    .badge-png {
+        left: 0;
+        bottom: 20%;
+    }
+
+    .badge-webp {
+        right: 0;
+        bottom: 17%;
+    }
+
+    .badge-mp4 {
+        left: 16%;
+        top: auto;
+        bottom: 5%;
+    }
+
+    .badge-mp3 {
+        right: 14%;
+        top: auto;
+        bottom: 2%;
+    }
+
+    .badge-compress,
+    .badge-export {
+        display: none;
+    }
+
+    .showcase-copy {
+        gap: 14px;
+    }
+
+    .showcase-copy h2 {
+        font-size: 38px;
+    }
+
+    .showcase-copy p {
+        font-size: 16px;
+        line-height: 1.62;
+    }
+
+    .showcase-stage {
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .showcase-main {
+        min-height: auto;
+        padding: 18px;
+        border-radius: 26px;
+    }
+
+    .file-transform {
+        grid-template-columns: 1fr 48px 1fr;
+        gap: 10px;
+    }
+
+    .file-tile {
+        min-height: 134px;
+        gap: 10px;
+        padding: 16px 10px;
+        border-radius: 22px;
+        animation: none;
+    }
+
+    .file-tile span {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .file-tile svg {
+        width: 38px;
+        height: 38px;
+    }
+
+    .file-tile small {
+        font-size: 11px;
+    }
+
+    .transform-orb {
+        width: 48px;
+        height: 48px;
+        box-shadow:
+            0 14px 32px rgba(240, 138, 36, .16),
+            0 0 0 8px rgba(240, 138, 36, .06);
+        animation: none;
+    }
+
+    .transform-orb svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .showcase-main h3 {
+        margin-top: 20px;
+        font-size: 24px;
+    }
+
+    .showcase-secondary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .mini-transform {
+        min-height: 70px;
+        grid-template-columns: 34px 1fr auto 1fr;
+        justify-items: start;
+        padding: 16px;
+        border-radius: 20px;
         text-align: left;
     }
 
-    .integration-copy h2 {
+    .mini-transform strong {
+        font-size: 16px;
+    }
+
+    .ops-copy {
+        gap: 12px;
+        text-align: left;
+    }
+
+    .ops-copy .eyebrow {
+        margin: 0;
+    }
+
+    .ops-copy h2 {
         font-size: 41px;
     }
 
-    .integration-copy p {
+    .ops-copy p {
         margin-left: 0;
         font-size: 16px;
     }
 
-    .integration-grid {
+    .ops-system {
         grid-template-columns: 1fr;
-        margin: 72px -22px 0;
+        gap: 16px;
+        margin-top: 42px;
+        padding: 14px;
+        border-radius: 26px;
     }
 
-    .doc-window,
-    .ai-command {
-        min-height: 360px;
-        border-left: 0;
-        border-top: 1px solid var(--line);
-    }
-
-    .doc-window {
-        padding: 42px 22px;
-    }
-
-    .doc-window::before {
-        left: 24%;
-        top: 44px;
-        width: 64%;
-        height: 220px;
-    }
-
-    .ai-command {
-        padding: 34px 22px;
-    }
-
-    .ai-command > span {
-        min-height: 92px;
-        padding: 0 18px;
+    .ops-pipeline {
+        grid-template-columns: 1fr;
+        padding: 14px;
         border-radius: 22px;
-        font-size: 17px;
     }
 
-    .ai-command > svg {
-        margin-left: -86px;
+    .ops-step {
+        min-height: auto;
+        padding: 14px 12px;
     }
 
-    .ai-command button {
-        width: 54px;
-        height: 54px;
-        margin-left: 12px;
+    .ops-console {
+        padding: 14px;
+        border-radius: 22px;
+        animation: none;
+    }
+
+    .ops-console-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ops-file {
+        grid-template-columns: 44px minmax(0, 1fr);
+    }
+
+    .ops-file em {
+        grid-column: 2;
+    }
+
+    .ops-file > span {
+        width: 40px;
+        height: 40px;
+    }
+
+    .ops-suggestion {
+        grid-template-columns: 30px minmax(0, 1fr);
+    }
+
+    .ops-suggestion button {
+        grid-column: 2;
+        width: fit-content;
+    }
+
+    .ops-side {
+        grid-template-columns: 1fr;
+    }
+
+    .ops-side > div {
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .ops-stat strong {
+        font-size: 42px;
+    }
+
+    .file-workspace-story {
+        grid-template-columns: 1fr;
+        padding: 64px 22px 70px;
+        gap: 32px;
+    }
+
+    .workspace-art-copy {
+        text-align: left;
+        margin: 0;
+    }
+
+    .workspace-art-copy h2 {
+        margin: 18px 0 18px;
+        font-size: 40px;
+    }
+
+    .workspace-art-copy p {
+        margin-left: 0;
+        font-size: 16px;
+        line-height: 1.62;
+    }
+
+    .workspace-art-stage {
+        min-height: 500px;
+        width: 100%;
+    }
+
+    .workspace-art-stage::before {
+        width: 116%;
+        height: 320px;
+    }
+
+    .workspace-art-stage::after {
+        width: 360px;
+        height: 250px;
+    }
+
+    .paper-stack {
+        left: -20px;
+        top: 48px;
+        width: 140px;
+        height: 160px;
+        opacity: .74;
+        animation: none;
+    }
+
+    .live-document {
+        left: 50%;
+        top: 58px;
+        width: min(250px, 78%);
+        min-height: 320px;
+        gap: 20px;
+        padding: 22px;
+        border-radius: 28px;
+        transform: translateX(-50%) rotate(2deg);
+        animation: none;
+    }
+
+    .doc-topline svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .doc-lines {
+        gap: 12px;
+    }
+
+    .doc-lines span {
+        height: 10px;
+    }
+
+    .ocr-highlight {
+        margin-top: 14px;
+        padding: 9px 12px;
+        font-size: 12px;
+    }
+
+    .workspace-output {
+        left: 50%;
+        right: auto;
+        bottom: 18px;
+        justify-content: center;
+        width: min(286px, 94%);
+        padding: 14px;
+        border-radius: 22px;
+        transform: translateX(-50%);
+        animation: none;
+    }
+
+    .workspace-output span {
+        min-height: 34px;
+    }
+
+    .floating-file {
+        min-height: 38px;
+        gap: 7px;
+        padding: 0 12px;
+        font-size: 12px;
+        animation: none;
+    }
+
+    .floating-file svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .floating-img {
+        left: 0;
+        bottom: 132px;
+    }
+
+    .floating-video {
+        right: 0;
+        top: 18px;
+    }
+
+    .floating-ai {
+        left: 10px;
+        bottom: 76px;
+    }
+
+    .floating-zip {
+        right: 4px;
+        top: 246px;
     }
 
     .suite-section {
-        padding: 72px 22px 56px;
+        padding: 64px 22px 72px;
     }
 
     .suite-heading {
         text-align: left;
-        margin-bottom: 52px;
+        margin-bottom: 34px;
     }
 
     .suite-heading h2 {
@@ -389,16 +1615,78 @@
         margin-left: 0;
     }
 
+    .suite-panels {
+        gap: 14px;
+    }
+
+    .suite-card,
+    .suite-card-flow,
+    .suite-card-ocr,
+    .suite-card-organize {
+        --card-lift: 0px;
+        min-height: 390px;
+        border-radius: 24px;
+    }
+
     .suite-visual {
-        min-height: 270px;
+        min-height: 250px;
     }
 
     .suite-card h3 {
-        padding: 28px 24px 8px;
+        padding: 0 22px 8px;
+        font-size: 21px;
     }
 
     .suite-card p {
-        padding: 0 24px 32px;
+        padding: 0 22px 28px;
+    }
+
+    .preview-sheet {
+        top: 34px;
+        width: 146px;
+        min-height: 176px;
+        padding: 16px;
+        border-radius: 22px;
+    }
+
+    .preview-sheet svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .preview-arrow {
+        right: 10%;
+        width: 42px;
+        height: 42px;
+    }
+
+    .chip-docx {
+        right: 8%;
+        top: 44px;
+    }
+
+    .chip-webp {
+        left: 8%;
+        bottom: 42px;
+    }
+
+    .scan-sheet {
+        top: 38px;
+        width: 176px;
+        min-height: 184px;
+        padding: 22px;
+    }
+
+    .extract-pill {
+        bottom: 38px;
+    }
+
+    .format-orbit {
+        inset: 30px 18px 58px;
+    }
+
+    .output-capsule {
+        min-height: 50px;
     }
 
     .dark-cta {
@@ -407,35 +1695,153 @@
     }
 
     .dark-cta h2 {
-        font-size: 40px;
+        font-size: 36px;
     }
 
-    .workspace-story {
+    .home-plans {
+        grid-template-columns: 1fr;
+        padding: 72px 22px;
+        gap: 42px;
+    }
+
+    .home-plans-copy {
+        text-align: left;
+        margin: 0;
+    }
+
+    .home-plans-copy h2 {
+        font-size: 42px;
+    }
+
+    .home-plans-copy p {
+        margin-left: 0;
+        font-size: 16px;
+    }
+
+    .home-plan-cards {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .home-plan-card,
+    .home-plan-pro {
+        min-height: auto;
+        padding: 28px;
+        border-radius: 24px;
+        animation: none;
+    }
+
+    .home-plan-free {
+        margin-top: 0;
+    }
+
+    .home-plan-badge {
+        position: static;
+        width: fit-content;
+        margin-bottom: 20px;
+    }
+
+    .home-plan-card ul {
+        margin-top: 28px;
+    }
+
+    .home-plan-card .button {
+        margin-top: 34px;
+    }
+
+    .account-workspace {
+        padding: 64px 22px;
+    }
+
+    .account-person {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .account-person p {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .account-actions,
+    .account-actions .button {
+        width: 100%;
+    }
+
+    .account-plan-badge,
+    .account-usage-pill {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .account-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .account-card,
+    .account-recent {
+        grid-column: auto;
+        min-height: auto;
+        padding: 22px;
+        border-radius: 22px;
+    }
+
+    .recent-list a {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .history-stats {
         grid-template-columns: 1fr;
     }
 
-    .workspace-picture {
-        min-height: 420px;
+    .tools-page {
+        padding-top: 56px;
+        padding-bottom: 72px;
     }
 
-    .workspace-screen {
-        left: 12%;
-        top: 24%;
-        width: 84%;
-        height: 250px;
-        grid-template-columns: 82px 1fr;
+    .tools-page .section-heading {
+        margin-bottom: 30px;
     }
 
-    .workspace-text {
-        padding: 64px 22px 74px;
+    .tools-layout {
+        padding: 14px;
+        border-radius: 24px;
+        gap: 28px;
     }
 
-    .workspace-text h2 {
-        font-size: 38px;
+    .tools-sidebar {
+        gap: 5px;
+        padding: 8px;
+        border-radius: 18px;
+        justify-content: flex-start;
     }
 
-    .workspace-text p {
-        font-size: 16px;
+    .tools-sidebar a {
+        min-height: 38px;
+        padding: 0 12px;
+    }
+
+    .tools-section {
+        padding: 34px 0;
+    }
+
+    .section-header {
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .tool-card {
+        min-height: auto;
+        padding: 17px;
+        border-radius: 18px;
+    }
+
+    .tool-card.is-featured {
+        grid-column: span 1;
+        min-height: auto;
     }
 
     .hero-proof,

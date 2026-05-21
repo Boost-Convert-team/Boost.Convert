@@ -12,12 +12,12 @@
             </div>
 
             <h1>
-                <span class="headline-line">Converta f&aacute;cil.</span>
-                <span class="headline-line">Trabalhe <em>leve.</em></span>
+                <span class="headline-line">Converta sem</span>
+                <span class="headline-line">quebrar o <em>ritmo.</em></span>
             </h1>
             <p>
-                Uma infraestrutura simples para transformar PDFs, imagens, v&iacute;deos, &aacute;udios e documentos
-                sem abrir uma tela confusa.
+                PDFs, imagens, v&iacute;deos e documentos convertidos em um espa&ccedil;o limpo,
+                r&aacute;pido e organizado.
             </p>
 
             <div class="hero-actions">
@@ -25,90 +25,151 @@
                     Come&ccedil;ar agora
                     <i data-lucide="arrow-right" aria-hidden="true"></i>
                 </a>
-                <a class="text-link" href="#porque-usar">Por que usar?</a>
+                <a class="button button-secondary" href="{{ url_for('home.tools') }}">
+                    <i data-lucide="circle-play" aria-hidden="true"></i>
+                    Explorar ferramentas
+                </a>
             </div>
 
             <div class="hero-metrics" aria-label="Destaques do produto">
                 <div>
-                    <span class="mini-icon"><i data-lucide="zap" aria-hidden="true"></i></span>
-                    <strong>R&aacute;pido</strong>
-                    <small>Converta sem perder ritmo.</small>
+                    <span class="mini-icon"><i data-lucide="scan-text" aria-hidden="true"></i></span>
+                    <strong>OCR</strong>
+                    <small>Integrado</small>
                 </div>
                 <div>
-                    <span class="mini-icon"><i data-lucide="lock" aria-hidden="true"></i></span>
-                    <strong>Seguro</strong>
-                    <small>Sess&otilde;es e arquivos organizados.</small>
+                    <span class="mini-icon"><i data-lucide="zap" aria-hidden="true"></i></span>
+                    <strong>Convers&otilde;es</strong>
+                    <small>R&aacute;pidas</small>
+                </div>
+                <div>
+                    <span class="mini-icon"><i data-lucide="folder" aria-hidden="true"></i></span>
+                    <strong>Workspace</strong>
+                    <small>Organizado</small>
+                </div>
+                <div>
+                    <span class="mini-icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                    <strong>Seguran&ccedil;a</strong>
+                    <small>Total</small>
                 </div>
             </div>
         </div>
 
-        <div class="hero-device reveal" aria-label="Interface de upload Boost.Convert">
-            <div class="desktop-panel">
-                <div class="panel-top">
-                    <i data-lucide="rocket" aria-hidden="true"></i>
-                    <span>Conversor</span>
-                    <i data-lucide="menu" aria-hidden="true"></i>
-                </div>
+        <div class="hero-device hero-orbit reveal" aria-label="Formatos conectados ao upload Boost.Convert">
+            <div class="orbit-glow" aria-hidden="true"></div>
+            <div class="orbit-ring orbit-ring-one" aria-hidden="true"></div>
+            <div class="orbit-ring orbit-ring-two" aria-hidden="true"></div>
+            <span class="orbit-dot dot-a" aria-hidden="true"></span>
+            <span class="orbit-dot dot-b" aria-hidden="true"></span>
+            <span class="orbit-dot dot-c" aria-hidden="true"></span>
+            <span class="orbit-dot dot-d" aria-hidden="true"></span>
 
-                <div class="desktop-upload">
-                    <div>
-                        <small>Total pronto hoje</small>
-                        <strong>18 arquivos</strong>
-                    </div>
-                    <span>PDF, WEBP, MP4</span>
+            <article class="orbit-core">
+                <span>PDF</span>
+                <i data-lucide="file-text" aria-hidden="true"></i>
+                <strong>PDF</strong>
+                <small>Documento PDF</small>
+                <div>
+                    <i data-lucide="upload" aria-hidden="true"></i>
+                    <span>Solte ou adicione<br>seus arquivos</span>
                 </div>
+            </article>
 
-                <div class="desktop-progress">
-                    <div><span class="progress-a"></span></div>
-                    <div><span class="progress-b"></span></div>
-                    <div><span class="progress-c"></span></div>
-                </div>
-
-                <div class="desktop-table">
-                    <div><span>relatorio.pdf</span><strong>DOCX</strong></div>
-                    <div><span>campanha.png</span><strong>WEBP</strong></div>
-                    <div><span>aula.mov</span><strong>MP4</strong></div>
-                </div>
-            </div>
-
-            <div class="phone-panel">
-                <div class="phone-status"><span>9:41</span><span></span></div>
-                <div class="phone-title">
-                    <small>Upload</small>
-                    <strong>Solte aqui</strong>
-                </div>
-                <div class="phone-wave">
-                    <span></span><span></span><span></span><span></span><span></span>
-                </div>
-                <div class="phone-list">
-                    <div><span>PDF</span><strong>+12</strong></div>
-                    <div><span>IMG</span><strong>+08</strong></div>
-                </div>
-            </div>
+            <article class="orbit-card orbit-img">
+                <strong>IMG</strong>
+                <i data-lucide="image" aria-hidden="true"></i>
+                <small>Imagens</small>
+            </article>
+            <article class="orbit-card orbit-webp">
+                <strong>WEBP</strong>
+                <i data-lucide="image" aria-hidden="true"></i>
+                <small>Imagens</small>
+            </article>
+            <article class="orbit-card orbit-ocr">
+                <strong>OCR</strong>
+                <i data-lucide="scan-text" aria-hidden="true"></i>
+                <small>Reconhecimento<br>de texto</small>
+            </article>
+            <article class="orbit-card orbit-docx">
+                <strong>DOCX</strong>
+                <i data-lucide="file-type" aria-hidden="true"></i>
+                <small>Documento</small>
+            </article>
+            <article class="orbit-card orbit-video">
+                <strong>VIDEO</strong>
+                <i data-lucide="circle-play" aria-hidden="true"></i>
+                <small>V&iacute;deos</small>
+            </article>
+            <article class="orbit-card orbit-ai">
+                <strong>AI</strong>
+                <i data-lucide="sparkles" aria-hidden="true"></i>
+                <small>AI Tools</small>
+            </article>
+            <article class="orbit-card orbit-mp4">
+                <strong>MP4</strong>
+                <i data-lucide="circle-play" aria-hidden="true"></i>
+                <small>V&iacute;deos</small>
+            </article>
+            <article class="orbit-card orbit-zip">
+                <strong>ZIP</strong>
+                <i data-lucide="file-archive" aria-hidden="true"></i>
+                <small>Arquivos</small>
+            </article>
         </div>
     </section>
 
-    <section class="conversion-strip" id="porque-usar" aria-label="Principais recursos">
-        <a href="{{ url_for('home.tools') }}#documentos" class="reveal">
-            <i data-lucide="file-text" aria-hidden="true"></i>
-            <strong>PDFs sem atrito</strong>
-            <span>Junte, divida, comprima e extraia texto em poucos cliques.</span>
-        </a>
-        <a href="{{ url_for('home.tools') }}#imagens" class="reveal">
-            <i data-lucide="image" aria-hidden="true"></i>
-            <strong>Imagens prontas</strong>
-            <span>Formatos modernos, arquivos leves e exporta&ccedil;&atilde;o limpa.</span>
-        </a>
-        <a href="{{ url_for('home.tools') }}#videos" class="reveal">
-            <i data-lucide="clapperboard" aria-hidden="true"></i>
-            <strong>V&iacute;deo e &aacute;udio</strong>
-            <span>Converta lotes sem transformar o app em painel t&eacute;cnico.</span>
-        </a>
-        <a href="{{ url_for('home.tools') }}" class="reveal">
-            <i data-lucide="sparkles" aria-hidden="true"></i>
-            <strong>OCR e AI Tools</strong>
-            <span>Recursos assistidos para documentos que precisam virar dados.</span>
-        </a>
+    <section class="toolscape simple-flow-section" id="porque-usar" aria-label="Fluxo simples de convers&atilde;o">
+        <div class="simple-flow-header reveal">
+            <span class="eyebrow">Fluxo simples</span>
+            <h2>Converta arquivos sem pensar no processo.</h2>
+            <p>Quatro etapas claras, sem painel complexo. Voc&ecirc; envia, o Boost organiza o caminho.</p>
+        </div>
+
+        <div class="simple-flow reveal" aria-label="Quatro etapas do Boost Convert">
+            <article class="flow-card">
+                <span class="flow-index">01</span>
+                <div class="flow-icon">
+                    <i data-lucide="upload-cloud" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Upload</strong>
+                    <small>Solte seus arquivos.</small>
+                </div>
+            </article>
+
+            <article class="flow-card is-primary">
+                <span class="flow-index">02</span>
+                <div class="flow-icon">
+                    <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Converter</strong>
+                    <small>Escolha o formato.</small>
+                </div>
+            </article>
+
+            <article class="flow-card">
+                <span class="flow-index">03</span>
+                <div class="flow-icon">
+                    <i data-lucide="scan-text" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>IA/OCR</strong>
+                    <small>Texto limpo quando precisar.</small>
+                </div>
+            </article>
+
+            <article class="flow-card">
+                <span class="flow-index">04</span>
+                <div class="flow-icon">
+                    <i data-lucide="download" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Exportar</strong>
+                    <small>Baixe e continue.</small>
+                </div>
+            </article>
+        </div>
     </section>
 
     <section class="price-editorial reveal">
@@ -119,102 +180,142 @@
         <a class="text-link" href="{{ url_for('main.planos') }}">Ver planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
     </section>
 
-    <section class="integrations-stage">
-        <div class="integration-floating" aria-hidden="true">
-            <span class="float-a"><i data-lucide="file-json" aria-hidden="true"></i> JSON</span>
-            <span class="float-b"><i data-lucide="file-image" aria-hidden="true"></i> WEBP</span>
-            <span class="float-c"><i data-lucide="file-video" aria-hidden="true"></i> MP4</span>
-            <span class="float-d"><i data-lucide="file-audio" aria-hidden="true"></i> WAV</span>
-        </div>
-
-        <div class="integration-copy reveal">
-            <span class="eyebrow">Automa&ccedil;&otilde;es</span>
-            <h2>Integre como quiser.<br>Manual, lote ou API.</h2>
-            <p>O mesmo espa&ccedil;o funciona para um arquivo r&aacute;pido, uma rotina de equipe ou fluxos conectados ao seu produto.</p>
-            <a class="button button-primary" href="{{ url_for('home.tools') }}">
-                Ver ferramentas
-                <i data-lucide="arrow-right" aria-hidden="true"></i>
-            </a>
-        </div>
-
-        <div class="integration-grid reveal">
-            <div class="doc-window">
-                <div class="doc-tabs"><span>Convers&otilde;es</span><span>Hist&oacute;rico</span></div>
-                <div class="doc-body">
-                    <strong>Comece aqui</strong>
-                    <p>Escolha o formato, arraste seus arquivos e acompanhe sem sair do contexto.</p>
-                    <ul>
-                        <li>PDF para DOCX</li>
-                        <li>PNG para WEBP</li>
-                        <li>OCR para texto</li>
-                    </ul>
-                </div>
+    <section class="integrations-stage format-ecosystem" aria-label="Ecossistema moderno de convers&atilde;o">
+        <div class="format-cloud reveal">
+            <div class="ecosystem-center">
+                <span class="eyebrow">Ecossistema</span>
+                <h2>Tudo conectado<br>em um &uacute;nico fluxo.</h2>
+                <p>PDF, imagem, v&iacute;deo e IA em uma experi&ecirc;ncia limpa, r&aacute;pida e sem ru&iacute;do.</p>
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">
+                    Explorar ferramentas
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
-            <div class="ai-command">
-                <span>Converter relat&oacute;rios para DOCX...</span>
-                <i data-lucide="mic" aria-hidden="true"></i>
-                <button type="button" aria-label="Executar comando"><i data-lucide="sparkles" aria-hidden="true"></i></button>
-            </div>
+
+            <span class="format-badge badge-pdf"><i data-lucide="file-text" aria-hidden="true"></i> PDF</span>
+            <span class="format-badge badge-docx"><i data-lucide="file-type" aria-hidden="true"></i> DOCX</span>
+            <span class="format-badge badge-ocr"><i data-lucide="scan-text" aria-hidden="true"></i> OCR</span>
+            <span class="format-badge badge-ai"><i data-lucide="sparkles" aria-hidden="true"></i> AI</span>
+            <span class="format-badge badge-png"><i data-lucide="image" aria-hidden="true"></i> PNG</span>
+            <span class="format-badge badge-webp"><i data-lucide="image" aria-hidden="true"></i> WEBP</span>
+            <span class="format-badge badge-mp4"><i data-lucide="video" aria-hidden="true"></i> MP4</span>
+            <span class="format-badge badge-mp3"><i data-lucide="music" aria-hidden="true"></i> MP3</span>
+            <span class="format-badge badge-compress"><i data-lucide="minimize-2" aria-hidden="true"></i> Compress&atilde;o</span>
+            <span class="format-badge badge-export"><i data-lucide="download" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</span>
         </div>
     </section>
 
     <section class="suite-section">
         <div class="suite-heading reveal">
-            <h2>Uma suite de solu&ccedil;&otilde;es para o seu arquivo.</h2>
+            <h2>Um workspace de arquivos que parece leve.</h2>
             <p>
-                Centralize convers&otilde;es, compress&atilde;o, OCR e hist&oacute;rico em uma experi&ecirc;ncia que n&atilde;o pesa na rotina.
+                Convers&otilde;es, compress&atilde;o e OCR aparecem como partes do mesmo fluxo:
+                visual, organizado e sem cara de sistema corporativo.
             </p>
         </div>
 
         <div class="suite-panels">
-            <article class="suite-card reveal">
-                <div class="suite-visual compress-visual"><i data-lucide="refresh-cw" aria-hidden="true"></i></div>
-                <h3>Compress&atilde;o inteligente.</h3>
-                <p>Reduza arquivos mantendo clareza para compartilhar, publicar e arquivar.</p>
-            </article>
-            <article class="suite-card reveal">
-                <div class="suite-visual ocr-visual"><i data-lucide="scan-text" aria-hidden="true"></i></div>
-                <h3>OCR integrado.</h3>
-                <p>Transforme imagens e PDFs escaneados em texto utiliz&aacute;vel.</p>
-            </article>
-            <article class="suite-card reveal">
-                <div class="suite-visual batch-visual"><strong>31</strong></div>
-                <h3>Lotes e hist&oacute;rico.</h3>
-                <p>Organize opera&ccedil;&otilde;es recorrentes sem criar uma central de controle pesada.</p>
-            </article>
-        </div>
-    </section>
-
-    <section class="dark-cta reveal">
-        <div>
-            <h2>Seu pr&oacute;ximo lote pode sair em minutos.</h2>
-            <a class="button button-primary" href="{{ url_for('home.tools') }}">
-                Abrir conversor
-                <i data-lucide="arrow-right" aria-hidden="true"></i>
-            </a>
-        </div>
-    </section>
-
-    <section class="workspace-story" id="conta">
-        <div class="workspace-picture reveal" aria-hidden="true">
-            <div class="workspace-screen">
-                <div class="workspace-sidebar"></div>
-                <div class="workspace-content">
-                    <span></span><span></span><span></span>
-                    <strong></strong>
+            <article class="suite-card suite-card-flow reveal">
+                <div class="suite-visual flow-visual">
+                    <div class="preview-sheet">
+                        <span>PDF</span>
+                        <i data-lucide="file-text" aria-hidden="true"></i>
+                        <div class="preview-lines">
+                            <small></small>
+                            <small></small>
+                            <small></small>
+                        </div>
+                    </div>
+                    <span class="preview-arrow"><i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    <span class="preview-chip chip-docx">DOCX</span>
+                    <span class="preview-chip chip-webp">WEBP</span>
                 </div>
-            </div>
+                <h3>Formatos em movimento.</h3>
+                <p>Transforme PDF, imagem, v&iacute;deo e &aacute;udio em uma experi&ecirc;ncia visual e direta.</p>
+            </article>
+            <article class="suite-card suite-card-ocr reveal">
+                <div class="suite-visual ocr-visual">
+                    <div class="scan-sheet">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <b></b>
+                    </div>
+                    <div class="extract-pill"><i data-lucide="scan-text" aria-hidden="true"></i> OCR limpo</div>
+                </div>
+                <h3>Texto que aparece pronto.</h3>
+                <p>Extraia texto de PDFs e imagens sem transformar a tarefa em processo t&eacute;cnico.</p>
+            </article>
+            <article class="suite-card suite-card-organize reveal">
+                <div class="suite-visual organize-visual">
+                    <div class="format-orbit">
+                        <span>PNG</span>
+                        <span>MP4</span>
+                        <span>ZIP</span>
+                        <span>AI</span>
+                    </div>
+                    <div class="output-capsule">
+                        <i data-lucide="archive" aria-hidden="true"></i>
+                        <strong>exports</strong>
+                    </div>
+                </div>
+                <h3>Tudo fica no lugar.</h3>
+                <p>Arquivos, formatos e sa&iacute;das ficam organizados com uma sensa&ccedil;&atilde;o de workspace moderno.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="home-plans" id="planos">
+        <div class="home-plans-copy reveal">
+            <span class="eyebrow">Planos</span>
+            <h2>Comece leve.<br>Escalone quando precisar.</h2>
+            <p>
+                O Free resolve fluxos r&aacute;pidos e casuais. O Pro libera a opera&ccedil;&atilde;o completa:
+                mais volume, prioridade, hist&oacute;rico persistente e ferramentas avan&ccedil;adas.
+            </p>
+            <a class="text-link" href="{{ url_for('main.planos') }}">Comparar planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
         </div>
 
-        <div class="workspace-text reveal">
-            <span class="eyebrow">Workspace</span>
-            <h2>E tudo isso com uma conta que n&atilde;o te deixa na m&atilde;o.</h2>
-            {% if current_user.is_authenticated %}
-                <p>{{ current_user.email }} est&aacute; com o plano {{ current_user.plano|upper }} ativo, hist&oacute;rico organizado e sess&otilde;es protegidas.</p>
-            {% else %}
-                <p>Entre para guardar hist&oacute;rico, controlar limites, revisar arquivos recentes e evoluir para o Pro quando fizer sentido.</p>
-            {% endif %}
-            <a class="text-link" href="{{ url_for('auth.login') }}">Acessar conta <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        <div class="home-plan-cards reveal">
+            <article class="home-plan-card home-plan-free">
+                <div class="home-plan-head">
+                    <span>FREE</span>
+                    <h3>Fluxo r&aacute;pido</h3>
+                    <p>Para converter arquivos leves sem compromisso.</p>
+                </div>
+                <ul>
+                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es/dia</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Uploads leves</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> OCR b&aacute;sico</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Fila normal</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Hist&oacute;rico tempor&aacute;rio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Recursos IA b&aacute;sicos</li>
+                </ul>
+                <a class="button button-secondary" href="{{ url_for('auth.registrar') }}">Come&ccedil;ar gr&aacute;tis</a>
+            </article>
+
+            <article class="home-plan-card home-plan-pro">
+                <div class="home-plan-badge">Mais completo</div>
+                <div class="home-plan-head">
+                    <span>PRO</span>
+                    <h3>Opera&ccedil;&atilde;o s&eacute;ria</h3>
+                    <p>Para transformar lotes, documentos e formatos com menos espera.</p>
+                </div>
+                <ul>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Uploads maiores</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> OCR completo</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> AI Tools avan&ccedil;adas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Hist&oacute;rico persistente</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Lotes amplos</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Exporta&ccedil;&otilde;es premium</li>
+                </ul>
+                <a class="button button-primary" href="{{ url_for('main.planos') }}">
+                    Upgrade Pro
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
+            </article>
         </div>
     </section>
 </main>

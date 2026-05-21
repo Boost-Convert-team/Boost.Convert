@@ -1,14 +1,25 @@
+from collections import Counter
+from datetime import datetime, timedelta
 from flask import abort, after_this_request, jsonify, render_template, send_file, session, Blueprint
 from flask_login import current_user
 import os
 import tempfile
 import zipfile
 
-from models import ConversionJob
+from models import ConversionJob, DailyUsage
 from Blueprints.main.tools_registry import TOOLS
 from Blueprints.services.conversions.conversion_limits import get_tool_limit_info, get_tools_with_limit_info
 from Blueprints.services.conversions.conversion_options import get_conversion_options
 home_bp = Blueprint('home', __name__)
+
+STATUS_LABELS = {
+    "queued": "Na fila",
+    "processing": "Processando",
+    "done": "Concluido",
+    "failed": "Falhou",
+}
+
+FREE_DAILY_LIMIT = 10
 
 def find_tool_by_slug(slug):
     tool_route = f"/convert/{slug}"
@@ -23,6 +34,74 @@ def find_tool_by_slug(slug):
 @home_bp.route('/')
 def home():
     return render_template('home.html')
+
+@home_bp.route("/conta")
+@home_bp.route("/dashboard")
+def conta():
+    return render_template("conta.html", account_workspace=get_account_workspace())
+
+def get_account_workspace():
+    if current_user.is_authenticated:
+        jobs_query = ConversionJob.query.filter_by(user_id=current_user.id)
+        usage = (
+            DailyUsage.query
+            .filter_by(user_id=current_user.id, usage_date=datetime.utcnow().date())
+            .first()
+        )
+        display_name = current_user.nome or current_user.email.split("@")[0]
+        email = current_user.email
+        plan = (current_user.plano or "free").upper()
+        google_connected = bool(current_user.google_id)
+    else:
+        session_id = session.get("anon_id")
+        jobs_query = ConversionJob.query.filter_by(session_id=session_id) if session_id else ConversionJob.query.filter(False)
+        usage = (
+            DailyUsage.query
+            .filter_by(session_id=session_id, usage_date=datetime.utcnow().date())
+            .first()
+            if session_id
+            else None
+        )
+        display_name = "Visitante"
+        email = "Entre para sincronizar seu workspace"
+        plan = "FREE"
+        google_connected = False
+
+    jobs = jobs_query.order_by(ConversionJob.created_at.desc()).limit(60).all()
+    recent_jobs = jobs[:4]
+    done_jobs = [job for job in jobs if job.status == "done"]
+    last_week = datetime.utcnow() - timedelta(days=7)
+    last_week_jobs = [job for job in jobs if job.created_at and job.created_at >= last_week]
+    output_formats = [
+        os.path.splitext(job.output_filename or "")[1].replace(".", "").upper()
+        for job in jobs
+    ]
+    output_formats = [fmt for fmt in output_formats if fmt]
+    favorite_formats = [fmt for fmt, _ in Counter(output_formats).most_common(3)] or ["PDF", "WEBP", "DOCX"]
+    daily_used = usage.usage_count if usage else 0
+    daily_limit = None if plan == "PRO" else FREE_DAILY_LIMIT
+    daily_remaining = "Ilimitado" if daily_limit is None else max(daily_limit - daily_used, 0)
+    daily_percent = 100 if daily_limit is None else min(round((daily_used / daily_limit) * 100), 100)
+    total_jobs = len(jobs)
+    success_rate = round((len(done_jobs) / total_jobs) * 100) if total_jobs else 100
+
+    return {
+        "display_name": display_name,
+        "email": email,
+        "plan": plan,
+        "is_pro": plan == "PRO",
+        "daily_used": daily_used,
+        "daily_limit": daily_limit or "Ilimitado",
+        "daily_remaining": daily_remaining,
+        "daily_percent": daily_percent,
+        "recent_jobs": recent_jobs,
+        "total_jobs": total_jobs,
+        "favorite_formats": favorite_formats,
+        "last_week_count": len(last_week_jobs),
+        "success_rate": success_rate,
+        "google_connected": google_connected,
+        "status_labels": STATUS_LABELS,
+    }
 
 @home_bp.route("/tools")
 def tools():
