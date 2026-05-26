@@ -24,7 +24,7 @@
                     </span>
                     <div class="account-usage-pill">
                         <strong>{{ account_workspace.daily_used }}</strong>
-                        <span>de {{ account_workspace.daily_limit }} hoje</span>
+                        <span>de {{ account_workspace.daily_limit }} na janela atual</span>
                     </div>
                     {% if account_workspace.is_pro %}
                         <a class="button button-secondary" href="{{ url_for('main.planos') }}">Gerenciar plano</a>
@@ -43,13 +43,16 @@
                         <span><i data-lucide="activity" aria-hidden="true"></i></span>
                         <div>
                             <h2>Uso di&aacute;rio</h2>
-                            <p>{{ account_workspace.daily_used }} de {{ account_workspace.daily_limit }} convers&otilde;es usadas</p>
+                            <p>{{ account_workspace.daily_used }} de {{ account_workspace.daily_limit }} convers&otilde;es usadas em 24h</p>
                         </div>
                     </div>
                     <div class="usage-meter" aria-hidden="true">
                         <span style="width: {{ account_workspace.daily_percent }}%;"></span>
                     </div>
                     <strong>{{ account_workspace.daily_remaining }} dispon&iacute;vel</strong>
+                    {% if account_workspace.daily_reset_in %}
+                        <small>Renova em {{ account_workspace.daily_reset_in }}</small>
+                    {% endif %}
                 </article>
 
                 <article class="account-card account-plan">
@@ -61,7 +64,7 @@
                         </div>
                     </div>
                     <dl class="plan-mini-list">
-                        <div><dt>Limites</dt><dd>{% if account_workspace.is_pro %}Ilimitados{% else %}10 por dia{% endif %}</dd></div>
+                        <div><dt>Limites</dt><dd>{% if account_workspace.is_pro %}Ilimitados{% else %}10 a cada 24h{% endif %}</dd></div>
                         <div><dt>Uploads</dt><dd>{% if account_workspace.is_pro %}Maiores{% else %}Leves{% endif %}</dd></div>
                         <div><dt>Velocidade</dt><dd>{% if account_workspace.is_pro %}Priorit&aacute;ria{% else %}Normal{% endif %}</dd></div>
                         <div><dt>OCR</dt><dd>{% if account_workspace.is_pro %}Completo{% else %}B&aacute;sico{% endif %}</dd></div>

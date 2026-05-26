@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Sobre n&oacute;s - Boost.Convert{% endblock %}
+
+{% block content %}
+<main class="about-page">
+    <section class="about-story-block">
+        <div class="about-story-content reveal">
+            <h1>A nossa hist&oacute;ria</h1>
+
+            <div class="about-text">
+                <p>
+                    O Boost.Convert come&ccedil;ou de forma simples. Dois jovens apaixonados por
+                    tecnologia, programa&ccedil;&atilde;o e internet passavam horas jogando juntos,
+                    conversando sobre vida, futuro, liberdade financeira e sobre como poderiam
+                    construir algo real usando programa&ccedil;&atilde;o.
+                </p>
+
+                <p>
+                    No meio dessas conversas, come&ccedil;amos a observar um problema muito comum ao
+                    nosso redor. Pessoas que trabalhavam diariamente com PDFs, documentos, imagens,
+                    escrit&oacute;rios e arquivos importantes sempre enfrentavam as mesmas dificuldades:
+                    limites extremamente baixos, convers&otilde;es lentas, ferramentas travadas,
+                    plataformas confusas e assinaturas caras demais.
+                </p>
+
+                <p>
+                    Percebemos que muitos sites pareciam feitos para limitar usu&aacute;rios ao inv&eacute;s
+                    de realmente ajud&aacute;-los. Ent&atilde;o decidimos construir algo diferente:
+                    uma experi&ecirc;ncia mais limpa, r&aacute;pida e organizada para trabalhar com arquivos.
+                </p>
+
+                <p>
+                    Come&ccedil;amos melhorando tudo aquilo que incomodava: limites mais inteligentes,
+                    menos cliques, interface mais simples, ferramentas bem organizadas e um fluxo
+                    moderno. Aos poucos, essa ideia evoluiu at&eacute; se tornar o Boost.Convert.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-mission-block">
+        <div class="about-mission-grid reveal">
+            <article>
+                <span>Miss&atilde;o</span>
+                <h2>Converter arquivos sem transformar o processo em um problema.</h2>
+            </article>
+            <article>
+                <p>
+                    N&atilde;o queremos criar apenas mais um conversor. Queremos uma plataforma moderna,
+                    leve e &uacute;til de verdade para simplificar o trabalho com arquivos, remover
+                    limita&ccedil;&otilde;es abusivas e economizar tempo no dia a dia.
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="about-team-block">
+        <div class="about-team-title reveal">
+            <h2>A Equipe</h2>
+            <p>
+                Somos apenas duas pessoas, mas muito apaixonadas por criar solu&ccedil;&otilde;es reais
+                para quem precisa trabalhar melhor com documentos, imagens e arquivos.
+            </p>
+        </div>
+
+        <div class="about-team-list">
+            <article class="about-member reveal">
+                <div class="member-photo">
+                    <img
+                        src="{{ url_for('static', filename='img/team/arthur-photo.png') }}"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/team/arthur.svg') }}';"
+                        alt="Arthur, CEO, Founder e Backend Developer do Boost"
+                    >
+                    <span class="member-badge"><i data-lucide="rocket" aria-hidden="true"></i></span>
+                </div>
+                <h3>Arthur</h3>
+                <p>CEO & Founder</p>
+                <small>Backend Developer do Boost</small>
+            </article>
+
+            <article class="about-member reveal">
+                <div class="member-photo">
+                    <img
+                        src="{{ url_for('static', filename='img/team/lucas-photo.png') }}"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/team/lucas.svg') }}';"
+                        alt="Lucas, Full Stack Developer e s&oacute;cio do Boost"
+                    >
+                    <span class="member-badge"><i data-lucide="code-2" aria-hidden="true"></i></span>
+                </div>
+                <h3>Lucas</h3>
+                <p>Full Stack Developer</p>
+                <small>S&oacute;cio do Boost</small>
+            </article>
+        </div>
+    </section>
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>Ainda estamos construindo.</h2>
+            <p>
+                Somos desenvolvedores independentes construindo algo grande passo a passo.
+                Cada melhoria, cada interface e cada ferramenta nasce da mesma ideia inicial:
+                resolver problemas reais de forma simples. E isso &eacute; s&oacute; o come&ccedil;o.
+            </p>
+            <a class="button button-primary" href="{{ url_for('home.tools') }}">
+                Conhecer ferramentas
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </section>
+</main>
+{% endblock %}

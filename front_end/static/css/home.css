@@ -1,6 +1,41 @@
 .home-page {
     overflow: hidden;
-    background: rgba(255, 255, 255, .38);
+    position: relative;
+    isolation: isolate;
+    background:
+        linear-gradient(180deg, #fffdfa 0%, #fcf8f3 42%, #fffbf7 100%);
+}
+
+.home-page::before {
+    content: "";
+    position: absolute;
+    inset: -240px -18% -260px;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 86% 32% at 76% 8%, rgba(255, 184, 106, .105), rgba(255, 224, 194, .045) 38%, transparent 72%),
+        radial-gradient(ellipse 72% 30% at 18% 34%, rgba(240, 138, 36, .055), rgba(255, 224, 194, .030) 42%, transparent 76%),
+        radial-gradient(ellipse 92% 34% at 72% 64%, rgba(255, 184, 106, .072), rgba(255, 244, 232, .040) 46%, transparent 78%),
+        radial-gradient(ellipse 82% 34% at 28% 90%, rgba(240, 138, 36, .040), transparent 72%);
+    filter: blur(28px);
+    opacity: 1;
+    pointer-events: none;
+}
+
+.home-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .18) 48%, rgba(255, 255, 255, .44)),
+        radial-gradient(ellipse 78% 48% at 50% 40%, rgba(255, 255, 255, .42), transparent 74%);
+    opacity: .86;
+    pointer-events: none;
+}
+
+.home-page > section {
+    position: relative;
+    z-index: 1;
 }
 
 .ab-hero,
@@ -151,12 +186,12 @@
 
 .hero-actions .button {
     flex-shrink: 0;
-    min-width: 188px;
+    min-width: 204px;
     white-space: nowrap;
 }
 
 .hero-actions .button-secondary {
-    min-width: 238px;
+    min-width: 190px;
     justify-content: center;
 }
 
@@ -443,6 +478,7 @@
 
 .orbit-glow,
 .orbit-ring,
+.orbit-flow-lines,
 .orbit-dot,
 .orbit-core,
 .orbit-card {
@@ -482,6 +518,35 @@
     width: min(500px, 76%);
     height: 356px;
     opacity: .72;
+}
+
+.orbit-flow-lines {
+    z-index: 1;
+    inset: 18px 0 0;
+    width: 100%;
+    height: calc(100% - 18px);
+    overflow: visible;
+    pointer-events: none;
+    opacity: .58;
+    filter: blur(.12px);
+    animation: orbitFlowBreathe 12s var(--ease-air) infinite;
+}
+
+.orbit-flow-lines path {
+    fill: none;
+    stroke: rgba(217, 107, 4, .18);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.orbit-flow-lines path:nth-child(2n) {
+    stroke: rgba(234, 223, 211, .70);
+}
+
+.orbit-flow-lines path:nth-child(3n) {
+    stroke: rgba(240, 138, 36, .16);
 }
 
 .orbit-dot {
@@ -682,8 +747,7 @@
     animation-delay: 1880ms;
 }
 
-.orbit-img svg,
-.orbit-ai svg {
+.orbit-img svg {
     color: #4aa58b;
 }
 
@@ -692,9 +756,13 @@
     color: #5276bd;
 }
 
-.orbit-video svg,
-.orbit-mp4 svg {
+.orbit-video svg {
     color: #d85f62;
+}
+
+.orbit-ai svg,
+.orbit-mp4 svg {
+    color: var(--orange-deep);
 }
 
 @keyframes orbitCoreFloat {
@@ -712,6 +780,17 @@
     }
     50% {
         translate: 0 -7px;
+    }
+}
+
+@keyframes orbitFlowBreathe {
+    0%, 100% {
+        opacity: .42;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+        opacity: .62;
+        transform: translate3d(0, -2px, 0) scale(1.006);
     }
 }
 
@@ -1340,8 +1419,8 @@
 .price-editorial {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 60px;
+    grid-template-columns: minmax(0, .9fr) minmax(360px, .62fr);
+    gap: clamp(48px, 6vw, 96px);
     align-items: center;
     min-height: 390px;
     padding: 94px 104px;
@@ -1349,6 +1428,12 @@
     background:
         radial-gradient(circle at 78% 45%, rgba(240, 138, 36, .08) 1px, transparent 1.5px) 0 0 / 13px 13px,
         #fff;
+}
+
+.price-editorial-copy {
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
 }
 
 .price-editorial h2 {
@@ -1376,12 +1461,43 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    margin-top: 34px;
     white-space: nowrap;
 }
 
 .price-editorial svg {
     width: 16px;
     height: 16px;
+}
+
+.price-editorial-media {
+    position: relative;
+    z-index: 1;
+    justify-self: end;
+    width: min(44vw, 640px);
+    margin: 0;
+    pointer-events: none;
+}
+
+.price-editorial-media::before {
+    content: "";
+    position: absolute;
+    inset: 18% 2% 6% 18%;
+    background: radial-gradient(ellipse, rgba(240, 138, 36, .09), transparent 72%);
+    filter: blur(34px);
+    opacity: .68;
+    pointer-events: none;
+}
+
+.price-editorial-media img {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: saturate(.96) contrast(.98) brightness(1.02);
+    opacity: .93;
+    -webkit-mask-image: radial-gradient(ellipse 76% 74% at 57% 52%, #000 0 56%, rgba(0, 0, 0, .8) 70%, transparent 100%);
+    mask-image: radial-gradient(ellipse 76% 74% at 57% 52%, #000 0 56%, rgba(0, 0, 0, .8) 70%, transparent 100%);
 }
 
 .integrations-stage {
@@ -3865,4 +3981,75 @@
     50% {
         transform: translate3d(0, -6px, 0);
     }
+}
+
+/* Home cleanup: section rhythm is now created by space, light and depth instead of visible dividers. */
+body:has(.home-page) {
+    background: #fcf8f3;
+}
+
+.home-page {
+    background:
+        linear-gradient(180deg, #fffdfa 0%, #fcf8f3 42%, #fffbf7 100%);
+}
+
+.home-page .ab-hero,
+.home-page .toolscape,
+.home-page .price-editorial,
+.home-page .integrations-stage,
+.home-page .suite-section,
+.home-page .dark-cta,
+.home-page .home-plans,
+.home-page .account-workspace {
+    border-bottom: 0;
+    background: transparent;
+}
+
+.home-page .suite-visual {
+    background:
+        radial-gradient(ellipse at 50% 40%, rgba(240, 138, 36, .09), transparent 38%),
+        linear-gradient(180deg, rgba(255, 255, 255, .56), rgba(255, 244, 232, .18));
+}
+
+.home-page .ab-hero::before,
+.home-page .ab-hero::after,
+.home-page .toolscape::before,
+.home-page .toolscape::after,
+.home-page .integrations-stage::before,
+.home-page .integrations-stage::after,
+.home-page .suite-section::before,
+.home-page .home-plans::before,
+.home-page .simple-flow-section::before,
+.home-page .simple-flow-section::after,
+.home-page .format-ecosystem::before,
+.home-page .format-ecosystem::after,
+.home-page .conversion-showcase::before,
+.home-page .conversion-showcase::after,
+.home-page .file-workspace-story::before,
+.home-page .file-workspace-story::after,
+.home-page .workspace-art-stage::before,
+.home-page .workspace-art-stage::after,
+.home-page .format-cloud::before,
+.home-page .format-cloud::after,
+.home-page .simple-flow::before,
+.home-page .orbit-ring {
+    display: none;
+}
+
+body:has(.home-page) .site-shell {
+    width: 100%;
+    max-width: none;
+    background: transparent;
+}
+
+.home-page .orbit-glow {
+    width: min(900px, 112%);
+    height: 620px;
+    background: radial-gradient(ellipse at center, rgba(240, 138, 36, .080), rgba(255, 184, 106, .035) 42%, transparent 78%);
+    filter: blur(34px);
+    opacity: .72;
+}
+
+.home-page .orbit-dot {
+    box-shadow: 0 0 0 4px rgba(240, 138, 36, .055);
 }

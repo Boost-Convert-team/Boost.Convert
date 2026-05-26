@@ -123,6 +123,12 @@
         align-items: start;
     }
 
+    .price-editorial-media {
+        justify-self: center;
+        width: min(74vw, 640px);
+        margin-top: 4px;
+    }
+
     .toolscape {
         min-height: auto;
         padding: 76px 64px 82px;
@@ -487,22 +493,23 @@
 
     .topbar {
         padding-inline: 26px;
+        grid-template-columns: minmax(162px, 1fr) auto minmax(162px, 1fr);
+        column-gap: 14px;
     }
 
     .brand-logo {
-        width: 214px;
-        height: 54px;
+        width: 176px;
+        height: 43px;
     }
 
     .mega-trigger,
     .nav-link {
-        padding-inline: 9px;
+        padding-inline: 0;
         font-size: 13px;
     }
 
     .header-search {
-        flex-basis: 260px;
-        min-width: 210px;
+        flex-basis: 190px;
     }
 
     .mega-menu {
@@ -548,39 +555,57 @@
 
 @media (max-width: 1024px) and (min-width: 781px) {
     .topbar {
-        flex-wrap: wrap;
-        row-gap: 14px;
-        padding-top: 17px;
-        padding-bottom: 16px;
+        grid-template-columns: minmax(170px, 1fr) auto;
+        row-gap: 12px;
+        column-gap: 18px;
+        padding-top: 12px;
+        padding-bottom: 12px;
     }
 
     .mega-nav {
         order: 3;
-        flex: 0 0 100%;
-        width: 100%;
+        grid-column: 1 / -1;
+        flex: 0 1 auto;
+        width: max-content;
+        max-width: 100%;
+        gap: 26px;
         justify-content: center;
+        justify-self: center;
+    }
+
+    .header-utilities {
+        justify-self: end;
+        gap: 8px;
     }
 
     .header-search {
-        order: 4;
-        flex: 0 1 min(520px, 100%);
-        margin: 0 auto;
+        flex: 0 0 200px;
+    }
+
+    .tool-search-results {
+        left: auto;
+        right: 0;
+        transform: translate3d(0, -8px, 0) scale(.985);
+    }
+
+    .header-search.is-open .tool-search-results {
+        transform: translate3d(0, 0, 0) scale(1);
     }
 
     .mega-trigger,
     .nav-link {
-        min-height: 38px;
-        padding: 0 13px;
+        min-height: 34px;
+        padding: 0;
         margin: 0;
         display: inline-flex;
         align-items: center;
-        background: rgba(255, 255, 255, .62);
-        box-shadow: inset 0 0 0 1px rgba(234, 223, 211, .68);
+        background: transparent;
+        box-shadow: none;
         white-space: nowrap;
     }
 
     .mega-trigger-all {
-        background: rgba(255, 244, 232, .76);
+        background: transparent;
     }
 
     .mega-menu {
@@ -623,30 +648,31 @@
     .topbar {
         position: relative;
         min-height: auto;
-        flex-wrap: wrap;
-        gap: 18px;
-        padding: 22px;
+        grid-template-columns: minmax(124px, 1fr) auto;
+        gap: 10px;
+        padding: 14px 16px;
     }
 
     .topnav {
         order: 3;
-        width: 100%;
-        justify-content: flex-start;
-        gap: 0;
+        grid-column: 1 / -1;
+        width: max-content;
+        max-width: 100%;
+        justify-content: center;
+        gap: 22px;
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scrollbar-width: none;
     }
 
     .header-search {
-        order: 4;
-        flex: 0 0 100%;
+        flex: 0 0 min(48vw, 190px);
         min-width: 0;
     }
 
     .header-search input {
-        min-height: 44px;
-        font-size: 13px;
+        min-height: 36px;
+        font-size: 12px;
     }
 
     .tool-search-results {
@@ -669,18 +695,18 @@
 
     .mega-trigger,
     .nav-link {
-        min-height: 38px;
-        padding: 0 13px;
+        min-height: 34px;
+        padding: 0;
         margin: 0;
         display: inline-flex;
         align-items: center;
-        background: rgba(255, 255, 255, .62);
-        box-shadow: inset 0 0 0 1px rgba(234, 223, 211, .72);
+        background: transparent;
+        box-shadow: none;
         white-space: nowrap;
     }
 
     .mega-trigger-all {
-        background: rgba(255, 244, 232, .74);
+        background: transparent;
     }
 
     .mega-menu {
@@ -688,7 +714,12 @@
     }
 
     .top-actions {
-        gap: 14px;
+        gap: 6px;
+    }
+
+    .header-utilities {
+        justify-self: end;
+        gap: 6px;
     }
 
     .brand {
@@ -696,8 +727,8 @@
     }
 
     .brand-logo {
-        width: 188px;
-        height: 48px;
+        width: 136px;
+        height: 35px;
     }
 
     .page-section {
@@ -1122,6 +1153,23 @@
 
     .price-editorial p {
         font-size: 16px;
+    }
+
+    .price-editorial-media {
+        justify-self: center;
+        width: min(100%, 540px);
+        margin-top: 4px;
+    }
+
+    .price-editorial-media::before {
+        inset: 18% 0 4% 10%;
+        opacity: .52;
+    }
+
+    .price-editorial-media img {
+        opacity: .9;
+        -webkit-mask-image: radial-gradient(ellipse 80% 74% at 56% 52%, #000 0 54%, rgba(0, 0, 0, .74) 70%, transparent 100%);
+        mask-image: radial-gradient(ellipse 80% 74% at 56% 52%, #000 0 54%, rgba(0, 0, 0, .74) 70%, transparent 100%);
     }
 
     .pricing-hero {
@@ -1972,4 +2020,54 @@
     .footer {
         padding: 48px 22px 30px;
     }
+}
+
+/* Keep the home background continuous after responsive overrides. */
+body:has(.home-page) {
+    background: #fcf8f3;
+}
+
+body:has(.home-page) .site-shell {
+    width: 100%;
+    max-width: none;
+    background: transparent;
+}
+
+.home-page .ab-hero,
+.home-page .toolscape,
+.home-page .simple-flow-section,
+.home-page .price-editorial,
+.home-page .integrations-stage,
+.home-page .format-ecosystem,
+.home-page .suite-section,
+.home-page .dark-cta,
+.home-page .home-plans,
+.home-page .account-workspace {
+    border-bottom: 0;
+    background: transparent;
+}
+
+.home-page .ab-hero::before,
+.home-page .ab-hero::after,
+.home-page .toolscape::before,
+.home-page .toolscape::after,
+.home-page .integrations-stage::before,
+.home-page .integrations-stage::after,
+.home-page .suite-section::before,
+.home-page .home-plans::before,
+.home-page .simple-flow-section::before,
+.home-page .simple-flow-section::after,
+.home-page .format-ecosystem::before,
+.home-page .format-ecosystem::after,
+.home-page .conversion-showcase::before,
+.home-page .conversion-showcase::after,
+.home-page .file-workspace-story::before,
+.home-page .file-workspace-story::after,
+.home-page .workspace-art-stage::before,
+.home-page .workspace-art-stage::after,
+.home-page .format-cloud::before,
+.home-page .format-cloud::after,
+.home-page .simple-flow::before,
+.home-page .orbit-ring {
+    display: none;
 }

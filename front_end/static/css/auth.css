@@ -66,9 +66,8 @@
     width: 190px;
     height: 48px;
     margin-bottom: 24px;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
-    mix-blend-mode: multiply;
 }
 
 .auth-form h1 {

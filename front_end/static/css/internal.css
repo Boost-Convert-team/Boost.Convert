@@ -1,0 +1,409 @@
+/* Internal routes share the same quiet canvas as the home page. */
+body:has(.tools-page),
+body:has(.pricing-page),
+body:has(.account-page),
+body:has(.auth-page),
+body:has(.about-page),
+body:has(.converter-grid),
+body:has(.status-card) {
+    background: #fffdfa;
+}
+
+body:has(.tools-page) .site-shell,
+body:has(.pricing-page) .site-shell,
+body:has(.account-page) .site-shell,
+body:has(.auth-page) .site-shell,
+body:has(.about-page) .site-shell,
+body:has(.converter-grid) .site-shell,
+body:has(.status-card) .site-shell {
+    width: 100%;
+    max-width: none;
+    background: transparent;
+}
+
+.tools-page,
+.pricing-page,
+.account-page,
+.auth-page,
+.about-page,
+body:has(.converter-grid) .page-section,
+body:has(.status-card) .page-section {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, #ffffff 0%, #fffefd 30%, #fffdfa 62%, rgba(252, 248, 243, .72) 100%);
+}
+
+.tools-page::before,
+.pricing-page::before,
+.account-page::before,
+.auth-page::before,
+.about-page::before,
+body:has(.converter-grid) .page-section::before,
+body:has(.status-card) .page-section::before {
+    content: "";
+    position: absolute;
+    inset: -180px -16% -220px;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 80% 30% at 78% 8%, rgba(255, 184, 106, .068), rgba(255, 224, 194, .030) 38%, transparent 72%),
+        radial-gradient(ellipse 72% 28% at 18% 34%, rgba(240, 138, 36, .034), rgba(255, 224, 194, .018) 42%, transparent 76%),
+        radial-gradient(ellipse 86% 32% at 70% 74%, rgba(255, 184, 106, .042), rgba(255, 244, 232, .022) 46%, transparent 78%);
+    filter: blur(30px);
+    opacity: .74;
+    pointer-events: none;
+}
+
+.tools-page::after,
+.pricing-page::after,
+.account-page::after,
+.auth-page::after,
+.about-page::after,
+body:has(.converter-grid) .page-section::after,
+body:has(.status-card) .page-section::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .80), rgba(255, 255, 255, .48) 48%, rgba(255, 255, 255, .62)),
+        radial-gradient(ellipse 78% 48% at 50% 34%, rgba(255, 255, 255, .50), transparent 74%);
+    opacity: .92;
+    pointer-events: none;
+}
+
+.tools-page > *,
+.pricing-page > *,
+.account-page > *,
+.auth-page > *,
+.about-page > *,
+body:has(.converter-grid) .page-section > *,
+body:has(.status-card) .page-section > * {
+    position: relative;
+    z-index: 1;
+}
+
+body:has(.converter-grid) .page-section,
+body:has(.status-card) .page-section {
+    padding-top: clamp(72px, 7vw, 104px);
+    padding-bottom: clamp(88px, 8vw, 124px);
+}
+
+body:has(.converter-grid) .section-heading,
+body:has(.status-card) .section-heading {
+    margin-bottom: 46px;
+}
+
+body:has(.converter-grid) .section-heading h1,
+body:has(.status-card) .section-heading h1 {
+    max-width: 780px;
+    font-size: clamp(44px, 5vw, 72px);
+    line-height: .98;
+}
+
+.converter-grid {
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+    gap: 24px;
+}
+
+.converter-grid .upload-card,
+.status-card {
+    border: 1px solid rgba(234, 223, 211, .62);
+    border-radius: 30px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .86), rgba(255, 253, 250, .48)),
+        rgba(255, 255, 255, .68);
+    box-shadow:
+        0 30px 90px rgba(88, 58, 24, .055),
+        inset 0 1px 0 rgba(255, 255, 255, .76);
+    backdrop-filter: blur(18px);
+}
+
+.converter-grid .upload-card {
+    padding: clamp(24px, 3vw, 36px);
+}
+
+.converter-grid .upload-title {
+    margin-bottom: 24px;
+}
+
+.converter-grid .upload-title h2 {
+    font-size: clamp(24px, 2.3vw, 34px);
+    line-height: 1.05;
+}
+
+.converter-grid .upload-note,
+.converter-grid .upload-title p {
+    color: #64716d;
+    font-size: 14px;
+}
+
+.converter-grid .upload-zone {
+    min-height: 260px;
+    border-color: rgba(240, 138, 36, .25);
+    border-radius: 26px;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(255, 184, 106, .055), transparent 52%),
+        rgba(255, 255, 255, .68);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+}
+
+.converter-grid .upload-zone:hover,
+.converter-grid .upload-zone.is-dragging,
+.converter-grid .upload-zone.has-files {
+    border-color: rgba(240, 138, 36, .44);
+    background: rgba(255, 255, 255, .84);
+    transform: translateY(-2px);
+    box-shadow:
+        0 24px 58px rgba(88, 58, 24, .06),
+        0 0 0 6px rgba(240, 138, 36, .035);
+}
+
+.converter-grid .converter-options {
+    padding: 20px;
+    border-color: rgba(234, 223, 211, .64);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .46);
+}
+
+.converter-option-field input,
+.converter-option-field select,
+.form-field input {
+    border-color: rgba(234, 223, 211, .72);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .72);
+}
+
+.side-panel {
+    gap: 14px;
+}
+
+.side-note {
+    border-color: rgba(234, 223, 211, .62);
+    border-radius: 24px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(255, 253, 250, .36)),
+        rgba(255, 255, 255, .58);
+    box-shadow: 0 22px 60px rgba(88, 58, 24, .04);
+    backdrop-filter: blur(14px);
+}
+
+.side-note h3 {
+    color: #203f3a;
+}
+
+.side-note p,
+.side-note li {
+    color: #64716d;
+}
+
+.status-card {
+    max-width: 900px;
+    padding: clamp(28px, 4vw, 46px);
+}
+
+.status-card h2 {
+    margin-top: 24px;
+    color: var(--text);
+    font-size: clamp(30px, 4vw, 54px);
+    line-height: 1;
+    font-weight: var(--weight-hero);
+}
+
+.details-list {
+    border-color: rgba(234, 223, 211, .62);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .62);
+}
+
+.details-row,
+.batch-item {
+    background: rgba(255, 255, 255, .62);
+}
+
+.details-row:hover,
+.batch-item:hover {
+    background: rgba(255, 250, 245, .72);
+}
+
+.batch-item {
+    border-color: rgba(234, 223, 211, .62);
+    border-radius: 18px;
+}
+
+.tools-page {
+    padding-top: clamp(64px, 6vw, 92px);
+    background: transparent;
+}
+
+.tools-layout {
+    border-color: rgba(234, 223, 211, .52);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .74), rgba(255, 253, 250, .30)),
+        rgba(255, 255, 255, .48);
+    box-shadow:
+        0 30px 90px rgba(88, 58, 24, .045),
+        inset 0 1px 0 rgba(255, 255, 255, .72);
+}
+
+.tools-section {
+    border-top-color: rgba(234, 223, 211, .42);
+}
+
+.tools-sidebar {
+    border-color: rgba(234, 223, 211, .52);
+    background: rgba(255, 255, 255, .56);
+}
+
+.tools-sidebar a::before {
+    display: none;
+}
+
+.tools-sidebar a:hover,
+.tools-sidebar a.is-active {
+    background: rgba(255, 250, 245, .88);
+    box-shadow:
+        inset 0 0 0 1px rgba(240, 138, 36, .10),
+        0 12px 28px rgba(88, 58, 24, .035);
+}
+
+.tool-card {
+    border-color: rgba(234, 223, 211, .52);
+    background: rgba(255, 255, 255, .50);
+}
+
+.tool-card:hover {
+    background: rgba(255, 255, 255, .78);
+}
+
+.pricing-page {
+    background: transparent;
+}
+
+.pricing-hero {
+    padding-top: clamp(72px, 7vw, 104px);
+}
+
+.plan-free,
+.plan-pro {
+    border-radius: 30px;
+    backdrop-filter: blur(18px);
+}
+
+.plan-free {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .84), rgba(255, 253, 250, .42)),
+        rgba(255, 255, 255, .62);
+}
+
+.plan-pro {
+    border-color: rgba(240, 138, 36, .20);
+    background:
+        radial-gradient(circle at 86% 12%, rgba(255, 184, 106, .16), transparent 32%),
+        linear-gradient(180deg, rgba(255, 253, 250, .98), rgba(255, 255, 255, .92));
+    box-shadow:
+        0 30px 88px rgba(88, 58, 24, .062),
+        0 0 0 1px rgba(255, 184, 106, .10);
+}
+
+.plan-pro::before {
+    opacity: .46;
+    background: radial-gradient(ellipse, rgba(240, 138, 36, .11), transparent 68%);
+}
+
+.plan-badge {
+    background: rgba(255, 255, 255, .84);
+}
+
+.pricing-account,
+.pricing-dev {
+    border-top: 0;
+}
+
+.account-page .account-workspace {
+    border-bottom: 0;
+    background: transparent;
+}
+
+.account-page .account-card {
+    border-color: rgba(234, 223, 211, .62);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .82), rgba(255, 253, 250, .36)),
+        rgba(255, 255, 255, .58);
+    box-shadow: 0 24px 76px rgba(88, 58, 24, .045);
+}
+
+.account-page .account-avatar,
+.account-page .account-card-heading > span,
+.account-page .session-device,
+.account-page .history-stats div,
+.account-page .empty-recent,
+.account-page .recent-list a {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 253, 250, .42)),
+        rgba(255, 255, 255, .58);
+}
+
+.account-page .usage-meter {
+    background: rgba(234, 223, 211, .42);
+}
+
+.account-page .format-tags span,
+.account-page .ai-capabilities span {
+    background: rgba(255, 255, 255, .64);
+}
+
+.auth-page {
+    background: transparent;
+}
+
+.auth-container {
+    border-color: rgba(234, 223, 211, .62);
+    background: rgba(255, 255, 255, .84);
+    box-shadow: 0 30px 90px rgba(88, 58, 24, .075);
+    backdrop-filter: blur(18px);
+}
+
+.auth-form {
+    background: rgba(255, 255, 255, .78);
+}
+
+.auth-form input {
+    border-color: rgba(234, 223, 211, .62);
+    background: rgba(255, 253, 250, .86);
+}
+
+.about-page,
+.about-story-block,
+.about-mission-block,
+.about-team-block,
+.about-build-block {
+    background: transparent;
+}
+
+.about-story-block {
+    padding-top: clamp(72px, 7vw, 104px);
+}
+
+.about-story-content h1,
+.about-mission-grid h2,
+.about-team-title h2,
+.about-build-content h2 {
+    color: var(--text);
+}
+
+.about-text p,
+.about-team-title p,
+.about-mission-grid p,
+.about-build-content p {
+    color: #56635f;
+}
+
+.member-photo::before {
+    background:
+        radial-gradient(circle at 58% 20%, rgba(240, 138, 36, .15), transparent 36%),
+        rgba(255, 255, 255, .54);
+}
