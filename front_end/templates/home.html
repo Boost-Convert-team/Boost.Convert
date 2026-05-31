@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Boost.Convert - Conversor de arquivos{% endblock %}
+{% block title %}Boost.Convert | Conversor de arquivos{% endblock %}
 
 {% block content %}
 <main class="home-page">
@@ -193,14 +193,27 @@
         </div>
     </section>
 
-    <section class="price-editorial reveal">
+    <section class="price-editorial price-premium reveal">
         <div class="price-editorial-copy">
+            <span class="price-premium-badge">
+                <i data-lucide="zap" aria-hidden="true"></i>
+                Simples. R&aacute;pido. Inteligente.
+            </span>
             <h2>Use apenas o que precisar.<br><span>Sem ru&iacute;do.</span></h2>
             <p>Planos claros, limites vis&iacute;veis e upgrade quando o seu volume realmente pedir.</p>
-            <a class="text-link" href="{{ url_for('main.planos') }}">Ver planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="price-premium-link" href="{{ url_for('main.planos') }}">Ver planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
         </div>
         <figure class="price-editorial-media">
-            <img src="{{ url_for('static', filename='img/boost-lifestyle-notebook.png') }}" alt="Pessoa usando o Boost.Convert em um notebook" loading="lazy" decoding="async">
+            <span class="price-media-backdrop" aria-hidden="true"></span>
+            <svg class="price-media-line" viewBox="0 0 720 520" aria-hidden="true">
+                <path d="M42 332 C 140 196 250 188 342 258 C 452 342 548 334 672 182" />
+            </svg>
+            <span class="price-media-dots" aria-hidden="true"></span>
+            <img src="/fotos%20projeto/hero-notebook.png" alt="Notebook exibindo a experi&ecirc;ncia da Boost.Convert" loading="lazy" decoding="async">
+            <figcaption class="price-security-card">
+                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+                <strong>Seus arquivos protegidos</strong>
+            </figcaption>
         </figure>
     </section>
 

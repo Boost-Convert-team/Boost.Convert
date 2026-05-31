@@ -472,16 +472,21 @@
 .header-login {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
-    padding: 0 12px;
-    border-radius: 999px;
-    color: rgba(32, 63, 58, .92);
-    font-size: 13px;
-    letter-spacing: .005em;
-    background: transparent;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 18px;
+    border: 1px solid rgba(234, 223, 211, .92);
+    border-radius: 10px;
+    color: #102f2a;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 0;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 10px 24px rgba(88, 58, 24, .035);
     transition:
         color 420ms var(--ease-air),
         background-color 420ms var(--ease-air),
+        border-color 420ms var(--ease-air),
         box-shadow 420ms var(--ease-air),
         transform 420ms var(--ease-air);
 }
@@ -489,8 +494,9 @@
 .header-login:hover {
     color: #162f2b;
     opacity: 1;
-    background: rgba(255, 244, 232, .62);
-    box-shadow: inset 0 0 0 1px rgba(234, 223, 211, .56);
+    border-color: rgba(240, 138, 36, .28);
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 14px 30px rgba(88, 58, 24, .06);
     transform: translateY(-1px);
 }
 
