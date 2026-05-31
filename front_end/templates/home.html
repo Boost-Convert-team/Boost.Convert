@@ -5,12 +5,16 @@
 {% block content %}
 <main class="home-page">
     <section class="ab-hero" id="upload">
+        <span class="boost-corner-blob boost-corner-blob-left" aria-hidden="true"></span>
+        <span class="boost-corner-blob boost-corner-blob-right" aria-hidden="true"></span>
+        <div class="boost-hero-bg-lines" aria-hidden="true">
+            <svg viewBox="0 0 1440 760" preserveAspectRatio="none">
+                <path d="M-70 188 C 80 212 158 86 304 62 C 480 34 570 178 736 154 C 900 130 966 8 1138 44 C 1300 78 1368 234 1518 166" />
+                <path d="M902 650 C 1016 596 1114 608 1226 662 C 1330 712 1412 690 1508 608" />
+                <path d="M958 610 C 1062 556 1160 586 1248 642 C 1362 714 1474 696 1544 624" />
+            </svg>
+        </div>
         <div class="ab-hero-copy reveal">
-            <div class="community-pill">
-                <span></span><span></span><span></span>
-                <strong>50+ ferramentas para resolver arquivos em um s&oacute; lugar.</strong>
-            </div>
-
             <h1>
                 <span class="headline-line">Converta arquivos</span>
                 <span class="headline-line">sem <em>complica&ccedil;&atilde;o.</em></span>
@@ -55,76 +59,83 @@
             </div>
         </div>
 
-        <div class="hero-device hero-orbit reveal" aria-label="Formatos conectados ao upload Boost.Convert">
-            <div class="orbit-glow" aria-hidden="true"></div>
-            <div class="orbit-ring orbit-ring-one" aria-hidden="true"></div>
-            <div class="orbit-ring orbit-ring-two" aria-hidden="true"></div>
-            <svg class="orbit-flow-lines" viewBox="0 0 720 560" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M184 72 C244 84 286 122 324 178" />
-                <path d="M140 220 C210 218 266 232 318 262" />
-                <path d="M76 386 C172 370 250 342 326 318" />
-                <path d="M264 500 C300 448 326 412 350 364" />
-                <path d="M612 74 C552 94 506 132 456 188" />
-                <path d="M668 228 C588 234 528 252 462 282" />
-                <path d="M626 430 C556 396 506 368 458 338" />
-                <path d="M490 500 C448 448 422 410 392 360" />
+        <div class="boost-hero-visual reveal" aria-label="Formatos conectados ao Boost Convert">
+            <div class="boost-orbit-glow" aria-hidden="true"></div>
+            <svg class="boost-orbit-lines" viewBox="0 0 720 600" aria-hidden="true">
+                <path d="M360 250 C318 214 282 166 286 106" />
+                <path d="M410 250 C464 214 528 158 584 104" />
+                <path d="M342 300 C274 300 226 300 174 300" />
+                <path d="M418 300 C492 300 558 300 634 300" />
+                <path d="M360 350 C318 394 292 450 286 514" />
+                <path d="M410 350 C464 394 528 456 584 514" />
+                <path class="soft-loop" d="M116 332 C102 140 246 48 400 82 S682 206 646 374 374 558 198 500" />
+                <path class="soft-loop" d="M210 478 C356 596 642 468 654 300 S506 46 356 78 112 178 132 350" />
             </svg>
-            <span class="orbit-dot dot-a" aria-hidden="true"></span>
-            <span class="orbit-dot dot-b" aria-hidden="true"></span>
-            <span class="orbit-dot dot-c" aria-hidden="true"></span>
-            <span class="orbit-dot dot-d" aria-hidden="true"></span>
 
-            <article class="orbit-core">
-                <span>PDF</span>
-                <i data-lucide="file-text" aria-hidden="true"></i>
-                <strong>PDF</strong>
-                <small>Documento PDF</small>
-                <div>
-                    <i data-lucide="upload" aria-hidden="true"></i>
-                    <span>Solte ou adicione<br>seus arquivos</span>
-                </div>
-            </article>
+            <a class="boost-hub-card" href="{{ url_for('home.tools') }}" aria-label="Ver todas as ferramentas do Boost Convert">
+                <i data-lucide="rocket" aria-hidden="true"></i>
+                <strong>Boost.Convert</strong>
+                <span><i data-lucide="refresh-cw" aria-hidden="true"></i></span>
+            </a>
 
-            <article class="orbit-card orbit-img">
+            <a class="boost-file-card card-jpg" href="{{ url_for('home.converter_tool', slug='jpg-to-png') }}" aria-label="Abrir ferramenta JPG para PNG">
+                <span><i data-lucide="image" aria-hidden="true"></i></span>
                 <strong>JPG</strong>
-                <i data-lucide="image" aria-hidden="true"></i>
-                <small>Imagens</small>
-            </article>
-            <article class="orbit-card orbit-webp">
-                <strong>PNG</strong>
-                <i data-lucide="image" aria-hidden="true"></i>
-                <small>Imagens</small>
-            </article>
-            <article class="orbit-card orbit-ocr">
-                <strong>DOC</strong>
-                <i data-lucide="file-text" aria-hidden="true"></i>
-                <small>Documentos</small>
-            </article>
-            <article class="orbit-card orbit-docx">
-                <strong>WORD</strong>
-                <i data-lucide="file-type" aria-hidden="true"></i>
-                <small>Documento</small>
-            </article>
-            <article class="orbit-card orbit-video">
+                <small>Imagem</small>
+            </a>
+
+            <a class="boost-file-card card-mp4" href="{{ url_for('home.converter_tool', slug='mp4-to-mp3') }}" aria-label="Abrir ferramenta MP4 para MP3">
+                <span><i data-lucide="play" aria-hidden="true"></i></span>
                 <strong>MP4</strong>
-                <i data-lucide="circle-play" aria-hidden="true"></i>
-                <small>V&iacute;deos</small>
-            </article>
-            <article class="orbit-card orbit-ai">
+                <small>V&iacute;deo</small>
+            </a>
+
+            <a class="boost-file-card card-pdf" href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}" aria-label="Abrir ferramenta PDF para DOCX">
+                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
+                <strong>PDF</strong>
+                <small>Documento</small>
+            </a>
+
+            <a class="boost-file-card card-docx" href="{{ url_for('home.converter_tool', slug='docx-to-pdf') }}" aria-label="Abrir ferramenta DOCX para PDF">
+                <span><i data-lucide="file-type" aria-hidden="true"></i></span>
+                <strong>DOCX</strong>
+                <small>Word</small>
+            </a>
+
+            <a class="boost-file-card card-mp3" href="{{ url_for('home.converter_tool', slug='mp3-to-wav') }}" aria-label="Abrir ferramenta MP3 para WAV">
+                <span><i data-lucide="music" aria-hidden="true"></i></span>
                 <strong>MP3</strong>
-                <i data-lucide="audio-lines" aria-hidden="true"></i>
                 <small>&Aacute;udio</small>
-            </article>
-            <article class="orbit-card orbit-mp4">
-                <strong>OCR</strong>
-                <i data-lucide="scan-text" aria-hidden="true"></i>
-                <small>Texto</small>
-            </article>
-            <article class="orbit-card orbit-zip">
+            </a>
+
+            <a class="boost-file-card card-zip" href="{{ url_for('home.tools') }}" aria-label="Ver ferramentas de arquivos">
+                <span><i data-lucide="file-archive" aria-hidden="true"></i></span>
                 <strong>ZIP</strong>
-                <i data-lucide="file-archive" aria-hidden="true"></i>
-                <small>Arquivos</small>
-            </article>
+                <small>Arquivo</small>
+            </a>
+        </div>
+
+        <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
+            <div>
+                <span><i data-lucide="users" aria-hidden="true"></i></span>
+                <strong>2M+</strong>
+                <small>Usu&aacute;rios satisfeitos</small>
+            </div>
+            <div>
+                <span><i data-lucide="file-check" aria-hidden="true"></i></span>
+                <strong>50M+</strong>
+                <small>Arquivos convertidos</small>
+            </div>
+            <div>
+                <span><i data-lucide="zap" aria-hidden="true"></i></span>
+                <strong>10x</strong>
+                <small>Mais r&aacute;pido</small>
+            </div>
+            <div>
+                <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                <strong>100%</strong>
+                <small>Seguro e privado</small>
+            </div>
         </div>
     </section>
 

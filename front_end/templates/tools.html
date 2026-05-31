@@ -20,7 +20,6 @@
                 </a>
             {% endfor %}
             <a href="#ocr"><span>OCR</span><span>em breve</span></a>
-            <a href="#ai-tools"><span>AI Tools</span><span>em breve</span></a>
         </aside>
 
         <div class="tools-content">
@@ -39,6 +38,8 @@
                                 <i data-lucide="clapperboard" aria-hidden="true"></i>
                             {% elif 'Audio' in category or 'udio' in category %}
                                 <i data-lucide="audio-lines" aria-hidden="true"></i>
+                            {% elif 'AI' in category %}
+                                <i data-lucide="bot" aria-hidden="true"></i>
                             {% else %}
                                 <i data-lucide="file-text" aria-hidden="true"></i>
                             {% endif %}
@@ -47,11 +48,13 @@
 
                     <div class="tools-grid">
                         {% for tool in category_tools %}
-                            {% set tool_page_route = "/tools" ~ tool.route|replace("/convert", "") %}
+                            {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}
                             <article class="tool-card tool-card-{{ category_id }} {% if loop.index <= 2 %}is-featured{% endif %}">
                                 <div class="tool-card-top">
                                     <span class="tool-icon">
-                                        {% if 'Imagem' in category or 'image' in category|lower %}
+                                        {% if tool.icon is defined %}
+                                            <i data-lucide="{{ tool.icon }}" aria-hidden="true"></i>
+                                        {% elif 'Imagem' in category or 'image' in category|lower %}
                                             <i data-lucide="image" aria-hidden="true"></i>
                                         {% elif 'Video' in category or 'deo' in category %}
                                             <i data-lucide="clapperboard" aria-hidden="true"></i>
@@ -61,14 +64,22 @@
                                             <i data-lucide="file-text" aria-hidden="true"></i>
                                         {% endif %}
                                     </span>
-                                    {% if loop.index == 1 %}
+                                    {% if tool.badge is defined %}
+                                        <span class="tool-badge">{{ tool.badge }}</span>
+                                    {% elif loop.index == 1 %}
                                         <span class="tool-badge">Mais usado</span>
                                     {% elif loop.index == 2 %}
                                         <span class="tool-badge">Novo</span>
                                     {% endif %}
                                 </div>
                                 <h3 class="tool-title">{{ tool.name }}</h3>
-                                <p class="tool-accept">Aceita {{ tool.accept }} &middot; FREE at&eacute; {{ tool.limits.free_upload_limit_label }}</p>
+                                <p class="tool-accept">
+                                    {% if tool.description is defined %}
+                                        {{ tool.description }}
+                                    {% else %}
+                                        Aceita {{ tool.accept }} &middot; FREE at&eacute; {{ tool.limits.free_upload_limit_label }}
+                                    {% endif %}
+                                </p>
                                 <a class="tool-link" href="{{ tool_page_route }}" data-convert-route="{{ tool.route }}" data-accept="{{ tool.accept }}">
                                     Converter
                                     <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -103,26 +114,6 @@
                         </div>
                         <h3 class="tool-title">Compress&atilde;o inteligente</h3>
                         <p class="tool-accept">Redu&ccedil;&atilde;o de tamanho com controle de qualidade.</p>
-                        <span class="tool-link">Em breve</span>
-                    </article>
-                </div>
-            </section>
-
-            <section class="tools-section" id="ai-tools">
-                <div class="section-header">
-                    <div>
-                        <h2>AI Tools</h2>
-                        <p>Automa&ccedil;&otilde;es assistidas para organizar, renomear e preparar arquivos.</p>
-                    </div>
-                </div>
-                <div class="tools-grid">
-                    <article class="tool-card tool-card-extras is-featured">
-                        <div class="tool-card-top">
-                            <span class="tool-icon"><i data-lucide="bot" aria-hidden="true"></i></span>
-                            <span class="tool-badge">Novo</span>
-                        </div>
-                        <h3 class="tool-title">AI Tools</h3>
-                        <p class="tool-accept">Fluxos assistidos para preparar arquivos.</p>
                         <span class="tool-link">Em breve</span>
                     </article>
                 </div>
