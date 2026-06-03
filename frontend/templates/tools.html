@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Ferramentas - BoostConvert AI{% endblock %}
+
+{% block content %}
+<main class="page-section tools-page">
+    <div class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="wand-sparkles" aria-hidden="true"></i> Biblioteca de convers&otilde;es</div>
+        <h1>Escolha uma ferramenta e envie seus arquivos.</h1>
+        <p>Organiza&ccedil;&atilde;o simples, categorias limpas e limites transparentes para cada tipo de arquivo.</p>
+    </div>
+
+    <div class="tools-layout reveal">
+        <aside class="tools-sidebar reveal" aria-label="Categorias">
+            {% for category, category_tools in tools.items() %}
+                {% set category_id = category|lower|replace(' ', '-') %}
+                <a href="#{{ category_id }}" class="{% if loop.first %}is-active{% endif %}">
+                    <span>{{ category }}</span>
+                    <span>{{ category_tools|length }}</span>
+                </a>
+            {% endfor %}
+        </aside>
+
+        <div class="tools-content">
+            {% for category, category_tools in tools.items() %}
+                {% set category_id = category|lower|replace(' ', '-') %}
+                <section class="tools-section" id="{{ category_id }}">
+                    <div class="section-header">
+                        <div>
+                            <h2>{{ category }}</h2>
+                            <p>{{ category_tools|length }} ferramentas dispon&iacute;veis</p>
+                        </div>
+                        <span class="mini-icon">
+                            {% if 'Imagem' in category or 'image' in category|lower %}
+                                <i data-lucide="image" aria-hidden="true"></i>
+                            {% elif 'Video' in category or 'deo' in category %}
+                                <i data-lucide="clapperboard" aria-hidden="true"></i>
+                            {% elif 'Audio' in category or 'udio' in category %}
+                                <i data-lucide="audio-lines" aria-hidden="true"></i>
+                            {% elif 'AI' in category %}
+                                <i data-lucide="bot" aria-hidden="true"></i>
+                            {% else %}
+                                <i data-lucide="file-text" aria-hidden="true"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="tools-grid">
+                        {% for tool in category_tools %}
+                            {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}
+                            <article class="tool-card tool-card-{{ category_id }} {% if loop.index <= 2 %}is-featured{% endif %}">
+                                <div class="tool-card-top">
+                                    <span class="tool-icon">
+                                        {% if tool.icon is defined %}
+                                            <i data-lucide="{{ tool.icon }}" aria-hidden="true"></i>
+                                        {% elif 'Imagem' in category or 'image' in category|lower %}
+                                            <i data-lucide="image" aria-hidden="true"></i>
+                                        {% elif 'Video' in category or 'deo' in category %}
+                                            <i data-lucide="clapperboard" aria-hidden="true"></i>
+                                        {% elif 'Audio' in category or 'udio' in category %}
+                                            <i data-lucide="audio-lines" aria-hidden="true"></i>
+                                        {% else %}
+                                            <i data-lucide="file-text" aria-hidden="true"></i>
+                                        {% endif %}
+                                    </span>
+                                    {% if tool.badge is defined %}
+                                        <span class="tool-badge">{{ tool.badge }}</span>
+                                    {% elif loop.index == 1 %}
+                                        <span class="tool-badge">Mais usado</span>
+                                    {% elif loop.index == 2 %}
+                                        <span class="tool-badge">Novo</span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="tool-title">{{ tool.name }}</h3>
+                                <p class="tool-accept">
+                                    {% if tool.description is defined %}
+                                        {{ tool.description }}
+                                    {% else %}
+                                        Aceita {{ tool.accept }} &middot; FREE at&eacute; {{ tool.limits.free_upload_limit_label }}
+                                    {% endif %}
+                                </p>
+                                <a class="tool-link" href="{{ tool_page_route }}" data-convert-route="{{ tool.route }}" data-accept="{{ tool.accept }}">
+                                    Converter
+                                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                </a>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+
+        </div>
+    </div>
+</main>
+{% endblock %}
