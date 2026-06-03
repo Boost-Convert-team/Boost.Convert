@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Planos - Boost.Convert{% endblock %}
+
+{% block content %}
+<main class="pricing-page">
+    <section class="pricing-hero">
+        <div class="pricing-copy reveal">
+            <div class="eyebrow"><i data-lucide="badge-dollar-sign" aria-hidden="true"></i> Planos</div>
+            <h1>Escolha o limite que combina com seu ritmo.</h1>
+            <p>
+                O Free resolve testes e arquivos pequenos. O Pro foi feito para quem converte
+                com frequ&ecirc;ncia, usa arquivos grandes e n&atilde;o quer travar no meio do trabalho.
+            </p>
+        </div>
+
+        <div class="pricing-stage reveal">
+            <article class="plan-free">
+                <div class="plan-head">
+                    <span class="plan-kicker">FREE</span>
+                    <h2>Para testar</h2>
+                    <div class="plan-price">R$ 0</div>
+                    <p>Bom para uso ocasional e arquivos pequenos.</p>
+                </div>
+
+                <ul class="plan-list">
+                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es a cada 24h</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Upload de documentos at&eacute; 50 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; 2 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> PDF, imagem, &aacute;udio e v&iacute;deo</li>
+                    <li><i data-lucide="x" aria-hidden="true"></i> Sem lotes grandes</li>
+                    <li><i data-lucide="x" aria-hidden="true"></i> Sem prioridade na fila</li>
+                </ul>
+
+                <a class="button button-secondary" href="{{ url_for('home.tools') }}">Usar gr&aacute;tis</a>
+            </article>
+
+            <article class="plan-pro">
+                <span class="plan-badge">Melhor custo-benef&iacute;cio</span>
+                <div class="plan-head">
+                    <span class="plan-kicker"><i data-lucide="rocket" aria-hidden="true"></i> PRO</span>
+                    <h2>Para trabalhar</h2>
+                    <div class="plan-price">Pro</div>
+                    <p>Mais volume, arquivos maiores e menos interrup&ccedil;&atilde;o.</p>
+                </div>
+
+                <ul class="plan-list">
+                    <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Documentos at&eacute; 300 MB e v&iacute;deos at&eacute; 2 GB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; 15 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> PDFs pesados, v&iacute;deos longos e lotes</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Melhor para uso profissional</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Prioridade no processamento</li>
+                </ul>
+
+                <div class="plan-benefits">
+                    <div>
+                        <i data-lucide="infinity" aria-hidden="true"></i>
+                        <strong>Converta sem contar</strong>
+                        <span>Use quantas vezes precisar, sem esperar virar o dia.</span>
+                    </div>
+                    <div>
+                        <i data-lucide="folder-up" aria-hidden="true"></i>
+                        <strong>Envie arquivos grandes</strong>
+                        <span>PDFs pesados, v&iacute;deos longos e lotes deixam de ser problema.</span>
+                    </div>
+                    <div>
+                        <i data-lucide="zap" aria-hidden="true"></i>
+                        <strong>Mais r&aacute;pido para rotina</strong>
+                        <span>Ideal para quem usa convers&atilde;o no trabalho, estudo ou atendimento.</span>
+                    </div>
+                </div>
+
+                <div class="plan-action">
+                    {% if not current_user.is_authenticated %}
+                        <a class="button button-primary" href="{{ url_for('auth.login') }}">
+                            Fazer login
+                            <i data-lucide="arrow-right" aria-hidden="true"></i>
+                        </a>
+                    {% elif current_user.plano == "pro" and current_user.status_assinatura == "active" %}
+                        <span class="button button-secondary">Plano PRO ativo</span>
+                    {% elif current_user.plano == "free" %}
+                        <form id="checkout-form" data-loading-form>
+                            <button class="button button-primary" type="submit">
+                                Assinar PRO
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="plan-state">Plano: {{ current_user.plano }} &middot; Status: {{ current_user.status_assinatura }}</p>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+
+    {% if current_user.is_authenticated %}
+        <section class="pricing-account reveal">
+            <div>
+                <span class="eyebrow">Conta</span>
+                <h2>Seu plano atual, sem confus&atilde;o.</h2>
+            </div>
+            <dl class="details-list">
+                <div class="details-row">
+                    <dt>Email</dt>
+                    <dd>{{ current_user.email }}</dd>
+                </div>
+                <div class="details-row">
+                    <dt>Plano atual</dt>
+                    <dd>{{ current_user.plano }}</dd>
+                </div>
+                <div class="details-row">
+                    <dt>Status</dt>
+                    <dd>{{ current_user.status_assinatura }}</dd>
+                </div>
+            </dl>
+        </section>
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.plano == "free" %}
+        <section class="pricing-dev reveal">
+            <div>
+                <h2>Teste de webhook</h2>
+                <p>Controle de desenvolvimento mantido para simular aprova&ccedil;&atilde;o de pagamento.</p>
+            </div>
+            <form action="{{ url_for('webhook.payment_webhook') }}" method="POST" data-loading-form>
+                <input type="hidden" name="event" value="payment_approved">
+                <input type="hidden" name="user_id" value="{{ current_user.id }}">
+                <button class="button button-secondary" type="submit">Simular pagamento aprovado</button>
+            </form>
+        </section>
+    {% endif %}
+</main>
+
+<script>
+    const form = document.getElementById("checkout-form");
+
+    if (form) {
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const response = await fetch("/checkout/pro", {
+                method: "POST"
+            });
+
+            const data = await response.json();
+
+            if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            } else {
+                alert("Erro ao iniciar pagamento");
+            }
+        });
+    }
+</script>
+{% endblock %}

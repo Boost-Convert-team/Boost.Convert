@@ -1,0 +1,190 @@
+<header class="topbar">
+    <a class="brand" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
+        <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+    </a>
+
+    <nav class="topnav mega-nav" aria-label="Ecossistema de ferramentas">
+        <div class="mega-dropdown">
+            <a class="mega-trigger mega-trigger-all" href="{{ url_for('home.tools') }}" aria-haspopup="true">
+                <span>Ferramentas</span>
+                <i class="nav-caret" data-lucide="chevron-down" aria-hidden="true"></i>
+            </a>
+
+            <div class="mega-menu" role="region" aria-label="Menu de ferramentas do BoostConvert">
+                <div class="mega-menu-inner">
+                    <div class="mega-columns">
+                        <section class="mega-column">
+                            <h3><i data-lucide="file-text" aria-hidden="true"></i> PDF</h3>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-merge') }}">
+                                <span class="mega-icon"><i data-lucide="combine" aria-hidden="true"></i></span>
+                                <strong>Juntar PDF</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-split') }}">
+                                <span class="mega-icon"><i data-lucide="scissors" aria-hidden="true"></i></span>
+                                <strong>Dividir PDF</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-compress') }}">
+                                <span class="mega-icon"><i data-lucide="minimize-2" aria-hidden="true"></i></span>
+                                <strong>Comprimir PDF</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}">
+                                <span class="mega-icon"><i data-lucide="file-type" aria-hidden="true"></i></span>
+                                <strong>PDF para DOCX</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-to-jpg') }}">
+                                <span class="mega-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                                <strong>PDF para JPG</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#documentos">
+                                <span>Ver todas</span>
+                                <em>+29</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+
+                        <section class="mega-column">
+                            <h3><i data-lucide="image" aria-hidden="true"></i> Imagem</h3>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='png-to-webp') }}">
+                                <span class="mega-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                                <strong>PNG para WEBP</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='jpg-to-png') }}">
+                                <span class="mega-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                                <strong>JPG para PNG</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='jpg-to-webp') }}">
+                                <span class="mega-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                                <strong>JPG para WEBP</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='heic-to-jpg') }}">
+                                <span class="mega-icon"><i data-lucide="smartphone" aria-hidden="true"></i></span>
+                                <strong>HEIC para JPG</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='svg-to-png') }}">
+                                <span class="mega-icon"><i data-lucide="shapes" aria-hidden="true"></i></span>
+                                <strong>SVG para PNG</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#imagens">
+                                <span>Ver todas</span>
+                                <em>+12</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+
+                        <section class="mega-column">
+                            <h3><i data-lucide="play-circle" aria-hidden="true"></i> V&iacute;deo</h3>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='mp4-to-mp3') }}">
+                                <span class="mega-icon"><i data-lucide="music" aria-hidden="true"></i></span>
+                                <strong>MP4 para MP3</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='mov-to-mp4') }}">
+                                <span class="mega-icon"><i data-lucide="video" aria-hidden="true"></i></span>
+                                <strong>MOV para MP4</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='webm-to-mp4') }}">
+                                <span class="mega-icon"><i data-lucide="clapperboard" aria-hidden="true"></i></span>
+                                <strong>WEBM para MP4</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='mp4-to-gif') }}">
+                                <span class="mega-icon"><i data-lucide="film" aria-hidden="true"></i></span>
+                                <strong>MP4 para GIF</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#videos">
+                                <span>Ver todas</span>
+                                <em>+10</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+
+                        <section class="mega-column">
+                            <h3><i data-lucide="audio-lines" aria-hidden="true"></i> &Aacute;udio</h3>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='wav-to-mp3') }}">
+                                <span class="mega-icon"><i data-lucide="music" aria-hidden="true"></i></span>
+                                <strong>WAV para MP3</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='mp3-to-wav') }}">
+                                <span class="mega-icon"><i data-lucide="audio-waveform" aria-hidden="true"></i></span>
+                                <strong>MP3 para WAV</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='flac-to-mp3') }}">
+                                <span class="mega-icon"><i data-lucide="disc-3" aria-hidden="true"></i></span>
+                                <strong>FLAC para MP3</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='aac-to-mp3') }}">
+                                <span class="mega-icon"><i data-lucide="headphones" aria-hidden="true"></i></span>
+                                <strong>AAC para MP3</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#audios">
+                                <span>Ver todas</span>
+                                <em>+10</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+
+                        <section class="mega-column">
+                            <h3><i data-lucide="scan-text" aria-hidden="true"></i> OCR</h3>
+                            <a class="mega-tool" href="{{ url_for('home.tools') }}#ocr">
+                                <span class="mega-icon"><i data-lucide="scan-text" aria-hidden="true"></i></span>
+                                <strong>OCR PDF</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-to-txt') }}">
+                                <span class="mega-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                                <strong>PDF para TXT</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.converter_tool', slug='pdf-to-csv') }}">
+                                <span class="mega-icon"><i data-lucide="table" aria-hidden="true"></i></span>
+                                <strong>PDF para CSV</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.tools') }}#ocr">
+                                <span class="mega-icon"><i data-lucide="scan-line" aria-hidden="true"></i></span>
+                                <strong>OCR imagem</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#ocr">
+                                <span>Ver todas</span>
+                                <em>OCR</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+
+                        <section class="mega-column">
+                            <h3><i data-lucide="sparkles" aria-hidden="true"></i> AI</h3>
+                            <a class="mega-tool" href="{{ url_for('home.tools') }}#ai-tools">
+                                <span class="mega-icon"><i data-lucide="bot" aria-hidden="true"></i></span>
+                                <strong>AI Tools</strong>
+                            </a>
+                            <a class="mega-tool" href="{{ url_for('home.tools') }}#ocr">
+                                <span class="mega-icon"><i data-lucide="archive" aria-hidden="true"></i></span>
+                                <strong>Compress&atilde;o</strong>
+                            </a>
+                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#ai-tools">
+                                <span>Ver todas</span>
+                                <em>AI</em>
+                                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a class="nav-link" href="{{ url_for('home.conta') }}">Conta</a>
+        <a class="nav-link" href="{{ url_for('main.planos') }}">Planos</a>
+    </nav>
+
+    <div class="header-utilities" aria-label="A&ccedil;&otilde;es do cabe&ccedil;alho">
+        <form class="header-search" role="search" data-tool-search autocomplete="off">
+            <label class="sr-only" for="tool-search-input">Pesquisar ferramentas</label>
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="tool-search-input" type="search" placeholder="Buscar ferramenta" aria-label="Pesquisar ferramentas" data-tool-search-input>
+            <div class="tool-search-results" data-tool-search-results role="listbox" aria-label="Resultados de ferramentas"></div>
+        </form>
+
+        <div class="top-actions">
+            {% if current_user.is_authenticated %}
+                <a class="text-link header-login" href="{{ url_for('auth.logout') }}">Sair</a>
+            {% else %}
+                <a class="text-link header-login" href="{{ url_for('auth.login') }}">Entrar</a>
+            {% endif %}
+        </div>
+    </div>
+</header>

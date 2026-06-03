@@ -1,0 +1,58 @@
+.home-page {
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+    background:
+        linear-gradient(180deg, #fffdfa 0%, #fcf8f3 42%, #fffbf7 100%);
+}
+
+.home-page::before {
+    content: "";
+    position: absolute;
+    inset: -240px -18% -260px;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 86% 32% at 76% 8%, rgba(255, 184, 106, .105), rgba(255, 224, 194, .045) 38%, transparent 72%),
+        radial-gradient(ellipse 72% 30% at 18% 34%, rgba(240, 138, 36, .055), rgba(255, 224, 194, .030) 42%, transparent 76%),
+        radial-gradient(ellipse 92% 34% at 72% 64%, rgba(255, 184, 106, .072), rgba(255, 244, 232, .040) 46%, transparent 78%),
+        radial-gradient(ellipse 82% 34% at 28% 90%, rgba(240, 138, 36, .040), transparent 72%);
+    filter: blur(28px);
+    opacity: 1;
+    pointer-events: none;
+}
+
+.home-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .18) 48%, rgba(255, 255, 255, .44)),
+        radial-gradient(ellipse 78% 48% at 50% 40%, rgba(255, 255, 255, .42), transparent 74%);
+    opacity: .86;
+    pointer-events: none;
+}
+
+.home-page > section {
+    position: relative;
+    z-index: 1;
+}
+
+.ab-hero,
+.toolscape,
+.price-editorial,
+.integrations-stage,
+.suite-section,
+.dark-cta,
+.home-plans,
+.account-workspace {
+    scroll-margin-top: 112px;
+}
+
+.home-page h1,
+.home-page h2,
+.home-page h3,
+.home-page p {
+    letter-spacing: 0;
+}
+

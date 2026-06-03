@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Boost.Convert | Conversor de arquivos{% endblock %}
+
+{% block content %}
+<main class="home-page">
+    <section class="ab-hero" id="upload">
+        <span class="boost-corner-blob boost-corner-blob-left" aria-hidden="true"></span>
+        <span class="boost-corner-blob boost-corner-blob-right" aria-hidden="true"></span>
+        <div class="boost-hero-bg-lines" aria-hidden="true">
+            <svg viewBox="0 0 1440 760" preserveAspectRatio="none">
+                <path d="M-70 188 C 80 212 158 86 304 62 C 480 34 570 178 736 154 C 900 130 966 8 1138 44 C 1300 78 1368 234 1518 166" />
+                <path d="M902 650 C 1016 596 1114 608 1226 662 C 1330 712 1412 690 1508 608" />
+                <path d="M958 610 C 1062 556 1160 586 1248 642 C 1362 714 1474 696 1544 624" />
+            </svg>
+        </div>
+        <div class="ab-hero-copy reveal">
+            <h1>
+                <span class="headline-line">Converta arquivos</span>
+                <span class="headline-line">sem <em>complica&ccedil;&atilde;o.</em></span>
+            </h1>
+            <p>
+                PDF, Word, Excel, PowerPoint, MP4 e MP3. Arraste o arquivo,
+                escolha a ferramenta e baixe tudo em segundos.
+            </p>
+
+            <div class="hero-actions">
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">
+                    Converter arquivo agora
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
+                <a class="button button-secondary" href="{{ url_for('home.tools') }}">
+                    <i data-lucide="grid-3x3" aria-hidden="true"></i>
+                    Ver ferramentas
+                </a>
+            </div>
+
+            <div class="hero-metrics" aria-label="Destaques do produto">
+                <div>
+                    <span class="mini-icon"><i data-lucide="layout-grid" aria-hidden="true"></i></span>
+                    <strong>50+</strong>
+                    <small>Ferramentas</small>
+                </div>
+                <div>
+                    <span class="mini-icon"><i data-lucide="files" aria-hidden="true"></i></span>
+                    <strong>PDF, imagem</strong>
+                    <small>v&iacute;deo e &aacute;udio</small>
+                </div>
+                <div>
+                    <span class="mini-icon"><i data-lucide="zap" aria-hidden="true"></i></span>
+                    <strong>R&aacute;pido</strong>
+                    <small>sem enrola&ccedil;&atilde;o</small>
+                </div>
+                <div>
+                    <span class="mini-icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                    <strong>Seguro</strong>
+                    <small>sem complica&ccedil;&atilde;o</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="boost-hero-visual reveal" aria-label="Formatos conectados ao Boost Convert">
+            <div class="boost-orbit-glow" aria-hidden="true"></div>
+            <svg class="boost-orbit-lines" viewBox="0 0 720 600" aria-hidden="true">
+                <path d="M360 250 C318 214 282 166 286 106" />
+                <path d="M410 250 C464 214 528 158 584 104" />
+                <path d="M342 300 C274 300 226 300 174 300" />
+                <path d="M418 300 C492 300 558 300 634 300" />
+                <path d="M360 350 C318 394 292 450 286 514" />
+                <path d="M410 350 C464 394 528 456 584 514" />
+                <path class="soft-loop" d="M116 332 C102 140 246 48 400 82 S682 206 646 374 374 558 198 500" />
+                <path class="soft-loop" d="M210 478 C356 596 642 468 654 300 S506 46 356 78 112 178 132 350" />
+            </svg>
+
+            <a class="boost-hub-card" href="{{ url_for('home.tools') }}" aria-label="Ver todas as ferramentas do Boost Convert">
+                <i data-lucide="rocket" aria-hidden="true"></i>
+                <strong>Boost.Convert</strong>
+                <span><i data-lucide="refresh-cw" aria-hidden="true"></i></span>
+            </a>
+
+            <a class="boost-file-card card-jpg" href="{{ url_for('home.converter_tool', slug='jpg-to-png') }}" aria-label="Abrir ferramenta JPG para PNG">
+                <span><i data-lucide="image" aria-hidden="true"></i></span>
+                <strong>JPG</strong>
+                <small>Imagem</small>
+            </a>
+
+            <a class="boost-file-card card-mp4" href="{{ url_for('home.converter_tool', slug='mp4-to-mp3') }}" aria-label="Abrir ferramenta MP4 para MP3">
+                <span><i data-lucide="play" aria-hidden="true"></i></span>
+                <strong>MP4</strong>
+                <small>V&iacute;deo</small>
+            </a>
+
+            <a class="boost-file-card card-pdf" href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}" aria-label="Abrir ferramenta PDF para DOCX">
+                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
+                <strong>PDF</strong>
+                <small>Documento</small>
+            </a>
+
+            <a class="boost-file-card card-docx" href="{{ url_for('home.converter_tool', slug='docx-to-pdf') }}" aria-label="Abrir ferramenta DOCX para PDF">
+                <span><i data-lucide="file-type" aria-hidden="true"></i></span>
+                <strong>DOCX</strong>
+                <small>Word</small>
+            </a>
+
+            <a class="boost-file-card card-mp3" href="{{ url_for('home.converter_tool', slug='mp3-to-wav') }}" aria-label="Abrir ferramenta MP3 para WAV">
+                <span><i data-lucide="music" aria-hidden="true"></i></span>
+                <strong>MP3</strong>
+                <small>&Aacute;udio</small>
+            </a>
+
+            <a class="boost-file-card card-zip" href="{{ url_for('home.tools') }}" aria-label="Ver ferramentas de arquivos">
+                <span><i data-lucide="file-archive" aria-hidden="true"></i></span>
+                <strong>ZIP</strong>
+                <small>Arquivo</small>
+            </a>
+        </div>
+
+        <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
+            <div>
+                <span><i data-lucide="users" aria-hidden="true"></i></span>
+                <strong>2M+</strong>
+                <small>Usu&aacute;rios satisfeitos</small>
+            </div>
+            <div>
+                <span><i data-lucide="file-check" aria-hidden="true"></i></span>
+                <strong>50M+</strong>
+                <small>Arquivos convertidos</small>
+            </div>
+            <div>
+                <span><i data-lucide="zap" aria-hidden="true"></i></span>
+                <strong>10x</strong>
+                <small>Mais r&aacute;pido</small>
+            </div>
+            <div>
+                <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                <strong>100%</strong>
+                <small>Seguro e privado</small>
+            </div>
+        </div>
+    </section>
+
+    <section class="toolscape simple-flow-section" id="porque-usar" aria-label="Fluxo simples de convers&atilde;o">
+        <div class="simple-flow-header reveal">
+            <span class="eyebrow">Fluxo simples</span>
+            <h2>Converta arquivos sem pensar no processo.</h2>
+            <p>Quatro etapas claras, sem painel complexo. Voc&ecirc; envia, o Boost organiza o caminho.</p>
+        </div>
+
+        <div class="simple-flow reveal" aria-label="Quatro etapas do Boost Convert">
+            <article class="flow-card">
+                <span class="flow-index">01</span>
+                <div class="flow-icon">
+                    <i data-lucide="upload-cloud" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Upload</strong>
+                    <small>Solte seus arquivos.</small>
+                </div>
+            </article>
+
+            <article class="flow-card is-primary">
+                <span class="flow-index">02</span>
+                <div class="flow-icon">
+                    <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Converter</strong>
+                    <small>Escolha o formato.</small>
+                </div>
+            </article>
+
+            <article class="flow-card">
+                <span class="flow-index">03</span>
+                <div class="flow-icon">
+                    <i data-lucide="scan-text" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>IA/OCR</strong>
+                    <small>Texto limpo quando precisar.</small>
+                </div>
+            </article>
+
+            <article class="flow-card">
+                <span class="flow-index">04</span>
+                <div class="flow-icon">
+                    <i data-lucide="download" aria-hidden="true"></i>
+                </div>
+                <div class="flow-copy">
+                    <strong>Exportar</strong>
+                    <small>Baixe e continue.</small>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="price-editorial price-premium reveal">
+        <div class="price-editorial-copy">
+            <span class="price-premium-badge">
+                <i data-lucide="zap" aria-hidden="true"></i>
+                Simples. R&aacute;pido. Inteligente.
+            </span>
+            <h2>Use apenas o que precisar.<br><span>Sem ru&iacute;do.</span></h2>
+            <p>Planos claros, limites vis&iacute;veis e upgrade quando o seu volume realmente pedir.</p>
+            <a class="price-premium-link" href="{{ url_for('main.planos') }}">Ver planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        </div>
+        <figure class="price-editorial-media">
+            <span class="price-media-backdrop" aria-hidden="true"></span>
+            <svg class="price-media-line" viewBox="0 0 720 520" aria-hidden="true">
+                <path d="M42 332 C 140 196 250 188 342 258 C 452 342 548 334 672 182" />
+            </svg>
+            <span class="price-media-dots" aria-hidden="true"></span>
+            <img src="/fotos%20projeto/hero-notebook.png" alt="Notebook exibindo a experi&ecirc;ncia da Boost.Convert" loading="lazy" decoding="async">
+            <figcaption class="price-security-card">
+                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+                <strong>Seus arquivos protegidos</strong>
+            </figcaption>
+        </figure>
+    </section>
+
+    <section class="integrations-stage format-ecosystem" aria-label="Ecossistema moderno de convers&atilde;o">
+        <div class="format-cloud reveal">
+            <div class="ecosystem-center">
+                <span class="eyebrow">Ecossistema</span>
+                <h2>Tudo conectado<br>em um &uacute;nico fluxo.</h2>
+                <p>PDF, imagem, v&iacute;deo e IA em uma experi&ecirc;ncia limpa, r&aacute;pida e sem ru&iacute;do.</p>
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">
+                    Explorar ferramentas
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+
+            <span class="format-badge badge-pdf"><i data-lucide="file-text" aria-hidden="true"></i> PDF</span>
+            <span class="format-badge badge-docx"><i data-lucide="file-type" aria-hidden="true"></i> DOCX</span>
+            <span class="format-badge badge-ocr"><i data-lucide="scan-text" aria-hidden="true"></i> OCR</span>
+            <span class="format-badge badge-ai"><i data-lucide="sparkles" aria-hidden="true"></i> AI</span>
+            <span class="format-badge badge-png"><i data-lucide="image" aria-hidden="true"></i> PNG</span>
+            <span class="format-badge badge-webp"><i data-lucide="image" aria-hidden="true"></i> WEBP</span>
+            <span class="format-badge badge-mp4"><i data-lucide="video" aria-hidden="true"></i> MP4</span>
+            <span class="format-badge badge-mp3"><i data-lucide="music" aria-hidden="true"></i> MP3</span>
+            <span class="format-badge badge-compress"><i data-lucide="minimize-2" aria-hidden="true"></i> Compress&atilde;o</span>
+            <span class="format-badge badge-export"><i data-lucide="download" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</span>
+        </div>
+    </section>
+
+    <section class="suite-section">
+        <div class="suite-heading reveal">
+            <h2>Um workspace de arquivos que parece leve.</h2>
+            <p>
+                Convers&otilde;es, compress&atilde;o e OCR aparecem como partes do mesmo fluxo:
+                visual, organizado e sem cara de sistema corporativo.
+            </p>
+        </div>
+
+        <div class="suite-panels">
+            <article class="suite-card suite-card-flow reveal">
+                <div class="suite-visual flow-visual">
+                    <div class="preview-sheet">
+                        <span>PDF</span>
+                        <i data-lucide="file-text" aria-hidden="true"></i>
+                        <div class="preview-lines">
+                            <small></small>
+                            <small></small>
+                            <small></small>
+                        </div>
+                    </div>
+                    <span class="preview-arrow"><i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    <span class="preview-chip chip-docx">DOCX</span>
+                    <span class="preview-chip chip-webp">WEBP</span>
+                </div>
+                <h3>Formatos em movimento.</h3>
+                <p>Transforme PDF, imagem, v&iacute;deo e &aacute;udio em uma experi&ecirc;ncia visual e direta.</p>
+            </article>
+            <article class="suite-card suite-card-ocr reveal">
+                <div class="suite-visual ocr-visual">
+                    <div class="scan-sheet">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <b></b>
+                    </div>
+                    <div class="extract-pill"><i data-lucide="scan-text" aria-hidden="true"></i> OCR limpo</div>
+                </div>
+                <h3>Texto que aparece pronto.</h3>
+                <p>Extraia texto de PDFs e imagens sem transformar a tarefa em processo t&eacute;cnico.</p>
+            </article>
+            <article class="suite-card suite-card-organize reveal">
+                <div class="suite-visual organize-visual">
+                    <div class="format-orbit">
+                        <span>PNG</span>
+                        <span>MP4</span>
+                        <span>ZIP</span>
+                        <span>AI</span>
+                    </div>
+                    <div class="output-capsule">
+                        <i data-lucide="archive" aria-hidden="true"></i>
+                        <strong>exports</strong>
+                    </div>
+                </div>
+                <h3>Tudo fica no lugar.</h3>
+                <p>Arquivos, formatos e sa&iacute;das ficam organizados com uma sensa&ccedil;&atilde;o de workspace moderno.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="home-plans" id="planos">
+        <div class="home-plans-copy reveal">
+            <span class="eyebrow">Planos</span>
+            <h2>Comece leve.<br>Escalone quando precisar.</h2>
+            <p>
+                O Free resolve fluxos r&aacute;pidos e casuais. O Pro libera a opera&ccedil;&atilde;o completa:
+                mais volume, prioridade, hist&oacute;rico persistente e ferramentas avan&ccedil;adas.
+            </p>
+            <a class="text-link" href="{{ url_for('main.planos') }}">Comparar planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        </div>
+
+        <div class="home-plan-cards reveal">
+            <article class="home-plan-card home-plan-free">
+                <div class="home-plan-head">
+                    <span>FREE</span>
+                    <h3>Fluxo r&aacute;pido</h3>
+                    <p>Para converter arquivos leves sem compromisso.</p>
+                </div>
+                <ul>
+                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es a cada 24h</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Documentos at&eacute; 50 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 250 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; 2 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> OCR para testes e uso leve</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Fila normal</li>
+                    <li><i data-lucide="x" aria-hidden="true"></i> Sem lotes grandes</li>
+                </ul>
+                <a class="button button-secondary" href="{{ url_for('auth.registrar') }}">Come&ccedil;ar gr&aacute;tis</a>
+            </article>
+
+            <article class="home-plan-card home-plan-pro">
+                <div class="home-plan-badge">Mais completo</div>
+                <div class="home-plan-head">
+                    <span>PRO</span>
+                    <h3>Opera&ccedil;&atilde;o s&eacute;ria</h3>
+                    <p>Para transformar lotes, documentos e formatos com menos espera.</p>
+                </div>
+                <ul>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Documentos at&eacute; 300 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 2 GB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; 15 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> OCR e IA para uso frequente</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Hist&oacute;rico persistente</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Downloads em lote maiores</li>
+                </ul>
+
+                <div class="home-pro-benefits">
+                    <div>
+                        <i data-lucide="infinity" aria-hidden="true"></i>
+                        <span>Use sem ficar contando convers&otilde;es.</span>
+                    </div>
+                    <div>
+                        <i data-lucide="files" aria-hidden="true"></i>
+                        <span>Envie lotes e arquivos grandes sem dividir tudo manualmente.</span>
+                    </div>
+                    <div>
+                        <i data-lucide="briefcase-business" aria-hidden="true"></i>
+                        <span>Feito para rotina de trabalho, estudo e atendimento.</span>
+                    </div>
+                </div>
+
+                <a class="button button-primary" href="{{ url_for('main.planos') }}">
+                    Upgrade Pro
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
+            </article>
+        </div>
+    </section>
+</main>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Boost.Convert{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-container reveal" id="auth-container" aria-label="Autentica&ccedil;&atilde;o">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-list auth-flash" role="alert">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <div class="form-container sign-up">
+            <form class="auth-form" action="{{ url_for('auth.registrar') }}" method="post" data-loading-form>
+                <img class="auth-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+                <h1>Criar conta</h1>
+                <a class="google-button" href="{{ url_for('auth.google_login') }}">
+                    <span class="google-mark" aria-hidden="true">G</span>
+                    Continuar com Google
+                </a>
+                <span>ou use seu email para cadastro</span>
+                <input type="email" name="nomeForm" autocomplete="email" placeholder="Email" required>
+                <input type="password" name="senhaForm" autocomplete="new-password" placeholder="Senha" minlength="6" required>
+                <button type="submit">Criar conta</button>
+            </form>
+        </div>
+
+        <div class="form-container sign-in">
+            <form class="auth-form" action="{{ url_for('auth.login') }}" method="post" data-loading-form>
+                <img class="auth-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+                <h1>Entrar</h1>
+                <a class="google-button" href="{{ url_for('auth.google_login') }}">
+                    <span class="google-mark" aria-hidden="true">G</span>
+                    Entrar com Google
+                </a>
+                <span>ou use seu email e senha</span>
+                <input type="email" name="nomeForm" autocomplete="email" placeholder="Email" required>
+                <input type="password" name="senhaForm" autocomplete="current-password" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+        </div>
+
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left">
+                    <h1>Bem-vindo de volta!</h1>
+                    <p>Entre para continuar suas convers&otilde;es e acompanhar seus arquivos recentes.</p>
+                    <button class="hidden" type="button" id="login">Entrar</button>
+                </div>
+                <div class="toggle-panel toggle-right">
+                    <h1>Novo por aqui?</h1>
+                    <p>Crie uma conta para organizar hist&oacute;rico, plano e convers&otilde;es em um s&oacute; lugar.</p>
+                    <button class="hidden" type="button" id="register">Criar conta</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

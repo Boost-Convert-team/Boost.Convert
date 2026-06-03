@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Status da convers&atilde;o - BoostConvert AI{% endblock %}
+
+{% block content %}
+{% if job.status in ["queued", "processing"] %}
+    <meta http-equiv="refresh" content="3">
+{% endif %}
+
+<main class="page-section">
+    <section class="status-card reveal" aria-labelledby="conversion-status-title">
+        <div class="eyebrow"><i data-lucide="activity" aria-hidden="true"></i> Status da convers&atilde;o</div>
+        <h2 id="conversion-status-title">{{ job.output_filename }}</h2>
+
+        <dl class="details-list">
+            <div class="details-row">
+                <dt>Ferramenta</dt>
+                <dd>{{ job.tool_name }}</dd>
+            </div>
+            <div class="details-row">
+                <dt>Arquivo original</dt>
+                <dd>{{ job.original_filename }}</dd>
+            </div>
+            <div class="details-row">
+                <dt>Status</dt>
+                <dd>{{ job.status }}</dd>
+            </div>
+        </dl>
+
+        {% if job.options %}
+            <section class="side-note">
+                <h3>Op&ccedil;&otilde;es usadas</h3>
+                <ul>
+                    {% for name, value in job.options.items() %}
+                        <li>{{ name }}: {{ value }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if job.status == "queued" %}
+            <p>Sua convers&atilde;o entrou na fila. Esta p&aacute;gina ser&aacute; atualizada automaticamente.</p>
+        {% elif job.status == "processing" %}
+            <p>Seu arquivo est&aacute; sendo processado. Esta p&aacute;gina ser&aacute; atualizada automaticamente.</p>
+        {% elif job.status == "done" %}
+            <p>Convers&atilde;o finalizada. O arquivo j&aacute; pode ser baixado.</p>
+            <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
+                Baixar arquivo convertido
+                <i data-lucide="download" aria-hidden="true"></i>
+            </a>
+        {% elif job.status == "failed" %}
+            <p>N&atilde;o foi poss&iacute;vel concluir a convers&atilde;o.</p>
+            <section class="side-note">
+                <h3>O que aconteceu</h3>
+                <p>{{ job.error_message or "Ocorreu um erro inesperado durante a convers&atilde;o." }}</p>
+                <p>Verifique se o arquivo abre normalmente no seu computador e tente enviar novamente.</p>
+            </section>
+        {% endif %}
+
+        <p><a class="tool-link" href="{{ url_for('home.tools') }}">Voltar para ferramentas <i data-lucide="arrow-right" aria-hidden="true"></i></a></p>
+    </section>
+</main>
+{% endblock %}

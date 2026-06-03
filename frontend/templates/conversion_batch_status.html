@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Lote de convers&otilde;es - BoostConvert AI{% endblock %}
+
+{% block content %}
+{% if has_pending_jobs %}
+    <meta http-equiv="refresh" content="3">
+{% endif %}
+
+<main class="page-section">
+    <section class="status-card reveal">
+        <div class="eyebrow"><i data-lucide="list-checks" aria-hidden="true"></i> Lote de convers&otilde;es</div>
+        <h2>Arquivos enviados</h2>
+        <p>Acompanhe cada arquivo do lote e baixe tudo quando as convers&otilde;es terminarem.</p>
+
+        {% if all_jobs_downloadable %}
+            <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
+                Baixar todos
+                <i data-lucide="download" aria-hidden="true"></i>
+            </a>
+        {% endif %}
+
+        <ul class="batch-list">
+            {% for job in jobs %}
+                <li class="batch-item">
+                    <strong>{{ job.original_filename }}</strong>
+                    <span class="status-pill">{{ job.status }}</span>
+
+                    {% if job.status == "done" %}
+                        <a class="tool-link" href="{{ url_for('home.conversion_download', job_id=job.id) }}">Baixar</a>
+                    {% elif job.status == "failed" %}
+                        <a class="tool-link" href="{{ url_for('home.conversion_status', job_id=job.id) }}">Ver detalhes</a>
+                    {% else %}
+                        <a class="tool-link" href="{{ url_for('home.conversion_status', job_id=job.id) }}">Ver status</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+</main>
+{% endblock %}

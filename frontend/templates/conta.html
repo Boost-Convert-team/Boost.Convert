@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Conta - Boost.Convert{% endblock %}
+
+{% block content %}
+<main class="account-page">
+    <section class="account-workspace" id="conta">
+        <div class="account-shell reveal">
+            <header class="account-hero">
+                <div class="account-person">
+                    <div class="account-avatar" aria-hidden="true">
+                        {{ account_workspace.display_name[:1]|upper }}
+                    </div>
+                    <div>
+                        <span class="eyebrow">Workspace</span>
+                        <h1>{{ account_workspace.display_name }}</h1>
+                        <p>{{ account_workspace.email }}</p>
+                    </div>
+                </div>
+
+                <div class="account-actions">
+                    <span class="account-plan-badge {{ 'is-pro' if account_workspace.is_pro else '' }}">
+                        {{ account_workspace.plan }}
+                    </span>
+                    <div class="account-usage-pill">
+                        <strong>{{ account_workspace.daily_used }}</strong>
+                        <span>de {{ account_workspace.daily_limit }} na janela atual</span>
+                    </div>
+                    {% if account_workspace.is_pro %}
+                        <a class="button button-secondary" href="{{ url_for('main.planos') }}">Gerenciar plano</a>
+                    {% else %}
+                        <a class="button button-primary" href="{{ url_for('main.planos') }}">
+                            Upgrade
+                            <i data-lucide="arrow-right" aria-hidden="true"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <div class="account-grid">
+                <article class="account-card account-daily">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="activity" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>Uso di&aacute;rio</h2>
+                            <p>{{ account_workspace.daily_used }} de {{ account_workspace.daily_limit }} convers&otilde;es usadas em 24h</p>
+                        </div>
+                    </div>
+                    <div class="usage-meter" aria-hidden="true">
+                        <span style="width: {{ account_workspace.daily_percent }}%;"></span>
+                    </div>
+                    <strong>{{ account_workspace.daily_remaining }} dispon&iacute;vel</strong>
+                    {% if account_workspace.daily_reset_in %}
+                        <small>Renova em {{ account_workspace.daily_reset_in }}</small>
+                    {% endif %}
+                </article>
+
+                <article class="account-card account-plan">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="badge-check" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>Plano atual</h2>
+                            <p>{{ account_workspace.plan }}</p>
+                        </div>
+                    </div>
+                    <dl class="plan-mini-list">
+                        <div><dt>Limites</dt><dd>{% if account_workspace.is_pro %}Ilimitados{% else %}10 a cada 24h{% endif %}</dd></div>
+                        <div><dt>Uploads</dt><dd>{% if account_workspace.is_pro %}Maiores{% else %}Leves{% endif %}</dd></div>
+                        <div><dt>Velocidade</dt><dd>{% if account_workspace.is_pro %}Priorit&aacute;ria{% else %}Normal{% endif %}</dd></div>
+                        <div><dt>OCR</dt><dd>{% if account_workspace.is_pro %}Completo{% else %}B&aacute;sico{% endif %}</dd></div>
+                    </dl>
+                </article>
+
+                <article class="account-card account-recent">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="files" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>Arquivos recentes</h2>
+                            <p>&Uacute;ltimas convers&otilde;es do workspace</p>
+                        </div>
+                    </div>
+
+                    <div class="recent-list">
+                        {% for job in account_workspace.recent_jobs %}
+                            <a href="{{ url_for('home.conversion_status', job_id=job.id) }}">
+                                <span>
+                                    <strong>{{ job.original_filename }}</strong>
+                                    <small>{{ job.output_filename }}</small>
+                                </span>
+                                <em>{{ account_workspace.status_labels.get(job.status, job.status) }}</em>
+                                <small>{{ job.created_at.strftime('%H:%M') if job.created_at else 'Agora' }}</small>
+                            </a>
+                        {% else %}
+                            <div class="empty-recent">
+                                <i data-lucide="file-up" aria-hidden="true"></i>
+                                <strong>Nenhuma convers&atilde;o ainda</strong>
+                                <small>Envie seu primeiro arquivo para preencher esta lista.</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <article class="account-card account-history">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="line-chart" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>Hist&oacute;rico</h2>
+                            <p>Resumo dos &uacute;ltimos arquivos</p>
+                        </div>
+                    </div>
+                    <div class="history-stats">
+                        <div><strong>{{ account_workspace.total_jobs }}</strong><span>Total convertido</span></div>
+                        <div><strong>{{ account_workspace.last_week_count }}</strong><span>&Uacute;ltimos 7 dias</span></div>
+                        <div><strong>{{ account_workspace.success_rate }}%</strong><span>Taxa de sucesso</span></div>
+                    </div>
+                    <div class="format-tags">
+                        {% for format in account_workspace.favorite_formats %}
+                            <span>{{ format }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <article class="account-card account-session">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>Sess&otilde;es</h2>
+                            <p>Seguran&ccedil;a ativa</p>
+                        </div>
+                    </div>
+                    <div class="session-device">
+                        <i data-lucide="monitor" aria-hidden="true"></i>
+                        <div>
+                            <strong>Dispositivo atual</strong>
+                            <small>{% if account_workspace.google_connected %}Login Google conectado{% else %}Sess&atilde;o local ativa{% endif %}</small>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="account-card account-ai">
+                    <div class="account-card-heading">
+                        <span><i data-lucide="sparkles" aria-hidden="true"></i></span>
+                        <div>
+                            <h2>AI Tools</h2>
+                            <p>OCR e recursos assistidos</p>
+                        </div>
+                    </div>
+                    <div class="ai-capabilities">
+                        <span>OCR {% if account_workspace.is_pro %}completo{% else %}b&aacute;sico{% endif %}</span>
+                        <span>Extra&ccedil;&atilde;o de texto</span>
+                        <span>{% if account_workspace.is_pro %}Premium liberado{% else %}Premium no Pro{% endif %}</span>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

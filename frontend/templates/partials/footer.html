@@ -1,0 +1,56 @@
+<footer class="footer reveal">
+    <div class="footer-grid">
+        <section class="footer-brand-column" aria-label="Boost.Convert">
+            <a class="brand footer-brand" href="{{ url_for('home.home') }}">
+                <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+            </a>
+            <p>Convers&otilde;es de arquivos com uma experi&ecirc;ncia calma, r&aacute;pida e organizada.</p>
+        </section>
+
+        <nav class="footer-links" aria-label="Produto">
+            <h2>Produto</h2>
+            <a href="{{ url_for('home.tools') }}">Ferramentas</a>
+            <a href="{{ url_for('main.planos') }}">Planos</a>
+            <a href="{{ url_for('home.sobre') }}">Sobre n&oacute;s</a>
+            <a href="{{ url_for('home.home') }}#upload">Upload</a>
+            <a href="{{ url_for('home.tools') }}#ai-tools">Recursos</a>
+        </nav>
+
+        <nav class="footer-links" aria-label="Conta">
+            <h2>Conta</h2>
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.registrar') }}">Cadastro</a>
+            <a href="{{ url_for('auth.login') }}#recuperar-senha">Recuperar senha</a>
+            <a href="{{ url_for('home.conta') }}">Configura&ccedil;&otilde;es</a>
+        </nav>
+    </div>
+
+    <div class="footer-benefits" aria-label="Benef&iacute;cios do Boost.Convert">
+        <article>
+            <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+            <div>
+                <h3>Seguro e privado</h3>
+                <p>Seus arquivos protegidos com criptografia.</p>
+            </div>
+        </article>
+        <article>
+            <span><i data-lucide="zap" aria-hidden="true"></i></span>
+            <div>
+                <h3>R&aacute;pido sempre</h3>
+                <p>Convers&otilde;es em segundos, sem complica&ccedil;&atilde;o.</p>
+            </div>
+        </article>
+        <article>
+            <span><i data-lucide="cloud" aria-hidden="true"></i></span>
+            <div>
+                <h3>Acesso em qualquer lugar</h3>
+                <p>Seus arquivos dispon&iacute;veis quando precisar.</p>
+            </div>
+        </article>
+    </div>
+
+    <div class="footer-bottom">
+        <span>&copy; 2026 Boost.Convert. Todos os direitos reservados.</span>
+        <span>Feito para produtividade <strong>sem ru&iacute;do.</strong></span>
+    </div>
+</footer>
