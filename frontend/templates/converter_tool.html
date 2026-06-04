@@ -5,28 +5,20 @@
 {% block content %}
 <main class="page-section">
     <div class="section-heading reveal">
-        <div class="eyebrow"><i data-lucide="file-up" aria-hidden="true"></i> Convers&atilde;o premium</div>
-        <h1>{{ tool.name }}</h1>
-        <p>Arraste seus arquivos, confira o preview e envie. O backend atual continua cuidando da convers&atilde;o.</p>
+        <div class="eyebrow"><i data-lucide="file" aria-hidden="true"></i> Conversor</div>
+        <h1 id="converter-title">{{ tool.name }}</h1>
+        <p>Envie seus arquivos e baixe o resultado convertido.</p>
     </div>
 
     <div class="converter-grid reveal">
         <section class="upload-card" aria-labelledby="converter-title">
-            <div class="upload-title">
-                <div>
-                    <h2 id="converter-title">Selecionar arquivo</h2>
-                    <p class="upload-note">Formatos aceitos: {{ tool.accept }}</p>
-                </div>
-                <span class="mini-icon"><i data-lucide="upload-cloud" aria-hidden="true"></i></span>
-            </div>
-
             <form class="converter-form" action="{{ tool.route }}" method="POST" enctype="multipart/form-data" data-loading-form>
                 <label class="upload-zone" for="files">
                     <input id="files" type="file" name="files" accept="{{ tool.accept }}" multiple required>
                     <span class="upload-content">
-                        <span class="mini-icon"><i data-lucide="file-plus-2" aria-hidden="true"></i></span>
-                        <strong>Arraste arquivos aqui</strong>
-                        <span>ou clique para escolher no computador</span>
+                        <span class="mini-icon"><i data-lucide="cloud-upload" aria-hidden="true"></i></span>
+                        <strong>Arraste arquivos ou clique para selecionar</strong>
+                        <span class="upload-note">Aceita {{ tool.accept }}</span>
                     </span>
                     <ul class="file-preview-list" aria-live="polite"></ul>
                 </label>
@@ -56,31 +48,11 @@
                 {% endif %}
 
                 <button class="button button-primary converter-button" type="submit">
-                    Converter agora
+                    Converter
                     <i data-lucide="arrow-right" aria-hidden="true"></i>
                 </button>
             </form>
         </section>
-
-        <aside class="side-panel">
-            <div class="side-note">
-                <h3>Limites do plano</h3>
-                <ul>
-                    <li>FREE: {{ tool_limits.free_upload_limit_label }} por arquivo</li>
-                    <li>PRO: {{ tool_limits.pro_upload_limit_label }} por arquivo</li>
-                    <li>Lote FREE: {{ tool_limits.free_file_count_limit }} arquivos</li>
-                    <li>Lote PRO: {{ tool_limits.pro_file_count_limit }} arquivos</li>
-                </ul>
-            </div>
-            <div class="side-note">
-                <h3>Fluxo de convers&atilde;o</h3>
-                <p>Depois do envio, voc&ecirc; acompanha o status em uma p&aacute;gina limpa e baixa o arquivo quando estiver pronto.</p>
-            </div>
-            <a class="button button-secondary" href="{{ url_for('home.tools') }}">
-                <i data-lucide="arrow-left" aria-hidden="true"></i>
-                Voltar para ferramentas
-            </a>
-        </aside>
     </div>
 </main>
 {% endblock %}

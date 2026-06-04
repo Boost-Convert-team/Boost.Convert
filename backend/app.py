@@ -1,4 +1,8 @@
 from flask import Flask
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask_migrate import Migrate
 import pip_system_certs.wrapt_requests
 from config import Config
@@ -8,9 +12,6 @@ from register_blueprints import registrando_blueprints
 from Blueprints.main.tool_search import build_tool_search_index
 from Blueprints.services.convertions_services.file_cleanup import run_conversion_file_cleanup
 from Blueprints.services.convertions_services.media_dependencies import configure_media_dependencies
-from dotenv import load_dotenv
-
-load_dotenv()
 
 migrate = Migrate()
 

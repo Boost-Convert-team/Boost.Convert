@@ -5,7 +5,6 @@ from Blueprints.main.account_workspace import get_account_workspace
 from Blueprints.main.downloads import send_conversion_batch_zip, send_conversion_file
 from Blueprints.main.job_access import get_accessible_job_or_404, get_accessible_jobs_from_ids, is_job_downloadable
 from Blueprints.main.tools_registry import TOOLS
-from Blueprints.services.convertions_services.conversion_limits import get_tool_limit_info, get_tools_with_limit_info
 from Blueprints.services.convertions_services.conversion_options import get_conversion_options
 
 home_bp = Blueprint("home", __name__)
@@ -39,7 +38,7 @@ def conta():
 
 @home_bp.route("/tools")
 def tools():
-    return render_template("tools.html", tools=get_tools_with_limit_info(TOOLS))
+    return render_template("tools.html", tools=TOOLS)
 
 
 @home_bp.route("/tools/<slug>")
@@ -50,7 +49,6 @@ def converter_tool(slug):
     return render_template(
         "converter_tool.html",
         tool=tool,
-        tool_limits=get_tool_limit_info(tool),
         conversion_options=get_conversion_options(tool["route"]),
     )
 

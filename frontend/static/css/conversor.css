@@ -1,13 +1,81 @@
 .converter-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 32px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
     align-items: start;
+    width: min(1310px, 100%);
+    margin: 0 auto;
 }
 
 .converter-form {
     display: grid;
-    gap: 22px;
+    gap: 20px;
+}
+
+.converter-grid .upload-card {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.converter-grid .upload-card:hover {
+    transform: none;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.converter-grid .upload-zone {
+    min-height: clamp(176px, 15vw, 192px);
+    padding: 42px 24px;
+    border-color: rgba(217, 107, 4, .26);
+    border-radius: 14px;
+    background: rgba(255, 253, 250, .36);
+    box-shadow: none;
+}
+
+.converter-grid .upload-zone:hover,
+.converter-grid .upload-zone.is-dragging,
+.converter-grid .upload-zone.has-files {
+    border-color: rgba(217, 107, 4, .46);
+    background: rgba(255, 255, 255, .76);
+    transform: none;
+    box-shadow: 0 18px 44px rgba(88, 58, 24, .045);
+}
+
+.converter-grid .upload-content .mini-icon {
+    width: auto;
+    height: auto;
+    margin-bottom: 14px;
+    border-radius: 0;
+    background: transparent;
+    color: #111;
+    box-shadow: none;
+}
+
+.converter-grid .upload-content .mini-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.converter-grid .upload-content strong {
+    color: #171717;
+    font-size: 16px;
+    font-weight: var(--weight-ui-medium);
+}
+
+.converter-grid .upload-content span {
+    margin-top: 12px;
+    color: #2d2d2d;
+    font-size: 13px;
+}
+
+.converter-button {
+    width: 100%;
+    min-height: 44px;
 }
 
 .converter-options {
@@ -63,11 +131,6 @@
     background: #fff;
     box-shadow: var(--focus-ring);
     transform: translateY(-1px);
-}
-
-.side-panel {
-    display: grid;
-    gap: 16px;
 }
 
 .side-note {

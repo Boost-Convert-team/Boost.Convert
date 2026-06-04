@@ -7,7 +7,7 @@
     <div class="section-heading reveal">
         <div class="eyebrow"><i data-lucide="wand-sparkles" aria-hidden="true"></i> Biblioteca de convers&otilde;es</div>
         <h1>Escolha uma ferramenta e envie seus arquivos.</h1>
-        <p>Organiza&ccedil;&atilde;o simples, categorias limpas e limites transparentes para cada tipo de arquivo.</p>
+        <p>Organiza&ccedil;&atilde;o simples, categorias limpas e acesso r&aacute;pido aos conversores.</p>
     </div>
 
     <div class="tools-layout reveal">
@@ -76,7 +76,7 @@
                                     {% if tool.description is defined %}
                                         {{ tool.description }}
                                     {% else %}
-                                        Aceita {{ tool.accept }} &middot; FREE at&eacute; {{ tool.limits.free_upload_limit_label }}
+                                        Aceita {{ tool.accept }}
                                     {% endif %}
                                 </p>
                                 <a class="tool-link" href="{{ tool_page_route }}" data-convert-route="{{ tool.route }}" data-accept="{{ tool.accept }}">
