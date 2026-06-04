@@ -270,19 +270,19 @@ body:has(.status-card) .section-heading h1 {
     padding-top: clamp(72px, 7vw, 104px);
 }
 
-.plan-free,
-.plan-pro {
+.account-page .plan-free,
+.account-page .plan-pro {
     border-radius: 30px;
     backdrop-filter: blur(18px);
 }
 
-.plan-free {
+.account-page .plan-free {
     background:
         linear-gradient(180deg, rgba(255, 255, 255, .84), rgba(255, 253, 250, .42)),
         rgba(255, 255, 255, .62);
 }
 
-.plan-pro {
+.account-page .plan-pro {
     border-color: rgba(240, 138, 36, .20);
     background:
         radial-gradient(circle at 86% 12%, rgba(255, 184, 106, .16), transparent 32%),
@@ -292,12 +292,12 @@ body:has(.status-card) .section-heading h1 {
         0 0 0 1px rgba(255, 184, 106, .10);
 }
 
-.plan-pro::before {
+.account-page .plan-pro::before {
     opacity: .46;
     background: radial-gradient(ellipse, rgba(240, 138, 36, .11), transparent 68%);
 }
 
-.plan-badge {
+.account-page .plan-badge {
     background: rgba(255, 255, 255, .84);
 }
 

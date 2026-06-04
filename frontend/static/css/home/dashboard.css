@@ -1787,55 +1787,80 @@
 .home-plans {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(340px, .72fr) minmax(0, 1.28fr);
-    gap: clamp(56px, 7vw, 110px);
+    grid-template-columns: 1fr;
+    gap: 28px;
     align-items: center;
-    padding: 112px 104px;
+    padding: 76px 42px 86px;
     border-bottom: 1px solid var(--line);
     background:
-        radial-gradient(circle at 78% 28%, rgba(240, 138, 36, .12), transparent 27%),
-        radial-gradient(circle at 54% 48%, rgba(240, 138, 36, .04) 1px, transparent 1.5px) 0 0 / 13px 13px,
-        linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(252, 248, 243, .86));
+        radial-gradient(circle at 82% 12%, rgba(240, 138, 36, .14), transparent 30%),
+        radial-gradient(circle at 8% 58%, rgba(255, 184, 106, .12), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(252, 248, 243, .96));
     overflow: hidden;
 }
 
 .home-plans::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 39%;
-    width: 1px;
-    background: linear-gradient(180deg, transparent, rgba(234, 223, 211, .86), transparent);
-    pointer-events: none;
+    display: none;
 }
 
 .home-plans-copy {
     position: relative;
     z-index: 1;
-    max-width: 520px;
+    display: grid;
+    justify-items: center;
+    max-width: 780px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.home-plans-copy .eyebrow {
+    border-color: rgba(240, 138, 36, .16);
+    background: rgba(255, 244, 232, .78);
+    color: var(--orange-deep);
 }
 
 .home-plans-copy h2 {
-    margin: 24px 0 24px;
+    margin: 12px auto 14px;
     color: var(--text);
-    font-size: clamp(46px, 4.8vw, 72px);
-    line-height: .98;
+    font-size: clamp(42px, 4.8vw, 62px);
+    line-height: 1.04;
     font-weight: var(--weight-hero);
 }
 
+.home-plans-copy h2 span {
+    color: var(--orange-deep);
+}
+
 .home-plans-copy p {
-    margin: 0 0 34px;
-    color: #596562;
+    max-width: 670px;
+    margin: 0;
+    color: #686868;
     font-family: var(--font-ui);
     font-size: 17px;
-    line-height: 1.72;
+    line-height: 1.58;
+    font-weight: 600;
+}
+
+.home-pricing-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    margin-top: 20px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: rgba(240, 138, 36, .10);
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .home-plans-copy .text-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    margin-top: 22px;
 }
 
 .home-plans-copy svg {
@@ -1847,112 +1872,174 @@
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: minmax(230px, .86fr) minmax(300px, 1.14fr);
-    gap: 24px;
+    grid-template-columns: minmax(0, .98fr) minmax(0, 1.02fr);
+    gap: 32px;
     align-items: stretch;
+    max-width: 940px;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .home-plan-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 590px;
-    padding: 34px;
-    border: 1px solid rgba(234, 223, 211, .78);
-    border-radius: 28px;
-    background: rgba(255, 255, 255, .78);
-    box-shadow: 0 22px 64px rgba(88, 58, 24, .045);
+    min-height: 480px;
+    padding: 34px 34px 26px;
+    border: 1px solid rgba(234, 223, 211, .88);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .74);
+    box-shadow: 0 18px 54px rgba(88, 58, 24, .055);
     transition:
-        transform 900ms var(--ease-air),
-        box-shadow 900ms var(--ease-air),
-        border-color 900ms var(--ease-air),
-        background-color 900ms var(--ease-air);
+        transform 760ms var(--ease-air),
+        border-color 760ms var(--ease-air),
+        box-shadow 760ms var(--ease-air),
+        background-color 760ms var(--ease-air);
 }
 
 .home-plan-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(240, 138, 36, .24);
-    background: rgba(255, 255, 255, .94);
-    box-shadow: 0 34px 86px rgba(88, 58, 24, .075);
+    transform: translateY(-3px);
+    border-color: rgba(240, 138, 36, .26);
+    background: rgba(255, 255, 255, .88);
+    box-shadow: 0 26px 70px rgba(88, 58, 24, .075);
 }
 
 .home-plan-free {
-    margin-top: 42px;
+    margin-top: 4px;
 }
 
 .home-plan-pro {
     overflow: hidden;
-    min-height: 650px;
-    border-color: rgba(240, 138, 36, .30);
+    border-color: rgba(240, 138, 36, .72);
     background:
-        radial-gradient(circle at 86% 12%, rgba(255, 184, 106, .36), transparent 30%),
-        linear-gradient(180deg, rgba(255, 244, 232, .96), rgba(255, 255, 255, .92));
+        radial-gradient(circle at 86% 6%, rgba(255, 184, 106, .16), transparent 26%),
+        rgba(255, 255, 255, .80);
     box-shadow:
-        0 34px 92px rgba(88, 58, 24, .08),
-        0 0 0 1px rgba(255, 184, 106, .16);
-    animation: floatSlow 8s var(--ease-air) infinite;
+        0 24px 70px rgba(88, 58, 24, .08),
+        0 0 0 1px rgba(240, 138, 36, .28);
 }
 
 .home-plan-pro::after {
-    content: "";
-    position: absolute;
-    inset: auto 32px -92px 32px;
-    height: 190px;
-    border-radius: 999px;
-    background: radial-gradient(ellipse, rgba(240, 138, 36, .22), transparent 68%);
-    filter: blur(18px);
-    pointer-events: none;
+    display: none;
 }
 
 .home-plan-badge {
     position: absolute;
-    top: 28px;
-    right: 28px;
-    z-index: 1;
-    padding: 8px 12px;
-    border: 1px solid rgba(255, 184, 106, .54);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .78);
-    color: #2b4642;
+    top: -1px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 220px;
+    min-height: 32px;
+    padding: 0 22px;
+    border-radius: 0 0 18px 18px;
+    background: var(--orange);
+    color: #fff;
     font-family: var(--font-ui);
     font-size: 13px;
-    font-weight: var(--weight-ui-medium);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    transform: translateX(-50%);
+}
+
+.home-plan-badge svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.home-plan-icon {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 14px;
+    border-radius: 18px;
+    color: var(--orange-deep);
+}
+
+.home-plan-icon svg {
+    width: 31px;
+    height: 31px;
+}
+
+.home-plan-icon-soft {
+    background: linear-gradient(135deg, rgba(255, 244, 232, .98), rgba(255, 224, 194, .74));
+}
+
+.home-plan-icon-strong {
+    background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+    color: #fff;
+    box-shadow: 0 18px 38px rgba(240, 138, 36, .20);
 }
 
 .home-plan-head {
     display: grid;
-    gap: 14px;
-}
-
-.home-plan-head > span {
-    color: var(--orange-deep);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: var(--weight-ui-medium);
+    gap: 4px;
 }
 
 .home-plan-head h3 {
-    max-width: 330px;
     margin: 0;
     color: var(--text);
-    font-size: clamp(30px, 3vw, 44px);
-    line-height: 1.04;
-    font-weight: var(--weight-hero);
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 800;
 }
 
 .home-plan-head p {
-    max-width: 360px;
     margin: 0;
-    color: #5e6966;
+    color: #747474;
     font-family: var(--font-ui);
     font-size: 15px;
-    line-height: 1.62;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.home-plan-price {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: end;
+    gap: 8px;
+    margin-top: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(234, 223, 211, .88);
+}
+
+.home-plan-price span {
+    padding-bottom: 8px;
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.home-plan-price strong {
+    color: var(--text);
+    font-size: 52px;
+    line-height: .9;
+    font-weight: 800;
+}
+
+.home-plan-pro .home-plan-price strong,
+.home-plan-pro .home-plan-price span {
+    color: var(--orange-deep);
+}
+
+.home-plan-price small {
+    padding-bottom: 7px;
+    color: #6d6d6d;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 700;
 }
 
 .home-plan-card ul {
     display: grid;
-    gap: 13px;
-    margin: 36px 0 0;
+    gap: 12px;
+    margin: 16px 0 0;
     padding: 0;
     list-style: none;
 }
@@ -1960,59 +2047,60 @@
 .home-plan-card li {
     display: flex;
     align-items: center;
-    gap: 11px;
-    color: #4f5e5a;
+    gap: 12px;
+    color: #262626;
     font-family: var(--font-ui);
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.35;
+    font-weight: 700;
 }
 
 .home-plan-card li svg {
     flex: 0 0 auto;
-    width: 16px;
-    height: 16px;
-    color: var(--orange);
+    width: 18px;
+    height: 18px;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--orange);
+    color: #fff;
+    stroke-width: 3;
 }
 
-.home-plan-free li [data-lucide="x"] {
-    color: #a06046;
+.home-plan-card li.is-disabled {
+    color: #a3a3a3;
+}
+
+.home-plan-card li.is-disabled svg {
+    background: #d4d4d4;
+    color: #fff;
 }
 
 .home-plan-card .button {
     position: relative;
     z-index: 1;
-    width: fit-content;
+    width: 100%;
     margin-top: auto;
 }
 
-.home-pro-benefits {
-    display: grid;
-    gap: 12px;
-    margin: 28px 0 34px;
-}
-
-.home-pro-benefits div {
-    display: flex;
-    gap: 11px;
-    align-items: flex-start;
-    padding: 13px;
-    border: 1px solid rgba(255, 184, 106, .34);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, .62);
-}
-
-.home-pro-benefits svg {
-    flex: 0 0 auto;
-    width: 19px;
-    height: 19px;
-    color: var(--orange-deep);
-}
-
-.home-pro-benefits span {
-    color: #4f5e5a;
+.home-plan-note {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 30px;
+    margin: 12px 0 0;
+    color: #747474;
     font-family: var(--font-ui);
-    font-size: 13px;
-    line-height: 1.35;
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 600;
+    text-align: center;
+}
+
+.home-plan-note svg {
+    width: 15px;
+    height: 15px;
+    color: var(--orange-deep);
 }
 
 .account-workspace {

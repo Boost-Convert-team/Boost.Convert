@@ -24,7 +24,7 @@
     position: absolute;
     top: 0;
     height: 100%;
-    transition: transform 980ms var(--ease-air), opacity 760ms var(--ease-air);
+    transition: transform 980ms var(--ease-air);
 }
 
 .sign-in {
@@ -35,20 +35,23 @@
 
 .auth-container.active .sign-in {
     transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .sign-up {
     left: 0;
     width: 50%;
-    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     z-index: 1;
 }
 
 .auth-container.active .sign-up {
     transform: translateX(100%);
-    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
     z-index: 5;
-    animation: authMove 980ms var(--ease-air);
 }
 
 .auth-form {
@@ -173,13 +176,11 @@
 }
 
 .google-mark {
-    display: grid;
-    place-items: center;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
-    color: #4285f4;
-    font-weight: 800;
+    border-radius: 0;
+    object-fit: contain;
+    object-position: center;
 }
 
 .toggle-container {
@@ -286,17 +287,6 @@
     background: var(--surface);
     color: #5d3213;
     list-style: none;
-}
-
-@keyframes authMove {
-    0%, 49.99% {
-        opacity: 0;
-        z-index: 1;
-    }
-    50%, 100% {
-        opacity: 1;
-        z-index: 5;
-    }
 }
 
 @keyframes authEnter {

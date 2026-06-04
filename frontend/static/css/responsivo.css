@@ -489,8 +489,8 @@
     }
 
     .home-plans {
-        padding: 92px 64px;
-        gap: 56px;
+        padding: 76px 48px 86px;
+        gap: 24px;
     }
 
     .home-plans::before {
@@ -510,7 +510,8 @@
     }
 
     .home-plan-cards {
-        grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+        grid-template-columns: minmax(0, .98fr) minmax(0, 1.02fr);
+        gap: 22px;
     }
 
     .account-hero {
@@ -2031,21 +2032,23 @@
 
     .home-plans {
         grid-template-columns: 1fr;
-        padding: 72px 22px;
-        gap: 42px;
+        padding: 56px 22px 72px;
+        gap: 28px;
     }
 
     .home-plans-copy {
-        text-align: left;
-        margin: 0;
+        justify-items: center;
+        text-align: center;
+        margin: 0 auto;
     }
 
     .home-plans-copy h2 {
-        font-size: 42px;
+        font-size: 40px;
+        line-height: 1.06;
     }
 
     .home-plans-copy p {
-        margin-left: 0;
+        margin: 0 auto;
         font-size: 16px;
     }
 
@@ -2067,17 +2070,25 @@
     }
 
     .home-plan-badge {
-        position: static;
-        width: fit-content;
-        margin-bottom: 20px;
+        position: absolute;
+        top: -1px;
+        left: 50%;
+        min-width: min(220px, calc(100% - 44px));
+        margin-bottom: 0;
+        transform: translateX(-50%);
     }
 
     .home-plan-card ul {
-        margin-top: 28px;
+        margin-top: 18px;
     }
 
-    .home-plan-card .button {
-        margin-top: 34px;
+    .home-plan-pro {
+        padding-top: 54px;
+    }
+
+    .home-plan-card .button,
+    .home-plan-button {
+        margin-top: 30px;
     }
 
     .account-workspace {
@@ -3050,5 +3061,126 @@ body:has(.home-page) .site-shell {
 
     .format-converter-card {
         width: 100%;
+    }
+}
+
+@media (max-width: 1180px) {
+    .pricing-hero {
+        padding: 54px 48px 78px;
+    }
+
+    .pricing-stage {
+        gap: 22px;
+    }
+
+    .pricing-card {
+        min-height: 480px;
+        padding: 34px 28px 26px;
+    }
+
+    .pricing-benefits article {
+        padding: 18px 22px;
+    }
+}
+
+@media (max-width: 780px) {
+    .pricing-hero {
+        padding: 46px 22px 64px;
+        gap: 28px;
+        background: transparent;
+    }
+
+    .pricing-copy {
+        justify-items: center;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .pricing-copy h1 {
+        font-size: 40px;
+        line-height: 1.06;
+    }
+
+    .pricing-copy p {
+        margin: 0 auto;
+        font-size: 16px;
+    }
+
+    .pricing-stage {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        max-width: 520px;
+    }
+
+    .pricing-card {
+        min-height: auto;
+        margin-top: 0;
+        padding: 30px 24px 24px;
+        border-radius: 22px;
+    }
+
+    .plan-pro {
+        padding-top: 54px;
+        order: 0;
+    }
+
+    .plan-badge {
+        position: absolute;
+        top: -1px;
+        left: 50%;
+        min-width: min(220px, calc(100% - 44px));
+        margin-bottom: 0;
+        transform: translateX(-50%);
+    }
+
+    .plan-list {
+        margin-top: 18px;
+    }
+
+    .plan-free .button,
+    .plan-action {
+        margin-top: 30px;
+    }
+
+    .pricing-benefits {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+    }
+}
+
+@media (max-width: 430px) {
+    .pricing-hero {
+        padding-inline: 16px;
+    }
+
+    .pricing-copy h1 {
+        font-size: 34px;
+    }
+
+    .pricing-card {
+        padding-inline: 20px;
+    }
+
+    .plan-price strong {
+        font-size: 50px;
+    }
+
+    .pricing-benefits article {
+        padding: 16px 18px;
+    }
+}
+
+@media (max-width: 520px) {
+    .topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .header-search {
+        display: none;
+    }
+
+    .brand-logo {
+        width: 126px;
+        height: auto;
     }
 }
