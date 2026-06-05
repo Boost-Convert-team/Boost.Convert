@@ -15,9 +15,7 @@ def convert_pdf_pptx(input_path, output_path):
         slide_cx = _points_to_emu(document[0].rect.width)
         slide_cy = _points_to_emu(document[0].rect.height)
 
-        for page_index in range(document.page_count):
-            page_number = page_index + 1
-            page = document[page_index]
+        for page_number, page in enumerate(document, start=1):
             width = _points_to_emu(page.rect.width)
             height = _points_to_emu(page.rect.height)
             image_cx, image_cy = _fit_size(width, height, slide_cx, slide_cy)

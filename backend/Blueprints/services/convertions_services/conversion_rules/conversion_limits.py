@@ -37,7 +37,6 @@ def get_file_size(file):
 
 def validate_upload_size(file, usuario, input_extension, output_extension):
     limit_mb, category, plan_name = get_upload_limit_mb(usuario, input_extension, output_extension)
-    if get_file_size(file) == 0: return False, "Arquivo vazio."
 
     if get_file_size(file) > limit_mb * 1024 * 1024: return False, f"Arquivo muito grande para o plano {plan_name}. Limite para {category}: {limit_mb} MB."
 

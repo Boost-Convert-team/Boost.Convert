@@ -1,6 +1,6 @@
 from flask import session
 import uuid
 
-def get_anonymous_session_id() -> str:
+def get_anonymous_session_id():
     if "anon_id" not in session: session["anon_id"] = str(uuid.uuid4())
-    return str(session["anon_id"])
+    return session["anon_id"]

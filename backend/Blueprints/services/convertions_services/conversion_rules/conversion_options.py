@@ -42,8 +42,7 @@ def sanitize_conversion_options(route, form):
         value = form.get(name, option["default"])
 
         if option["type"] == "select":
-            choices = option.get("choices", [])
-            allowed_values = {str(choice.get("value", "")) for choice in choices if isinstance(choice, dict)}
+            allowed_values = {choice["value"] for choice in option["choices"]}
             if value not in allowed_values: value = option["default"]
 
         elif option["type"] == "number":

@@ -64,7 +64,6 @@ def validate_single_file_upload(file, usuario, input_extension, output_extension
 
 def validate_pdf_collection_size(files, usuario, output_extension):
     limit_mb, category, plan_name = get_upload_limit_mb(usuario, "pdf", output_extension)
-    if any(get_file_size(file) == 0 for file in files): raise ValueError("Arquivo vazio.")
     if sum(get_file_size(file) for file in files) > limit_mb * 1024 * 1024: raise ValueError(f"Arquivos muito grandes para o plano {plan_name}. Limite para {category}: {limit_mb} MB.")
 
 def validate_file_collection_size(files, usuario, allowed_extensions, output_extension):
@@ -74,7 +73,6 @@ def validate_file_collection_size(files, usuario, allowed_extensions, output_ext
         filename = get_secure_filename(file)
         _name, extension = split_filename(filename)
         if extension not in allowed_extensions: raise ValueError(f"Formato invalido. Permitidos: {', '.join(allowed_extensions)}")
-        if get_file_size(file) == 0: raise ValueError("Arquivo vazio.")
 
         limit_mb, category, plan_name = get_upload_limit_mb(usuario, extension, output_extension)
         total_size_by_category.setdefault((category, plan_name, limit_mb), 0)
@@ -139,15 +137,13 @@ def save_file_collection_files(files, job_dir, allowed_extensions):
     return saved_filenames
 
 def build_conversion_job(job_id, usuario, session_id, tool_name, original_filename, output_filename, input_path, output_path, options):
-    job = ConversionJob()
-    job.id = job_id
-    job.user_id = usuario.id if usuario is not None else None
-    job.session_id = session_id if usuario is None else None
-    job.tool_name = tool_name
-    job.status = "queued"
-    job.original_filename = original_filename
-    job.output_filename = output_filename
-    job.input_path = input_path
-    job.output_path = output_path
-    job.options = options
-    return job
+    return ConversionJob(
+        id=job_id
+        ,user_id=usuario.id if usuario is not None else None
+        ,session_id=session_id if usuario is None else None
+        ,tool_name=tool_name, status="queued"
+        ,original_filename=original_filename
+        ,output_filename=output_filename
+        ,input_path=input_path
+        ,output_path=output_path
+        ,options=options)

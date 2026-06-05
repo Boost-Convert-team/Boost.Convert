@@ -7,7 +7,7 @@ from Blueprints.services.subscription.session_service import get_anonymous_sessi
 @dataclass
 class ConversionRequestContext:
     usuario: object
-    session_id: str | None
+    session_id: str
     options: dict
 
 def get_conversion_request_context():

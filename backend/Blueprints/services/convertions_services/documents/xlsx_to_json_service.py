@@ -7,4 +7,4 @@ def convert_excel_json(input_path, output_path):
         ,indent=2
     )
 
-    with open(output_path, "w", encoding="utf-8") as file: file.write(json_text or "[]")
+    with open(output_path, "w", encoding="utf-8") as file: file.write(json_text)

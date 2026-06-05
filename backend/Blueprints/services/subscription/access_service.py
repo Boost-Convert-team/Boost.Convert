@@ -44,12 +44,7 @@ def get_usage_record(usuario=None, session_id=None, for_update=False):
     return query.order_by(DailyUsage.id.desc()).first()
 def create_usage_record(usuario=None, session_id=None, now=None):
     now = now or utc_now()
-    usage = DailyUsage()
-    usage.user_id = usuario.id if usuario is not None else None
-    usage.session_id = session_id if usuario is None else None
-    usage.usage_date = now.date()
-    usage.window_started_at = now
-    usage.usage_count = 0
+    usage = DailyUsage(user_id=usuario.id if usuario is not None else None, session_id=session_id if usuario is None else None, usage_date=now.date(), window_started_at=now, usage_count=0)
     db.session.add(usage)
     db.session.flush()
     return usage

@@ -13,7 +13,6 @@ def convert_pdf_docx(input_path, output_path):
         document = Document()
 
         with fitz.open(input_path) as pdf:
-            for page_index in range(pdf.page_count):
-                document.add_paragraph(str(pdf[page_index].get_text("text", sort=True)))
+            for page in pdf: document.add_paragraph(page.get_text("text", sort=True))
 
         document.save(output_path)

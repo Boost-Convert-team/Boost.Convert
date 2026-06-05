@@ -1,7 +1,5 @@
 import fitz
 
-PDF_ENCRYPT_AES_256 = getattr(fitz, "PDF_ENCRYPT_AES_256")
-
 def convert_pdf_protect(input_path, output_path, options=None):
     password = (options or {}).get("pdf_password", "").strip()
 
@@ -12,7 +10,7 @@ def convert_pdf_protect(input_path, output_path, options=None):
              output_path
             ,garbage=4
             ,deflate=True
-            ,encryption=PDF_ENCRYPT_AES_256
+            ,encryption=fitz.PDF_ENCRYPT_AES_256
             ,owner_pw=password
             ,user_pw=password
         )

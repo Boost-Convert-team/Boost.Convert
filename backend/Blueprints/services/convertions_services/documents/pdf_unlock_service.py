@@ -1,7 +1,5 @@
 import fitz
 
-PDF_ENCRYPT_NONE = getattr(fitz, "PDF_ENCRYPT_NONE")
-
 def convert_pdf_unlock(input_path, output_path, options=None):
     password = (options or {}).get("pdf_password", "").strip()
 
@@ -14,5 +12,5 @@ def convert_pdf_unlock(input_path, output_path, options=None):
              output_path
             ,garbage=4
             ,deflate=True
-            ,encryption=PDF_ENCRYPT_NONE
+            ,encryption=fitz.PDF_ENCRYPT_NONE
         )

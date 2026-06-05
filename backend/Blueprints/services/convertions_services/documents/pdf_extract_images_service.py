@@ -9,9 +9,7 @@ def convert_pdf_extract_images(input_path, output_path):
 
     with fitz.open(input_path) as document:
         with tempfile.TemporaryDirectory() as temp_dir:
-            for page_number in range(document.page_count):
-                page_index = page_number + 1
-                page = document[page_number]
+            for page_index, page in enumerate(document, start=1):
                 for image_index, image_info in enumerate(page.get_images(full=True), start=1):
                     xref = image_info[0]
 
