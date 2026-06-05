@@ -10,7 +10,9 @@ def convert_pdf_jpg(input_path, output_path):
         with tempfile.TemporaryDirectory() as temp_dir:
             image_paths = []
 
-            for page_index, page in enumerate(document, start=1):
+            for page_number in range(document.page_count):
+                page_index = page_number + 1
+                page = document[page_number]
                 pixmap = page.get_pixmap(
                     matrix=fitz.Matrix(zoom, zoom)
                     ,alpha=False
