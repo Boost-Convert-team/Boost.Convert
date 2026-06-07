@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.BoostToolSearch?.initToolSearch();
     window.BoostReveal?.initRevealAnimations();
     window.BoostForms?.initUploadZones();
+    window.BoostForms?.initHeroUpload();
     window.BoostForms?.initLoadingForms();
     window.BoostForms?.initAuthToggle();
     window.BoostNavigation?.initPageTransitions();

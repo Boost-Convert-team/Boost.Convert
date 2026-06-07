@@ -72,6 +72,156 @@
         });
     }
 
+    function initHeroUpload() {
+        const form = document.querySelector("[data-hero-upload-form]");
+        if (!form) return;
+
+        const input = form.querySelector("#hero-upload-file");
+        const dropzone = form.querySelector(".hero-upload-dropzone");
+        const selectedFile = form.querySelector("[data-hero-selected-file]");
+        const panel = form.querySelector("[data-hero-conversion-panel]");
+        const optionsList = form.querySelector("[data-hero-conversion-options]");
+        const message = form.querySelector("[data-hero-upload-message]");
+        let selectedRoute = "";
+
+        if (!input || !dropzone || !panel || !optionsList) return;
+
+        const setMessage = (text) => {
+            if (!message) return;
+            message.textContent = text || "";
+        };
+
+        const setSelectedFile = (file) => {
+            if (!selectedFile) return;
+            if (!file) {
+                selectedFile.hidden = true;
+                selectedFile.textContent = "";
+                return;
+            }
+
+            selectedFile.hidden = false;
+            selectedFile.textContent = `${file.name} - ${window.BoostUtils.formatBytes(file.size)}`;
+        };
+
+        const resetOptions = () => {
+            selectedRoute = "";
+            form.removeAttribute("action");
+            form.classList.remove("has-conversions");
+            panel.hidden = true;
+            optionsList.innerHTML = "";
+        };
+
+        const renderOptions = (tools) => {
+            resetOptions();
+
+            if (!tools.length) {
+                setMessage("Nenhuma conversao disponivel para este formato.");
+                return;
+            }
+
+            form.classList.add("has-conversions");
+            panel.hidden = false;
+            optionsList.innerHTML = "";
+
+            tools.forEach((tool) => {
+                const button = document.createElement("button");
+                button.className = "hero-upload-output-option";
+                button.type = "submit";
+                button.dataset.route = tool.route;
+                button.innerHTML = `
+                    <span>${tool.output || tool.name}</span>
+                    <small>${tool.name}</small>
+                `;
+                button.addEventListener("click", () => {
+                    selectedRoute = tool.route;
+                    form.action = tool.route;
+                });
+                optionsList.appendChild(button);
+            });
+
+            setMessage("Escolha uma saida para converter agora.");
+        };
+
+        const getFileExtension = (file) => {
+            const name = file?.name || "";
+            const dotIndex = name.lastIndexOf(".");
+            if (dotIndex < 0) return "";
+            return name.slice(dotIndex + 1).toLowerCase();
+        };
+
+        const loadConversions = async () => {
+            const file = input.files?.[0];
+            resetOptions();
+            setSelectedFile(file);
+
+            if (!file) {
+                setMessage("");
+                return;
+            }
+
+            const extension = getFileExtension(file);
+            if (!extension) {
+                setMessage("Nao consegui identificar o formato do arquivo.");
+                return;
+            }
+
+            setMessage("Buscando conversoes disponiveis...");
+
+            try {
+                const response = await fetch(`/api/conversion-options?extension=${encodeURIComponent(extension)}`);
+                if (!response.ok) throw new Error("Erro ao buscar conversoes.");
+                const data = await response.json();
+                renderOptions(data.tools || []);
+            } catch {
+                resetOptions();
+                setMessage("Nao foi possivel carregar as conversoes agora.");
+            }
+        };
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+            dropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dropzone.classList.add("is-dragging");
+            });
+        });
+
+        ["dragleave", "drop"].forEach((eventName) => {
+            dropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dropzone.classList.remove("is-dragging");
+            });
+        });
+
+        dropzone.addEventListener("drop", (event) => {
+            const file = event.dataTransfer.files?.[0];
+            if (!file) return;
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            input.files = transfer.files;
+            loadConversions();
+        });
+
+        input.addEventListener("change", loadConversions);
+
+        form.addEventListener("submit", (event) => {
+            if (!input.files?.length) {
+                event.preventDefault();
+                setMessage("Selecione um arquivo primeiro.");
+                return;
+            }
+
+            if (!selectedRoute) {
+                event.preventDefault();
+                setMessage("Escolha uma saida antes de converter.");
+                return;
+            }
+
+            form.action = selectedRoute;
+            form.classList.add("is-submitting");
+        });
+    }
+
     function initAuthToggle() {
         const authContainer = document.getElementById("auth-container");
         const registerButton = document.getElementById("register");
@@ -91,6 +241,7 @@
     }
 
     window.BoostForms = {
+        initHeroUpload,
         initAuthToggle,
         initLoadingForms,
         initUploadZones

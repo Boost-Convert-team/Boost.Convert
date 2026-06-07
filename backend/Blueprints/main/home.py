@@ -1,5 +1,5 @@
 import os
-from flask import abort, jsonify, render_template, Blueprint
+from flask import abort, jsonify, render_template, Blueprint, request, url_for
 
 from Blueprints.main.account_workspace import get_account_workspace
 from Blueprints.main.downloads import send_conversion_batch_zip, send_conversion_file
@@ -8,6 +8,8 @@ from Blueprints.main.tools_registry import TOOLS
 from Blueprints.services.convertions_services.conversion_options import get_conversion_options
 
 home_bp = Blueprint("home", __name__)
+
+SINGLE_FILE_UNSUPPORTED_ROUTES = {"/convert/pdf-merge"}
 
 
 def find_tool_by_slug(slug):
@@ -19,9 +21,68 @@ def find_tool_by_slug(slug):
     return None
 
 
+def get_tools_for_extension(extension):
+    tools = []
+    seen_routes = set()
+
+    for category, category_tools in TOOLS.items():
+        for tool in category_tools:
+            route = tool.get("route", "")
+            if route in seen_routes or not route.startswith("/convert/"):
+                continue
+            if route in SINGLE_FILE_UNSUPPORTED_ROUTES:
+                continue
+            if extension not in parse_accept_extensions(tool.get("accept", "")):
+                continue
+
+            slug = route.removeprefix("/convert/")
+            seen_routes.add(route)
+            tools.append(
+                {
+                    "name": format_conversion_label(tool["name"]),
+                    "output": get_conversion_output_label(tool["name"], slug),
+                    "category": category,
+                    "route": route,
+                    "page_url": url_for("home.converter_tool", slug=slug),
+                }
+            )
+
+    return tools
+
+
+def parse_accept_extensions(accept):
+    extensions = set()
+    for value in str(accept).split(","):
+        value = value.strip().lower()
+        if value.startswith("."):
+            extensions.add(value.lstrip("."))
+    return extensions
+
+
+def format_conversion_label(name):
+    return name.replace(" -> ", " para ")
+
+
+def get_conversion_output_label(name, slug):
+    if " -> " in name:
+        return name.split(" -> ", 1)[1].strip().upper()
+    if "-to-" in slug:
+        return slug.split("-to-", 1)[1].replace("-", " ").upper()
+    return format_conversion_label(name)
+
+
 @home_bp.route("/")
 def home():
     return render_template("home.html")
+
+
+@home_bp.route("/api/conversion-options")
+def conversion_options_for_extension():
+    extension = (request.args.get("extension") or "").lower().lstrip(".").strip()
+    if not extension:
+        return jsonify({"extension": "", "tools": []})
+
+    return jsonify({"extension": extension, "tools": get_tools_for_extension(extension)})
 
 
 @home_bp.route("/sobre")

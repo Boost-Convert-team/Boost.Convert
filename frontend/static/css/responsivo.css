@@ -69,10 +69,11 @@
     }
 
     .boost-proof-bar {
-        padding-inline: 30px;
+        padding-block: 24px;
     }
 
-    .boost-proof-bar div {
+    .boost-proof-item {
+        flex-basis: 300px;
         padding-inline: 20px;
     }
 
@@ -151,25 +152,13 @@
     }
 
     .boost-proof-bar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         margin-top: 14px;
-        padding: 28px;
+        padding: 24px 0;
     }
 
-    .boost-proof-bar div {
-        padding: 18px;
-    }
-
-    .boost-proof-bar div + div {
-        border-left: 0;
-    }
-
-    .boost-proof-bar div:nth-child(2n) {
-        border-left: 1px solid rgba(234, 223, 211, .92);
-    }
-
-    .boost-proof-bar div:nth-child(n + 3) {
-        border-top: 1px solid rgba(234, 223, 211, .92);
+    .boost-proof-item {
+        flex-basis: 292px;
+        padding-inline: 18px;
     }
 
     .desktop-panel {
@@ -942,22 +931,22 @@
     }
 
     .boost-proof-bar {
-        grid-template-columns: 1fr;
         margin-top: 0;
-        padding: 10px 18px;
+        padding: 18px 0;
         border-radius: 22px 22px 0 0;
     }
 
-    .boost-proof-bar div,
-    .boost-proof-bar div:nth-child(2n),
-    .boost-proof-bar div:nth-child(n + 3) {
-        grid-template-columns: 52px 1fr;
-        padding: 16px 0;
-        border-left: 0;
-        border-top: 1px solid rgba(234, 223, 211, .92);
+    .boost-proof-track {
+        animation-duration: 28s;
     }
 
-    .boost-proof-bar div:first-child {
+    .boost-proof-item,
+    .boost-proof-item:nth-child(2n),
+    .boost-proof-item:nth-child(n + 3) {
+        grid-template-columns: 52px 1fr;
+        flex-basis: 270px;
+        padding: 8px 16px;
+        border-left: 1px solid rgba(234, 223, 211, .92);
         border-top: 0;
     }
 
@@ -3182,5 +3171,113 @@ body:has(.home-page) .site-shell {
     .brand-logo {
         width: 126px;
         height: auto;
+    }
+}
+
+@media (max-width: 1180px) {
+    .home-page .boost-hero-visual {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-content: center;
+        justify-items: center;
+        gap: 20px;
+        width: min(720px, 100%);
+        height: auto;
+        min-height: 560px;
+        margin: 0 auto;
+        transform: none;
+    }
+
+    .home-page .hero-upload-card {
+        width: min(100%, 660px);
+    }
+}
+
+@media (max-width: 720px) {
+    .home-page .boost-hero-visual {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        min-height: auto;
+        width: 100%;
+        margin-top: 2px;
+    }
+
+    .home-page .hero-upload-card {
+        width: 100%;
+        padding: 12px;
+        border-radius: 24px;
+    }
+
+    .home-page .hero-upload-dropzone {
+        min-height: 356px;
+        padding: 38px 18px;
+        border-radius: 18px;
+    }
+
+    .home-page .hero-upload-card.has-conversions .hero-upload-dropzone {
+        min-height: 280px;
+        padding-block: 30px;
+    }
+
+    .home-page .hero-upload-icon {
+        width: 66px;
+        height: 66px;
+        margin-bottom: 24px;
+        border-radius: 20px;
+    }
+
+    .home-page .hero-upload-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+
+    .home-page .hero-upload-dropzone strong {
+        max-width: 280px;
+        font-size: 22px;
+    }
+
+    .home-page .hero-upload-dropzone small {
+        font-size: 15px;
+    }
+
+    .home-page .hero-upload-button {
+        width: min(100%, 252px);
+        min-width: 0;
+        min-height: 54px;
+        font-size: 16px;
+    }
+
+    .home-page .hero-upload-limit {
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 11px 13px;
+        font-size: 13px;
+    }
+
+    .home-page .hero-upload-security {
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 13px;
+        text-align: left;
+    }
+
+    .home-page .hero-upload-output-options {
+        grid-template-columns: 1fr;
+        max-height: 172px;
+    }
+}
+
+@media (max-width: 420px) {
+    .home-page .hero-upload-dropzone {
+        min-height: 324px;
+        padding-inline: 14px;
+    }
+
+    .home-page .hero-upload-button {
+        padding-inline: 18px;
     }
 }

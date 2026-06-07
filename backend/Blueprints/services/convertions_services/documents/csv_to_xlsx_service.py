@@ -1,3 +1,3 @@
-import pandas as pd
+import pandas
 
-def convert_csv_xlsx(input_path, output_path): pd.read_csv(input_path).to_excel(output_path, index=False)
+def convert_csv_xlsx(input_path, output_path): pandas.read_csv(input_path).to_excel(output_path, index=False)

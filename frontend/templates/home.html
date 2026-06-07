@@ -56,82 +56,100 @@
             </div>
         </div>
 
-        <div class="boost-hero-visual reveal" aria-label="Formatos conectados ao Boost Convert">
-            <div class="boost-orbit-glow" aria-hidden="true"></div>
-            <svg class="boost-orbit-lines" viewBox="0 0 720 600" aria-hidden="true">
-                <path d="M360 250 C318 214 282 166 286 106" />
-                <path d="M410 250 C464 214 528 158 584 104" />
-                <path d="M342 300 C274 300 226 300 174 300" />
-                <path d="M418 300 C492 300 558 300 634 300" />
-                <path d="M360 350 C318 394 292 450 286 514" />
-                <path d="M410 350 C464 394 528 456 584 514" />
-                <path class="soft-loop" d="M116 332 C102 140 246 48 400 82 S682 206 646 374 374 558 198 500" />
-                <path class="soft-loop" d="M210 478 C356 596 642 468 654 300 S506 46 356 78 112 178 132 350" />
-            </svg>
+        <div class="boost-hero-visual reveal" aria-label="Escolher arquivo e conversao">
+            <form class="hero-upload-card" method="POST" enctype="multipart/form-data" data-hero-upload-form>
+                <label class="hero-upload-dropzone" for="hero-upload-file">
+                    <input id="hero-upload-file" class="hero-upload-input" type="file" name="files" required>
+                    <span class="hero-upload-icon">
+                        <span class="hero-upload-arrow" aria-hidden="true"></span>
+                        <span class="hero-upload-tray" aria-hidden="true"></span>
+                    </span>
+                    <strong>Arraste seu arquivo para c&aacute;</strong>
+                    <small>ou clique para selecionar</small>
+                    <span class="hero-upload-button">
+                        <i data-lucide="folder" aria-hidden="true"></i>
+                        Selecionar arquivo
+                    </span>
+                    <span class="hero-upload-limit">
+                        <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+                        <span>Seus arquivos s&atilde;o seguros e <strong>nunca</strong> armazenados em nossos servidores.</span>
+                    </span>
+                    <span class="hero-upload-selected" data-hero-selected-file hidden></span>
+                </label>
 
-            <a class="boost-hub-card" href="{{ url_for('home.tools') }}" aria-label="Ver todas as ferramentas do Boost Convert">
-                <i data-lucide="rocket" aria-hidden="true"></i>
-                <strong>Boost.Convert</strong>
-                <span><i data-lucide="refresh-cw" aria-hidden="true"></i></span>
-            </a>
+                <div class="hero-upload-output-panel" data-hero-conversion-panel hidden>
+                    <span>Escolha a sa&iacute;da</span>
+                    <div class="hero-upload-output-options" data-hero-conversion-options></div>
+                </div>
 
-            <a class="boost-file-card card-jpg" href="{{ url_for('home.converter_tool', slug='jpg-to-png') }}" aria-label="Abrir ferramenta JPG para PNG">
-                <span><i data-lucide="image" aria-hidden="true"></i></span>
-                <strong>JPG</strong>
-                <small>Imagem</small>
-            </a>
+                <p class="hero-upload-message" data-hero-upload-message aria-live="polite"></p>
+            </form>
 
-            <a class="boost-file-card card-mp4" href="{{ url_for('home.converter_tool', slug='mp4-to-mp3') }}" aria-label="Abrir ferramenta MP4 para MP3">
-                <span><i data-lucide="play" aria-hidden="true"></i></span>
-                <strong>MP4</strong>
-                <small>V&iacute;deo</small>
-            </a>
-
-            <a class="boost-file-card card-pdf" href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}" aria-label="Abrir ferramenta PDF para DOCX">
-                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
-                <strong>PDF</strong>
-                <small>Documento</small>
-            </a>
-
-            <a class="boost-file-card card-docx" href="{{ url_for('home.converter_tool', slug='docx-to-pdf') }}" aria-label="Abrir ferramenta DOCX para PDF">
-                <span><i data-lucide="file-type" aria-hidden="true"></i></span>
-                <strong>DOCX</strong>
-                <small>Word</small>
-            </a>
-
-            <a class="boost-file-card card-mp3" href="{{ url_for('home.converter_tool', slug='mp3-to-wav') }}" aria-label="Abrir ferramenta MP3 para WAV">
-                <span><i data-lucide="music" aria-hidden="true"></i></span>
-                <strong>MP3</strong>
-                <small>&Aacute;udio</small>
-            </a>
-
-            <a class="boost-file-card card-zip" href="{{ url_for('home.tools') }}" aria-label="Ver ferramentas de arquivos">
-                <span><i data-lucide="file-archive" aria-hidden="true"></i></span>
-                <strong>ZIP</strong>
-                <small>Arquivo</small>
-            </a>
         </div>
 
         <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
-            <div>
-                <span><i data-lucide="users" aria-hidden="true"></i></span>
-                <strong>2M+</strong>
-                <small>Usu&aacute;rios satisfeitos</small>
-            </div>
-            <div>
-                <span><i data-lucide="file-check" aria-hidden="true"></i></span>
-                <strong>50M+</strong>
-                <small>Arquivos convertidos</small>
-            </div>
-            <div>
-                <span><i data-lucide="zap" aria-hidden="true"></i></span>
-                <strong>10x</strong>
-                <small>Mais r&aacute;pido</small>
-            </div>
-            <div>
-                <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
-                <strong>100%</strong>
-                <small>Seguro e privado</small>
+            <div class="boost-proof-track">
+            <article class="boost-proof-item">
+                <span><i data-lucide="file-stack" aria-hidden="true"></i></span>
+                <strong>PDF, DOCX, MP4</strong>
+                <small>Formatos reais do conversor</small>
+            </article>
+            <article class="boost-proof-item">
+                <span><i data-lucide="hard-drive" aria-hidden="true"></i></span>
+                <strong>SQLite local</strong>
+                <small>Banco pronto para desenvolvimento</small>
+            </article>
+            <article class="boost-proof-item">
+                <span><i data-lucide="clock-3" aria-hidden="true"></i></span>
+                <strong>Fila de jobs</strong>
+                <small>Convers&otilde;es processadas em segundo plano</small>
+            </article>
+            <article class="boost-proof-item">
+                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+                <strong>Sem armazenar</strong>
+                <small>Arquivos removidos ap&oacute;s o processamento</small>
+            </article>
+            <article class="boost-proof-item">
+                <span><i data-lucide="gauge" aria-hidden="true"></i></span>
+                <strong>100MB</strong>
+                <small>Tamanho suportado no upload</small>
+            </article>
+            <article class="boost-proof-item">
+                <span><i data-lucide="wand-sparkles" aria-hidden="true"></i></span>
+                <strong>PDF, imagem, &aacute;udio</strong>
+                <small>Ferramentas separadas por categoria</small>
+            </article>
+
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="file-stack" aria-hidden="true"></i></span>
+                <strong>PDF, DOCX, MP4</strong>
+                <small>Formatos reais do conversor</small>
+            </article>
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="hard-drive" aria-hidden="true"></i></span>
+                <strong>SQLite local</strong>
+                <small>Banco pronto para desenvolvimento</small>
+            </article>
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="clock-3" aria-hidden="true"></i></span>
+                <strong>Fila de jobs</strong>
+                <small>Convers&otilde;es processadas em segundo plano</small>
+            </article>
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+                <strong>Sem armazenar</strong>
+                <small>Arquivos removidos ap&oacute;s o processamento</small>
+            </article>
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="gauge" aria-hidden="true"></i></span>
+                <strong>100MB</strong>
+                <small>Tamanho suportado no upload</small>
+            </article>
+            <article class="boost-proof-item" aria-hidden="true">
+                <span><i data-lucide="wand-sparkles" aria-hidden="true"></i></span>
+                <strong>PDF, imagem, &aacute;udio</strong>
+                <small>Ferramentas separadas por categoria</small>
+            </article>
             </div>
         </div>
     </section>
