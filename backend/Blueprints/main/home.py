@@ -116,19 +116,26 @@ def converter_tool(slug):
 
 @home_bp.route("/conversions/<job_id>")
 def conversion_status(job_id):
-    return render_template("conversion_status.html", job=get_accessible_job_or_404(job_id))
+    job = get_accessible_job_or_404(job_id)
+    return render_template(
+        "conversion_status.html",
+        job=job,
+        is_downloadable=is_job_downloadable(job),
+    )
 
 
 @home_bp.route("/conversions/batch/<job_ids>")
 def conversion_batch_status(job_ids):
     requested_ids = [job_id for job_id in job_ids.split(",") if job_id]
     jobs = get_accessible_jobs_from_ids(requested_ids)
+    downloadable_job_ids = {job.id for job in jobs if is_job_downloadable(job)}
     return render_template(
         "conversion_batch_status.html",
         jobs=jobs,
         has_pending_jobs=any(job.status in ["queued", "processing"] for job in jobs),
         job_ids=",".join(requested_ids),
-        all_jobs_downloadable=bool(jobs) and all(is_job_downloadable(job) for job in jobs),
+        all_jobs_downloadable=bool(jobs) and len(downloadable_job_ids) == len(jobs),
+        downloadable_job_ids=downloadable_job_ids,
     )
 
 
@@ -144,7 +151,7 @@ def conversion_status_json(job_id):
             "output_filename": job.output_filename,
             "options": job.options,
             "error_message": job.error_message,
-            "download_url": f"/conversions/{job.id}/download" if job.status == "done" else None,
+            "download_url": f"/conversions/{job.id}/download" if is_job_downloadable(job) else None,
         }
     )
 

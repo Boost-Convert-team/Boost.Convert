@@ -31,6 +31,54 @@ SIGNATURES = {
 }
 ZIP_ROOTS = {"docx": "word/", "pptx": "ppt/", "xlsx": "xl/"}
 TEXT_EXTENSIONS = {"csv", "html", "htm", "md", "txt"}
+GENERIC_MIME_TYPES = {"", "application/octet-stream", "binary/octet-stream"}
+ALLOWED_MIME_TYPES = {
+    "aac": {"audio/aac", "audio/x-aac", "audio/vnd.dlna.adts"},
+    "avi": {"video/x-msvideo", "video/avi"},
+    "csv": {"text/csv", "application/csv", "application/vnd.ms-excel"},
+    "doc": {"application/msword", "application/octet-stream"},
+    "docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip"},
+    "flac": {"audio/flac", "audio/x-flac"},
+    "heic": {"image/heic", "image/heif"},
+    "html": {"text/html"},
+    "htm": {"text/html"},
+    "jpg": {"image/jpeg"},
+    "jpeg": {"image/jpeg"},
+    "json": {"application/json", "text/json"},
+    "md": {"text/markdown", "text/plain"},
+    "mkv": {"video/x-matroska"},
+    "mov": {"video/quicktime"},
+    "mp3": {"audio/mpeg", "audio/mp3"},
+    "mp4": {"video/mp4", "audio/mp4", "application/mp4"},
+    "odp": {"application/vnd.oasis.opendocument.presentation", "application/zip"},
+    "ods": {"application/vnd.oasis.opendocument.spreadsheet", "application/zip"},
+    "odt": {"application/vnd.oasis.opendocument.text", "application/zip"},
+    "ogg": {"audio/ogg", "application/ogg"},
+    "pdf": {"application/pdf"},
+    "png": {"image/png"},
+    "ppt": {"application/vnd.ms-powerpoint", "application/octet-stream"},
+    "pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/zip"},
+    "svg": {"image/svg+xml", "text/xml", "application/xml"},
+    "txt": {"text/plain"},
+    "wav": {"audio/wav", "audio/x-wav"},
+    "webm": {"video/webm", "audio/webm"},
+    "webp": {"image/webp"},
+    "wma": {"audio/x-ms-wma"},
+    "xls": {"application/vnd.ms-excel", "application/octet-stream"},
+    "xlsx": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip"},
+    "zip": {"application/zip", "application/x-zip-compressed"},
+}
+
+def validate_upload_mime(file, extension):
+    extension = extension.lower()
+    mimetype = (getattr(file, "mimetype", "") or "").split(";")[0].strip().lower()
+    if mimetype in GENERIC_MIME_TYPES:
+        return True, None
+    if extension in TEXT_EXTENSIONS and mimetype.startswith("text/"):
+        return True, None
+    if mimetype in ALLOWED_MIME_TYPES.get(extension, set()):
+        return True, None
+    return False, "O tipo MIME do arquivo nao corresponde ao formato enviado."
 
 def validate_upload_header(file, extension):
     extension = extension.lower()

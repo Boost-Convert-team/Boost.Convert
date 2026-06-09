@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(ROOT))
 
 from app import create_app
+from config import Config
 from extensions import db
 from models import ConversionJob, Usuario
 import Blueprints.handlers.handler_convertions as conversion_handler
@@ -26,10 +27,11 @@ def main():
     test_dir = Path(tempfile.mkdtemp(prefix="boost_converter_qa_"))
 
     try:
+        Config.SQLALCHEMY_DATABASE_URI = f"sqlite:///{test_dir / 'qa.sqlite'}"
+        Config.SQLALCHEMY_ENGINE_OPTIONS = {}
         app = create_app()
         app.config.update(
             TESTING=True
-            ,SQLALCHEMY_DATABASE_URI=f"sqlite:///{test_dir / 'qa.sqlite'}"
             ,WTF_CSRF_ENABLED=False
         )
         app.instance_path = str(test_dir / "instance")
@@ -70,8 +72,8 @@ def main():
         shutil.rmtree(test_dir, ignore_errors=True)
 
 def patch_job_queue(app):
-    def submit_sync(flask_app, job_id, convert_function):
-        process_conversion_job(app, job_id, convert_function)
+    def submit_sync(flask_app, job_id, convert_function, runtime_options=None):
+        process_conversion_job(app, job_id, convert_function, runtime_options)
 
     conversion_handler.submit_conversion_job = submit_sync
     job_submission.submit_conversion_job = submit_sync

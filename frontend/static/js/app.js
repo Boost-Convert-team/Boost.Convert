@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.BoostNavigation?.initTopbar();
     window.BoostNavigation?.initMegaMenu();
+    window.BoostNavigation?.initProfileMenu();
     window.BoostToolSearch?.initToolSearch();
     window.BoostReveal?.initRevealAnimations();
     window.BoostForms?.initUploadZones();

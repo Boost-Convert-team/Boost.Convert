@@ -10,6 +10,7 @@ from extensions import db, lm, oauth
 from models import Usuario
 from register_blueprints import registrando_blueprints
 from Blueprints.main.tool_search import build_tool_search_index
+from Blueprints.main.tools_registry import build_tool_counts
 from Blueprints.services.convertions_services.file_cleanup import run_conversion_file_cleanup
 from Blueprints.services.convertions_services.media_dependencies import configure_media_dependencies
 
@@ -44,7 +45,11 @@ def create_app():
     def user_loader(id): return db.session.get(Usuario, int(id))
 
     @app.context_processor
-    def inject_tool_search_index(): return {"tool_search_index": build_tool_search_index()}
+    def inject_global_template_data():
+        return {
+            "tool_search_index": build_tool_search_index(),
+            "tool_counts": build_tool_counts(),
+        }
 
     @app.errorhandler(413)
     def request_entity_too_large(error): return "Arquivo muito grande para upload.", 413

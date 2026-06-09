@@ -37,7 +37,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#documentos">
                                 <span>Ver todas</span>
-                                <em>+29</em>
+                                <em>+{{ tool_counts.mega_remaining.pdf }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -66,7 +66,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#imagens">
                                 <span>Ver todas</span>
-                                <em>+12</em>
+                                <em>+{{ tool_counts.mega_remaining["Imagens"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -91,7 +91,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#videos">
                                 <span>Ver todas</span>
-                                <em>+10</em>
+                                <em>+{{ tool_counts.mega_remaining["Videos"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -116,7 +116,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#audios">
                                 <span>Ver todas</span>
-                                <em>+10</em>
+                                <em>+{{ tool_counts.mega_remaining["Audios"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -141,7 +141,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#ocr">
                                 <span>Ver todas</span>
-                                <em>OCR</em>
+                                <em>{{ tool_counts.categories["OCR"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -158,7 +158,7 @@
                             </a>
                             <a class="mega-view-all" href="{{ url_for('home.tools') }}#ai-tools">
                                 <span>Ver todas</span>
-                                <em>AI</em>
+                                <em>{{ tool_counts.categories["AI Tools"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                             </a>
                         </section>
@@ -181,7 +181,47 @@
 
         <div class="top-actions">
             {% if current_user.is_authenticated %}
-                <a class="text-link header-login" href="{{ url_for('auth.logout') }}">Sair</a>
+                <details class="profile-menu">
+                    <summary class="profile-trigger" aria-label="Abrir menu da conta">
+                        <span class="profile-avatar" aria-hidden="true">
+                            <i data-lucide="user-round"></i>
+                        </span>
+                        <i class="profile-caret" data-lucide="chevron-down" aria-hidden="true"></i>
+                    </summary>
+                    <div class="profile-panel" role="menu" aria-label="Menu da conta">
+                        <div class="profile-summary">
+                            <span class="profile-summary-avatar" aria-hidden="true">
+                                <i data-lucide="user-round"></i>
+                            </span>
+                            <span>
+                                <strong>{{ current_user.nome or current_user.email.split("@")[0] }}</strong>
+                                <small>{{ current_user.email }}</small>
+                            </span>
+                        </div>
+                        <nav class="profile-menu-list" aria-label="Atalhos da conta">
+                            <a class="profile-menu-item" role="menuitem" href="{{ url_for('main.planos') }}">
+                                <i data-lucide="star" aria-hidden="true"></i>
+                                <span>Planos</span>
+                            </a>
+                            <a class="profile-menu-item" role="menuitem" href="{{ url_for('home.conta') }}">
+                                <i data-lucide="settings" aria-hidden="true"></i>
+                                <span>Conta</span>
+                            </a>
+                            <a class="profile-menu-item" role="menuitem" href="{{ url_for('home.tools') }}">
+                                <i data-lucide="wrench" aria-hidden="true"></i>
+                                <span>Ferramentas</span>
+                            </a>
+                            <a class="profile-menu-item" role="menuitem" href="{{ url_for('home.sobre') }}">
+                                <i data-lucide="info" aria-hidden="true"></i>
+                                <span>Sobre n&oacute;s</span>
+                            </a>
+                            <a class="profile-menu-item profile-menu-logout" role="menuitem" href="{{ url_for('auth.logout') }}">
+                                <i data-lucide="log-out" aria-hidden="true"></i>
+                                <span>Sair</span>
+                            </a>
+                        </nav>
+                    </div>
+                </details>
             {% else %}
                 <a class="text-link header-login" href="{{ url_for('auth.login') }}">Entrar</a>
             {% endif %}

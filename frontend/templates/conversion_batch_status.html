@@ -26,8 +26,10 @@
                     <strong>{{ job.original_filename }}</strong>
                     <span class="status-pill">{{ job.status }}</span>
 
-                    {% if job.status == "done" %}
+                    {% if job.id in downloadable_job_ids %}
                         <a class="tool-link" href="{{ url_for('home.conversion_download', job_id=job.id) }}">Baixar</a>
+                    {% elif job.status == "done" %}
+                        <span class="tool-link">Removido</span>
                     {% elif job.status == "failed" %}
                         <a class="tool-link" href="{{ url_for('home.conversion_status', job_id=job.id) }}">Ver detalhes</a>
                     {% else %}

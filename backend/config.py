@@ -1,12 +1,20 @@
 import os
 from pathlib import Path
 
+from sqlalchemy.engine import URL
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATABASE_URI = f"sqlite:///{(BASE_DIR / 'instance' / 'boost_converter_dev.sqlite').as_posix()}"
 
 
 def normalize_database_uri(uri):
+    uri = uri.strip()
+    if uri.startswith("postgres://"):
+        return f"postgresql+psycopg://{uri.removeprefix('postgres://')}"
+    if uri.startswith("postgresql://"):
+        return f"postgresql+psycopg://{uri.removeprefix('postgresql://')}"
+
     sqlite_prefix = "sqlite:///"
     if uri == "sqlite:///:memory:" or not uri.startswith(sqlite_prefix):
         return uri
@@ -22,20 +30,88 @@ def normalize_database_uri(uri):
     return f"sqlite:///{(BASE_DIR / db_path).as_posix()}"
 
 
+def build_postgres_uri_from_env():
+    host = os.getenv("POSTGRES_HOST") or os.getenv("PGHOST")
+    database = os.getenv("POSTGRES_DB") or os.getenv("PGDATABASE")
+    username = os.getenv("POSTGRES_USER") or os.getenv("PGUSER")
+    password = os.getenv("POSTGRES_PASSWORD") or os.getenv("PGPASSWORD")
+
+    if not all([host, database, username, password]):
+        return None
+
+    query = {}
+    sslmode = os.getenv("POSTGRES_SSLMODE") or os.getenv("PGSSLMODE")
+    if sslmode:
+        query["sslmode"] = sslmode
+
+    url = URL.create(
+        "postgresql+psycopg",
+        username=username,
+        password=password,
+        host=host,
+        port=int(os.getenv("POSTGRES_PORT") or os.getenv("PGPORT") or "5432"),
+        database=database,
+        query=query,
+    )
+    return url.render_as_string(hide_password=False)
+
+
 def get_database_uri():
-    configured_uri = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
+    configured_uri = (
+        os.getenv("DATABASE_URL")
+        or os.getenv("SQLALCHEMY_DATABASE_URI")
+        or build_postgres_uri_from_env()
+    )
     return normalize_database_uri(configured_uri) if configured_uri else DEFAULT_DATABASE_URI
 
+
+def get_sqlalchemy_engine_options(database_uri):
+    if database_uri.startswith("postgresql"):
+        return {"pool_pre_ping": True}
+    return {}
+
+
+def get_bool_env(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def get_int_env(name, default):
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def get_secret_key():
+    secret_key = os.getenv("SECRET_KEY")
+    environment = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "").lower()
+    if secret_key:
+        return secret_key
+    if environment in {"production", "prod"}:
+        raise RuntimeError("SECRET_KEY precisa ser configurado em producao.")
+    return "dev"
+
+
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev")
+    SECRET_KEY = get_secret_key()
     SQLALCHEMY_DATABASE_URI = get_database_uri()
+    SQLALCHEMY_ENGINE_OPTIONS = get_sqlalchemy_engine_options(SQLALCHEMY_DATABASE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_UPLOAD_MB", "2048")) * 1024 * 1024
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+    SESSION_COOKIE_SECURE = get_bool_env("SESSION_COOKIE_SECURE", False)
+    CONVERSION_FILE_RETENTION_MINUTES = get_int_env("CONVERSION_FILE_RETENTION_MINUTES", 15)
+    AI_TRANSCRIPT_RETENTION_MINUTES = get_int_env("AI_TRANSCRIPT_RETENTION_MINUTES", 15)
+    CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env("CONVERSION_CLEANUP_INTERVAL_MINUTES", 5)
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
     GOOGLE_REDIRECT_URI = os.getenv(
         "GOOGLE_REDIRECT_URI",
-        "http://localhost:5000/login/google/callback",
+        "http://localhost:5001/login/google/callback",
     )
 
 

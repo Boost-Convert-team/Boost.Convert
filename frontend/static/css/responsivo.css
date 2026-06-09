@@ -3243,7 +3243,7 @@ body:has(.home-page) .site-shell {
     .home-page .hero-upload-button {
         width: min(100%, 252px);
         min-width: 0;
-        min-height: 54px;
+        min-height: 44px;
         font-size: 16px;
     }
 

@@ -98,3 +98,42 @@ TOOLS = {
         {"name": "OCR PDF -> TXT", "route": "/convert/pdf-ocr-to-txt", "accept": ".pdf", "description": "Extraia texto de PDFs escaneados usando OCR.", "badge": "OCR", "icon": "scan-line", "aliases": "ocr pdf escaneado scanner extrair texto reconhecer texto txt pesquisavel"},
     ],
 }
+
+
+def get_pdf_tool_count():
+    return sum(
+        1
+        for tool in TOOLS["Documentos"]
+        if "pdf" in tool["route"] or "PDF" in tool["name"] or ".pdf" in tool.get("accept", "")
+    )
+
+
+def build_tool_counts():
+    categories = {category: len(tools) for category, tools in TOOLS.items()}
+    total = sum(categories.values())
+    visible_in_mega_menu = {
+        "pdf": 5,
+        "Imagens": 5,
+        "Videos": 4,
+        "Audios": 4,
+        "OCR": 2,
+        "AI Tools": 2,
+    }
+    mega_totals = {
+        "pdf": get_pdf_tool_count(),
+        "Imagens": categories["Imagens"],
+        "Videos": categories["Videos"],
+        "Audios": categories["Audios"],
+        "OCR": categories["OCR"],
+        "AI Tools": categories["AI Tools"],
+    }
+
+    return {
+        "total": total,
+        "categories": categories,
+        "mega_totals": mega_totals,
+        "mega_remaining": {
+            name: max(count - visible_in_mega_menu.get(name, 0), 0)
+            for name, count in mega_totals.items()
+        },
+    }

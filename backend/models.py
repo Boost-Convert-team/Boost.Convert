@@ -65,3 +65,20 @@ class ConversionJob(db.Model):
     finished_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     user = db.relationship("Usuario", backref=db.backref("conversion_jobs", lazy=True))
+
+class ConversionAuditLog(db.Model):
+    __tablename__ = "conversion_audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
+    session_id = db.Column(db.String(255), nullable=True)
+
+    tool_name = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+
+    created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=utc_now)
+
+    user = db.relationship("Usuario", backref=db.backref("conversion_audit_logs", lazy=True))

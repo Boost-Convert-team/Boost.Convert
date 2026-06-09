@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_user, logout_user
 from extensions import db, oauth
 from models import Usuario
@@ -45,6 +45,10 @@ def get_or_create_google_user(user_info):
         db.session.add(user)
     db.session.commit()
     return user
+def get_google_user_info(token):
+    user_info = token.get("userinfo")
+    if user_info: return user_info
+    return oauth.google.userinfo()
 
 @auth_bp.route("/registrar", methods=["GET", "POST"])
 @auth_bp.route("/cadastro", methods=["GET", "POST"])
@@ -77,14 +81,19 @@ def logout():
 @auth_bp.route("/login/google")
 def google_login():
     if oauth is None: return flash_and_redirect("Login Google indisponivel.", "auth.login")
-    redirect_uri = url_for("auth.google_callback", _external=True)
+    redirect_uri = current_app.config["GOOGLE_REDIRECT_URI"]
     return oauth.google.authorize_redirect(redirect_uri)
 
 @auth_bp.route("/login/google/callback")
 def google_callback():
     if oauth is None: return flash_and_redirect("Login Google indisponivel.", "auth.login")
-    token = oauth.google.authorize_access_token()
-    user = get_or_create_google_user(oauth.google.parse_id_token(token))
+    try:
+        token = oauth.google.authorize_access_token()
+        user = get_or_create_google_user(get_google_user_info(token))
+    except Exception as error:
+        db.session.rollback()
+        current_app.logger.warning("Falha no callback do login Google: %s", error)
+        return flash_and_redirect("Nao foi possivel entrar com Google. Tente novamente.", "auth.login")
     if not user: return flash_and_redirect("Nao foi possivel entrar com Google.", "auth.login")
     login_user(user)
     return redirect(url_for("home.conta"))

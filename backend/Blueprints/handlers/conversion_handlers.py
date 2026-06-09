@@ -4,6 +4,7 @@ from Blueprints.services.convertions_services.conversion_limits import validate_
 from Blueprints.services.convertions_services.upload_flow.job_factory import create_file_collection_job, create_pdf_collection_job, create_single_conversion_job
 from Blueprints.services.convertions_services.upload_flow.job_submission import submit_jobs
 from Blueprints.services.convertions_services.upload_flow.request_context import get_conversion_request_context, get_uploaded_files
+from Blueprints.services.privacy.audit import create_conversion_audit
 from Blueprints.services.subscription.access_service import reserve_tool_usage
 
 def handle_conversion(allowed_extension, convert_function, output_extension, tool_name):
@@ -100,12 +101,15 @@ def save_submit_and_redirect(jobs, convert_function):
     return redirect_to_job_status(job_ids)
 
 def save_and_submit_jobs(jobs, convert_function):
+    runtime_options_by_job_id = {job.id: getattr(job, "runtime_options", job.options or {}) for job in jobs}
     job_ids = save_jobs(jobs)
-    submit_jobs(job_ids, convert_function)
+    submit_jobs(job_ids, convert_function, runtime_options_by_job_id)
     return job_ids
 
 def save_jobs(jobs):
-    for job in jobs: db.session.add(job)
+    for job in jobs:
+        db.session.add(job)
+        create_conversion_audit(job)
 
     db.session.commit()
     return [job.id for job in jobs]
@@ -119,8 +123,8 @@ def handle_conversion_error(exc, refused_log_message, internal_log_message):
     db.session.rollback()
 
     if isinstance(exc, ValueError):
-        current_app.logger.info(refused_log_message, exc)
+        current_app.logger.info(refused_log_message, type(exc).__name__)
         return str(exc), 400
     
-    current_app.logger.exception(internal_log_message)
+    current_app.logger.error("%s: %s", internal_log_message, type(exc).__name__, exc_info=False)
     return "Erro ao processar os arquivos.", 500

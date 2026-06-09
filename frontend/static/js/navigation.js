@@ -41,6 +41,25 @@
         }
     }
 
+    function initProfileMenu() {
+        const profileMenu = document.querySelector(".profile-menu");
+        if (!profileMenu) return;
+
+        const trigger = profileMenu.querySelector(".profile-trigger");
+        const closeProfileMenu = () => profileMenu.removeAttribute("open");
+
+        document.addEventListener("click", (event) => {
+            if (!profileMenu.open || profileMenu.contains(event.target)) return;
+            closeProfileMenu();
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape" || !profileMenu.open) return;
+            closeProfileMenu();
+            trigger?.focus();
+        });
+    }
+
     function initPageTransitions() {
         document.querySelectorAll("a[href]").forEach((link) => {
             link.addEventListener("click", (event) => {
@@ -89,6 +108,7 @@
     window.BoostNavigation = {
         initMegaMenu,
         initPageTransitions,
+        initProfileMenu,
         initToolsSidebar,
         initTopbar
     };

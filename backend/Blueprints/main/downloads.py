@@ -1,21 +1,19 @@
 import os
 import tempfile
 import zipfile
-from flask import after_this_request, send_file
+from flask import current_app
 from Blueprints.main.job_access import is_job_downloadable
+from Blueprints.services.privacy.download_stream import stream_private_download
+from Blueprints.services.privacy.file_retention import expire_conversion_job_files
 
 
 def send_conversion_file(job):
-    response = send_file(
+    app = current_app._get_current_object()
+    return stream_private_download(
         job.output_path,
-        as_attachment=True,
-        download_name=job.output_filename,
-        conditional=True,
-        etag=True,
-        max_age=0,
+        job.output_filename,
+        lambda: expire_conversion_job_files(app, job.id),
     )
-    add_download_security_headers(response)
-    return response
 
 
 def send_conversion_batch_zip(jobs):
@@ -26,25 +24,23 @@ def send_conversion_batch_zip(jobs):
         return "Aguarde todas as conversoes finalizarem para baixar o lote.", 409
 
     zip_path = create_batch_zip(downloadable_jobs)
+    app = current_app._get_current_object()
+    job_ids = [job.id for job in downloadable_jobs]
 
-    @after_this_request
-    def remove_zip_file(response):
-        try:
-            os.remove(zip_path)
-        except OSError:
-            pass
-        return response
-
-    response = send_file(
+    return stream_private_download(
         zip_path,
-        as_attachment=True,
-        download_name="boost_converter_arquivos.zip",
-        conditional=True,
-        etag=True,
-        max_age=0,
+        "boost_converter_arquivos.zip",
+        lambda: cleanup_batch_download(app, zip_path, job_ids),
     )
-    add_download_security_headers(response)
-    return response
+
+
+def cleanup_batch_download(app, zip_path, job_ids):
+    try:
+        os.remove(zip_path)
+    except OSError:
+        pass
+    for job_id in job_ids:
+        expire_conversion_job_files(app, job_id)
 
 
 def create_batch_zip(jobs):
@@ -69,7 +65,3 @@ def get_unique_zip_filename(filename, used_filenames):
     used_filenames.add(zip_filename)
     return zip_filename
 
-
-def add_download_security_headers(response):
-    response.headers["Cache-Control"] = "private, max-age=0"
-    response.headers["X-Content-Type-Options"] = "nosniff"
