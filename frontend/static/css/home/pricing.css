@@ -83,7 +83,7 @@
 }
 
 .price-premium.is-visible h2 span::after {
-    animation: priceUnderlineDraw 1.28s cubic-bezier(.22, .88, .22, 1) 360ms both;
+    animation: priceUnderlineDraw 2.8s cubic-bezier(.22, .88, .22, 1) 360ms infinite both;
 }
 
 .price-premium h2 span::before {
@@ -287,9 +287,14 @@
     18% {
         opacity: .88;
     }
-    100% {
+    46%,
+    86% {
         opacity: .88;
         transform: rotate(-1.3deg) scaleX(1);
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(-1.3deg) scaleX(0);
     }
 }
 

@@ -2023,6 +2023,23 @@
     font-weight: 800;
 }
 
+.home-plan-price-current {
+    display: grid;
+    gap: 5px;
+}
+
+.home-plan-price-old {
+    justify-self: start;
+    color: #9c9c9c;
+    font-family: var(--font-ui);
+    font-size: 17px;
+    line-height: 1;
+    font-weight: 800;
+    text-decoration-line: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: currentColor;
+}
+
 .home-plan-pro .home-plan-price strong,
 .home-plan-pro .home-plan-price span {
     color: var(--orange-deep);
