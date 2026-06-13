@@ -3219,21 +3219,31 @@ body:has(.home-page) .site-shell {
         padding-block: 30px;
     }
 
+    .home-page .hero-upload-card.has-file .hero-upload-dropzone {
+        min-height: 0;
+        padding: 22px 14px;
+    }
+
     .home-page .hero-upload-icon {
-        width: 66px;
-        height: 66px;
-        margin-bottom: 24px;
-        border-radius: 20px;
+        width: 76px;
+        height: 76px;
+        margin-bottom: 22px;
+        border-radius: 24px;
     }
 
     .home-page .hero-upload-icon svg {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
     }
 
     .home-page .hero-upload-dropzone strong {
         max-width: 280px;
         font-size: 22px;
+    }
+
+    .home-page .hero-upload-limit strong {
+        font-size: 1.08em;
+        line-height: inherit;
     }
 
     .home-page .hero-upload-dropzone small {
@@ -3242,6 +3252,7 @@ body:has(.home-page) .site-shell {
 
     .home-page .hero-upload-button {
         width: min(100%, 252px);
+        max-width: 100%;
         min-width: 0;
         min-height: 44px;
         font-size: 16px;
@@ -3268,6 +3279,11 @@ body:has(.home-page) .site-shell {
     .home-page .hero-upload-output-options {
         grid-template-columns: 1fr;
         max-height: 172px;
+    }
+
+    .home-page .hero-upload-selected {
+        width: 100%;
+        max-width: 100%;
     }
 }
 

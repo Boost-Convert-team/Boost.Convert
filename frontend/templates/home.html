@@ -60,21 +60,27 @@
             <form class="hero-upload-card" method="POST" enctype="multipart/form-data" data-hero-upload-form>
                 <label class="hero-upload-dropzone" for="hero-upload-file">
                     <input id="hero-upload-file" class="hero-upload-input" type="file" name="files" required>
-                    <span class="hero-upload-icon">
-                        <span class="hero-upload-arrow" aria-hidden="true"></span>
-                        <span class="hero-upload-tray" aria-hidden="true"></span>
+                    <span class="hero-upload-icon" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" focusable="false">
+                            <path class="hero-upload-tray" d="M15 42v6.5A6.5 6.5 0 0 0 21.5 55h21a6.5 6.5 0 0 0 6.5-6.5V42" />
+                            <g class="hero-upload-arrow">
+                                <path d="M32 40V13" />
+                                <path d="m22.5 22.5 9.5-9.5 9.5 9.5" />
+                            </g>
+                        </svg>
+                        <span class="hero-upload-orbit"></span>
                     </span>
-                    <strong>Arraste seu arquivo aqui</strong>
+                    <strong data-hero-upload-title>Arraste seu arquivo aqui</strong>
                     <small>ou clique para escolher do seu dispositivo</small>
                     <span class="hero-upload-button">
-                        Selecionar arquivo
+                        <span class="hero-upload-button-label" data-hero-upload-button-label>Selecionar arquivo</span>
                         <i data-lucide="arrow-right" aria-hidden="true"></i>
                     </span>
                     <span class="hero-upload-limit">
                         <i data-lucide="lock-keyhole" aria-hidden="true"></i>
                         <span>Seus arquivos s&atilde;o seguros e <strong>nunca</strong> armazenados em nossos servidores.</span>
                     </span>
-                    <span class="hero-upload-selected" data-hero-selected-file hidden></span>
+                    <span class="hero-upload-selected file-name-safe" data-hero-selected-file hidden></span>
                 </label>
 
                 <div class="hero-upload-output-panel" data-hero-conversion-panel hidden>
@@ -90,65 +96,65 @@
         <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
             <div class="boost-proof-track">
             <article class="boost-proof-item">
-                <span><i data-lucide="file-stack" aria-hidden="true"></i></span>
-                <strong>PDF, DOCX, MP4</strong>
-                <small>Formatos reais do conversor</small>
+                <span><i data-lucide="layout-grid" aria-hidden="true"></i></span>
+                <strong>80+</strong>
+                <small>ferramentas</small>
             </article>
             <article class="boost-proof-item">
-                <span><i data-lucide="hard-drive" aria-hidden="true"></i></span>
-                <strong>SQLite local</strong>
-                <small>Banco pronto para desenvolvimento</small>
+                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
+                <strong>30+ PDF</strong>
+                <small>edite e converta</small>
             </article>
             <article class="boost-proof-item">
-                <span><i data-lucide="clock-3" aria-hidden="true"></i></span>
-                <strong>Fila de jobs</strong>
-                <small>Convers&otilde;es processadas em segundo plano</small>
+                <span><i data-lucide="refresh-cw" aria-hidden="true"></i></span>
+                <strong>Qualquer formato</strong>
+                <small>PDF, m&iacute;dia e Office</small>
             </article>
             <article class="boost-proof-item">
-                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
-                <strong>Sem armazenar</strong>
-                <small>Arquivos removidos ap&oacute;s o processamento</small>
+                <span><i data-lucide="zap" aria-hidden="true"></i></span>
+                <strong>R&aacute;pido</strong>
+                <small>convers&atilde;o &aacute;gil</small>
             </article>
             <article class="boost-proof-item">
-                <span><i data-lucide="gauge" aria-hidden="true"></i></span>
-                <strong>100MB</strong>
-                <small>Tamanho suportado no upload</small>
+                <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                <strong>Privado</strong>
+                <small>sem armazenar</small>
             </article>
             <article class="boost-proof-item">
-                <span><i data-lucide="wand-sparkles" aria-hidden="true"></i></span>
-                <strong>PDF, imagem, &aacute;udio</strong>
-                <small>Ferramentas separadas por categoria</small>
+                <span><i data-lucide="mouse-pointer-2" aria-hidden="true"></i></span>
+                <strong>Simples</strong>
+                <small>envie e baixe</small>
             </article>
 
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="file-stack" aria-hidden="true"></i></span>
-                <strong>PDF, DOCX, MP4</strong>
-                <small>Formatos reais do conversor</small>
+                <span><i data-lucide="layout-grid" aria-hidden="true"></i></span>
+                <strong>80+</strong>
+                <small>ferramentas</small>
             </article>
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="hard-drive" aria-hidden="true"></i></span>
-                <strong>SQLite local</strong>
-                <small>Banco pronto para desenvolvimento</small>
+                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
+                <strong>30+ PDF</strong>
+                <small>edite e converta</small>
             </article>
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="clock-3" aria-hidden="true"></i></span>
-                <strong>Fila de jobs</strong>
-                <small>Convers&otilde;es processadas em segundo plano</small>
+                <span><i data-lucide="refresh-cw" aria-hidden="true"></i></span>
+                <strong>Qualquer formato</strong>
+                <small>PDF, m&iacute;dia e Office</small>
             </article>
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
-                <strong>Sem armazenar</strong>
-                <small>Arquivos removidos ap&oacute;s o processamento</small>
+                <span><i data-lucide="zap" aria-hidden="true"></i></span>
+                <strong>R&aacute;pido</strong>
+                <small>convers&atilde;o &aacute;gil</small>
             </article>
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="gauge" aria-hidden="true"></i></span>
-                <strong>100MB</strong>
-                <small>Tamanho suportado no upload</small>
+                <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
+                <strong>Privado</strong>
+                <small>sem armazenar</small>
             </article>
             <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="wand-sparkles" aria-hidden="true"></i></span>
-                <strong>PDF, imagem, &aacute;udio</strong>
-                <small>Ferramentas separadas por categoria</small>
+                <span><i data-lucide="mouse-pointer-2" aria-hidden="true"></i></span>
+                <strong>Simples</strong>
+                <small>envie e baixe</small>
             </article>
             </div>
         </div>
@@ -367,12 +373,16 @@
                 </div>
 
                 <div class="home-plan-price home-plan-price-promo" aria-label="De R$ 35,90 por R$ 19,90 por m&ecirc;s">
-                    <span>R$</span>
-                    <div class="home-plan-price-current">
-                        <del class="home-plan-price-old">35,90</del>
-                        <strong>19,90</strong>
+                    <div class="home-plan-price-before">
+                        <span>De</span>
+                        <del class="home-plan-price-old">R$ 35,90</del>
                     </div>
-                    <small>/ m&ecirc;s</small>
+                    <div class="home-plan-price-current">
+                        <span>por</span>
+                        <b>R$</b>
+                        <strong>19,90</strong>
+                        <small>/ m&ecirc;s</small>
+                    </div>
                 </div>
 
                 <ul>

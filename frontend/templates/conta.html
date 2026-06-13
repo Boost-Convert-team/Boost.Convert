@@ -84,8 +84,8 @@
                         {% for job in account_workspace.recent_jobs %}
                             <a href="{{ url_for('home.conversion_status', job_id=job.id) }}">
                                 <span>
-                                    <strong>{{ job.original_filename }}</strong>
-                                    <small>{{ job.output_filename }}</small>
+                                    <strong class="file-name-safe">{{ job.original_filename }}</strong>
+                                    <small class="file-name-safe">{{ job.output_filename }}</small>
                                 </span>
                                 <em>{{ account_workspace.status_labels.get(job.status, job.status) }}</em>
                                 <small>{{ job.created_at.strftime('%H:%M') if job.created_at else 'Agora' }}</small>

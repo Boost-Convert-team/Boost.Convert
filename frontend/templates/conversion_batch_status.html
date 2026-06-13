@@ -23,7 +23,7 @@
         <ul class="batch-list">
             {% for job in jobs %}
                 <li class="batch-item">
-                    <strong>{{ job.original_filename }}</strong>
+                    <strong class="file-name-safe">{{ job.original_filename }}</strong>
                     <span class="status-pill">{{ job.status }}</span>
 
                     {% if job.id in downloadable_job_ids %}

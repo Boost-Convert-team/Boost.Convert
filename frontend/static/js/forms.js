@@ -54,7 +54,7 @@
         item.style.animationDelay = `${index * 70}ms`;
         item.innerHTML = `
             <span class="file-icon"><i data-lucide="file"></i></span>
-            <span class="file-name"></span>
+            <span class="file-name file-name-safe"></span>
             <span class="file-size">${window.BoostUtils.formatBytes(file.size)}</span>
         `;
         item.querySelector(".file-name").textContent = file.name;
@@ -79,6 +79,8 @@
         const input = form.querySelector("#hero-upload-file");
         const dropzone = form.querySelector(".hero-upload-dropzone");
         const selectedFile = form.querySelector("[data-hero-selected-file]");
+        const uploadTitle = form.querySelector("[data-hero-upload-title]");
+        const uploadButtonLabel = form.querySelector("[data-hero-upload-button-label]");
         const panel = form.querySelector("[data-hero-conversion-panel]");
         const optionsList = form.querySelector("[data-hero-conversion-options]");
         const message = form.querySelector("[data-hero-upload-message]");
@@ -93,14 +95,21 @@
 
         const setSelectedFile = (file) => {
             if (!selectedFile) return;
+            form.classList.toggle("has-file", Boolean(file));
             if (!file) {
                 selectedFile.hidden = true;
                 selectedFile.textContent = "";
+                selectedFile.removeAttribute("title");
+                if (uploadTitle) uploadTitle.textContent = "Arraste seu arquivo aqui";
+                if (uploadButtonLabel) uploadButtonLabel.textContent = "Selecionar arquivo";
                 return;
             }
 
             selectedFile.hidden = false;
             selectedFile.textContent = `${file.name} - ${window.BoostUtils.formatBytes(file.size)}`;
+            selectedFile.title = file.name;
+            if (uploadTitle) uploadTitle.textContent = "Arquivo pronto para converter";
+            if (uploadButtonLabel) uploadButtonLabel.textContent = "Trocar arquivo";
         };
 
         const resetOptions = () => {

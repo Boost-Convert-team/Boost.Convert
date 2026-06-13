@@ -10,7 +10,7 @@
 <main class="page-section">
     <section class="status-card reveal" aria-labelledby="conversion-status-title">
         <div class="eyebrow"><i data-lucide="activity" aria-hidden="true"></i> Status da convers&atilde;o</div>
-        <h2 id="conversion-status-title">{{ job.output_filename }}</h2>
+        <h2 class="file-name-safe" id="conversion-status-title">{{ job.output_filename }}</h2>
 
         <dl class="details-list">
             <div class="details-row">
@@ -19,7 +19,7 @@
             </div>
             <div class="details-row">
                 <dt>Arquivo original</dt>
-                <dd>{{ job.original_filename }}</dd>
+                <dd class="file-name-safe">{{ job.original_filename }}</dd>
             </div>
             <div class="details-row">
                 <dt>Status</dt>

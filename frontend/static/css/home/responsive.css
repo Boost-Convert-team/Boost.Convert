@@ -61,7 +61,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .price-premium h2 span::after {
-        transform: rotate(-1.3deg) scaleX(1);
+        transform: rotate(-.35deg) scaleX(1);
     }
 
     .price-premium.is-visible h2 span::after {

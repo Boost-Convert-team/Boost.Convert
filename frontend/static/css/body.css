@@ -61,6 +61,15 @@ body {
         transform 1200ms var(--ease-air);
 }
 
+.file-name-safe {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
 body.is-ready {
     opacity: 1;
     transform: translateY(0);

@@ -220,16 +220,51 @@
 
 .plan-price-current {
     display: grid;
-    gap: 5px;
+    grid-template-columns: auto auto auto auto;
+    align-items: baseline;
+    justify-content: start;
+    gap: 6px;
+}
+
+.plan-price-promo {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+}
+
+.plan-price-before {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.plan-price-before span,
+.plan-price-current span {
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    font-weight: 600;
+}
+
+.plan-pro .plan-price .plan-price-before span {
+    color: #929292;
+}
+
+.plan-price-current b {
+    padding: 0;
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 21px;
+    line-height: 1;
+    font-weight: 800;
 }
 
 .plan-price-old {
-    justify-self: start;
     color: #9c9c9c;
     font-family: var(--font-ui);
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1;
-    font-weight: 800;
+    font-weight: 700;
     text-decoration-line: line-through;
     text-decoration-thickness: 2px;
     text-decoration-color: currentColor;
@@ -246,6 +281,11 @@
     font-family: var(--font-ui);
     font-size: 16px;
     font-weight: 700;
+}
+
+.plan-price-current small {
+    padding: 0;
+    line-height: 1;
 }
 
 .plan-list {

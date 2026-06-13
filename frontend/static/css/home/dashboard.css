@@ -2025,16 +2025,51 @@
 
 .home-plan-price-current {
     display: grid;
-    gap: 5px;
+    grid-template-columns: auto auto auto auto;
+    align-items: baseline;
+    justify-content: start;
+    gap: 6px;
+}
+
+.home-plan-price-promo {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+}
+
+.home-plan-price-before {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.home-plan-price-before span,
+.home-plan-price-current span {
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    font-weight: 600;
+}
+
+.home-plan-pro .home-plan-price .home-plan-price-before span {
+    color: #929292;
+}
+
+.home-plan-price-current b {
+    padding: 0;
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 21px;
+    line-height: 1;
+    font-weight: 800;
 }
 
 .home-plan-price-old {
-    justify-self: start;
     color: #9c9c9c;
     font-family: var(--font-ui);
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1;
-    font-weight: 800;
+    font-weight: 700;
     text-decoration-line: line-through;
     text-decoration-thickness: 2px;
     text-decoration-color: currentColor;
@@ -2384,6 +2419,15 @@
         border-color 760ms var(--ease-air);
 }
 
+.home-plan-price-current small {
+    padding: 0;
+    line-height: 1;
+}
+
+.recent-list a > span {
+    min-width: 0;
+}
+
 .recent-list a:hover {
     transform: translateY(-2px);
     border-color: rgba(240, 138, 36, .24);
@@ -2398,15 +2442,19 @@
 
 .recent-list strong {
     display: block;
-    overflow: hidden;
     color: #203f3a;
     font-size: 14px;
     font-weight: var(--weight-ui-medium);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+}
+
+.recent-list .file-name-safe {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
 }
 
 .recent-list small {
+    display: block;
     color: #8a9390;
     font-size: 12px;
 }
@@ -2654,7 +2702,7 @@
 
 .file-preview {
     display: grid;
-    grid-template-columns: 32px 1fr auto;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
     padding: 10px 12px;
@@ -2667,9 +2715,9 @@
 }
 
 .file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
 }
 
 .file-size {

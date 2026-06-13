@@ -37,7 +37,7 @@
 
 .details-row {
     display: grid;
-    grid-template-columns: 180px 1fr;
+    grid-template-columns: 180px minmax(0, 1fr);
     gap: 18px;
     padding: 14px 16px;
     background: #fff;
@@ -69,7 +69,7 @@
 
 .batch-item {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 14px;
     align-items: center;
     padding: 14px 16px;

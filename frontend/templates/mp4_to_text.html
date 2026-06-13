@@ -38,7 +38,7 @@
 
             {% if result %}
                 <div class="tool-result">
-                    <span>{{ result.filename }}</span>
+                    <span class="file-name-safe">{{ result.filename }}</span>
                     <pre>{{ result.text }}</pre>
                     <a class="button button-secondary" href="{{ url_for('ai_tools.mp4_to_text_download', filename=result.txt_filename) }}">
                         <i data-lucide="download" aria-hidden="true"></i>
