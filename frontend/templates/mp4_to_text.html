@@ -38,10 +38,10 @@
 
             {% if result %}
                 <div class="tool-result">
-                    <span class="file-name-safe">{{ result.filename }}</span>
+                    <span class="file-name-safe file-name-truncated" title="{{ result.filename }}">{{ result.filename|truncate(35, True, '...', 0) }}</span>
                     <pre>{{ result.text }}</pre>
                     <a class="button button-secondary" href="{{ url_for('ai_tools.mp4_to_text_download', filename=result.txt_filename) }}">
-                        <i data-lucide="download" aria-hidden="true"></i>
+                        <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
                         Baixar TXT
                     </a>
                 </div>

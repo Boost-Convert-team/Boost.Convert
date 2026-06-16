@@ -16,14 +16,14 @@
         {% if all_jobs_downloadable %}
             <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
                 Baixar todos
-                <i data-lucide="download" aria-hidden="true"></i>
+                <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
             </a>
         {% endif %}
 
         <ul class="batch-list">
             {% for job in jobs %}
                 <li class="batch-item">
-                    <strong class="file-name-safe">{{ job.original_filename }}</strong>
+                    <strong class="file-name-safe file-name-truncated" title="{{ job.original_filename }}">{{ job.original_filename|truncate(35, True, '...', 0) }}</strong>
                     <span class="status-pill">{{ job.status }}</span>
 
                     {% if job.id in downloadable_job_ids %}

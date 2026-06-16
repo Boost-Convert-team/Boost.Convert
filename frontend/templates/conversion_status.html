@@ -10,7 +10,7 @@
 <main class="page-section">
     <section class="status-card reveal" aria-labelledby="conversion-status-title">
         <div class="eyebrow"><i data-lucide="activity" aria-hidden="true"></i> Status da convers&atilde;o</div>
-        <h2 class="file-name-safe" id="conversion-status-title">{{ job.output_filename }}</h2>
+        <h2 class="file-name-safe file-name-truncated" id="conversion-status-title" title="{{ job.output_filename }}">{{ job.output_filename|truncate(35, True, '...', 0) }}</h2>
 
         <dl class="details-list">
             <div class="details-row">
@@ -19,7 +19,7 @@
             </div>
             <div class="details-row">
                 <dt>Arquivo original</dt>
-                <dd class="file-name-safe">{{ job.original_filename }}</dd>
+                <dd class="file-name-safe file-name-truncated" title="{{ job.original_filename }}">{{ job.original_filename|truncate(35, True, '...', 0) }}</dd>
             </div>
             <div class="details-row">
                 <dt>Status</dt>
@@ -46,7 +46,7 @@
             <p>Convers&atilde;o finalizada. O arquivo j&aacute; pode ser baixado.</p>
             <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
                 Baixar arquivo convertido
-                <i data-lucide="download" aria-hidden="true"></i>
+                <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
             </a>
         {% elif job.status == "done" %}
             <p>Convers&atilde;o finalizada. O arquivo convertido j&aacute; foi removido da reten&ccedil;&atilde;o tempor&aacute;ria.</p>

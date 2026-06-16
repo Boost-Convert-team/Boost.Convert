@@ -70,6 +70,14 @@ body {
     white-space: normal;
 }
 
+.file-name-truncated {
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: normal;
+}
+
 body.is-ready {
     opacity: 1;
     transform: translateY(0);

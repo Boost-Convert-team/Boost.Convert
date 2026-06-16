@@ -948,6 +948,12 @@
     animation-delay: 1260ms;
 }
 
+.flow-card-converting {
+    background:
+        radial-gradient(circle at 50% 18%, rgba(255, 184, 106, .16), transparent 40%),
+        rgba(255, 255, 255, .78);
+}
+
 .flow-card:hover {
     transform: translateY(-5px) scale(1.01);
     border-color: rgba(240, 138, 36, .28);
@@ -1002,6 +1008,11 @@
     width: 30px;
     height: 30px;
     stroke-width: 1.7;
+}
+
+.flow-icon-converting svg {
+    animation: convertIconSpin 1.6s linear infinite;
+    transform-origin: center;
 }
 
 .flow-copy strong,

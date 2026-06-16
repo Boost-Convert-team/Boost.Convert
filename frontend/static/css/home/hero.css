@@ -771,8 +771,7 @@
     overflow: visible;
 }
 
-.hero-upload-arrow,
-.hero-upload-tray {
+.hero-upload-convert-symbol {
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -780,16 +779,15 @@
     vector-effect: non-scaling-stroke;
 }
 
-.hero-upload-arrow {
-    stroke-width: 3;
+.hero-upload-convert-symbol {
     transform-box: fill-box;
     transform-origin: center;
-    animation: heroUploadArrowLift 2.6s var(--ease-air) infinite;
 }
 
-.hero-upload-tray {
+.hero-upload-convert-symbol {
     stroke-width: 3;
-    animation: heroUploadTrayGlow 2.6s var(--ease-air) infinite;
+    opacity: 1;
+    animation: heroUploadConvertSpin 2.4s linear infinite;
 }
 
 .hero-upload-orbit {
@@ -1144,6 +1142,12 @@
     }
 }
 
+@keyframes heroUploadConvertSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @keyframes heroUploadIconHalo {
     0%, 100% {
         opacity: .42;
@@ -1153,28 +1157,6 @@
     50% {
         opacity: .82;
         transform: scale(1.03);
-    }
-}
-
-@keyframes heroUploadArrowLift {
-    0%, 100% {
-        opacity: .78;
-        transform: translateY(3px);
-    }
-
-    42%, 68% {
-        opacity: 1;
-        transform: translateY(-3px);
-    }
-}
-
-@keyframes heroUploadTrayGlow {
-    0%, 100% {
-        opacity: .72;
-    }
-
-    42%, 68% {
-        opacity: 1;
     }
 }
 

@@ -84,8 +84,8 @@
                         {% for job in account_workspace.recent_jobs %}
                             <a href="{{ url_for('home.conversion_status', job_id=job.id) }}">
                                 <span>
-                                    <strong class="file-name-safe">{{ job.original_filename }}</strong>
-                                    <small class="file-name-safe">{{ job.output_filename }}</small>
+                                    <strong class="file-name-safe file-name-truncated" title="{{ job.original_filename }}">{{ job.original_filename|truncate(35, True, '...', 0) }}</strong>
+                                    <small class="file-name-safe file-name-truncated" title="{{ job.output_filename }}">{{ job.output_filename|truncate(35, True, '...', 0) }}</small>
                                 </span>
                                 <em>{{ account_workspace.status_labels.get(job.status, job.status) }}</em>
                                 <small>{{ job.created_at.strftime('%H:%M') if job.created_at else 'Agora' }}</small>
@@ -137,20 +137,6 @@
                     </div>
                 </article>
 
-                <article class="account-card account-ai">
-                    <div class="account-card-heading">
-                        <span><i data-lucide="sparkles" aria-hidden="true"></i></span>
-                        <div>
-                            <h2>AI Tools</h2>
-                            <p>OCR e recursos assistidos</p>
-                        </div>
-                    </div>
-                    <div class="ai-capabilities">
-                        <span>OCR {% if account_workspace.is_pro %}completo{% else %}b&aacute;sico{% endif %}</span>
-                        <span>Extra&ccedil;&atilde;o de texto</span>
-                        <span>{% if account_workspace.is_pro %}Premium liberado{% else %}Premium no Pro{% endif %}</span>
-                    </div>
-                </article>
             </div>
         </div>
     </section>

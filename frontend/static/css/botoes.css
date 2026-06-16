@@ -41,6 +41,11 @@ button.button::before {
     transition: transform 620ms var(--ease-air), opacity 620ms var(--ease-air);
 }
 
+.converting-icon {
+    animation: convertIconSpin 1.6s linear infinite;
+    transform-origin: center;
+}
+
 .button-primary {
     background: var(--orange);
     color: #fff;
@@ -103,4 +108,10 @@ button.button:focus-visible,
     color: #203f3a;
     opacity: .82;
     transform: translateY(-1px);
+}
+
+@keyframes convertIconSpin {
+    to {
+        transform: rotate(360deg);
+    }
 }

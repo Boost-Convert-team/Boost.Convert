@@ -62,10 +62,11 @@
                     <input id="hero-upload-file" class="hero-upload-input" type="file" name="files" required>
                     <span class="hero-upload-icon" aria-hidden="true">
                         <svg viewBox="0 0 64 64" focusable="false">
-                            <path class="hero-upload-tray" d="M15 42v6.5A6.5 6.5 0 0 0 21.5 55h21a6.5 6.5 0 0 0 6.5-6.5V42" />
-                            <g class="hero-upload-arrow">
-                                <path d="M32 40V13" />
-                                <path d="m22.5 22.5 9.5-9.5 9.5 9.5" />
+                            <g class="hero-upload-convert-symbol">
+                                <path d="M46 24A16 16 0 0 0 19.8 17.8L16 22" />
+                                <path d="M16 13v9h9" />
+                                <path d="M18 40a16 16 0 0 0 26.2 6.2L48 42" />
+                                <path d="M48 51v-9h-9" />
                             </g>
                         </svg>
                         <span class="hero-upload-orbit"></span>
@@ -201,10 +202,10 @@
                 </div>
             </article>
 
-            <article class="flow-card">
+            <article class="flow-card flow-card-converting">
                 <span class="flow-index">04</span>
-                <div class="flow-icon">
-                    <i data-lucide="download" aria-hidden="true"></i>
+                <div class="flow-icon flow-icon-converting">
+                    <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
                 </div>
                 <div class="flow-copy">
                     <strong>Exportar</strong>
@@ -259,7 +260,7 @@
             <span class="format-badge badge-mp4"><i data-lucide="video" aria-hidden="true"></i> MP4</span>
             <span class="format-badge badge-mp3"><i data-lucide="music" aria-hidden="true"></i> MP3</span>
             <span class="format-badge badge-compress"><i data-lucide="minimize-2" aria-hidden="true"></i> Compress&atilde;o</span>
-            <span class="format-badge badge-export"><i data-lucide="download" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</span>
+            <span class="format-badge badge-export"><i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</span>
         </div>
     </section>
 
