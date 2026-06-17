@@ -1,0 +1,37 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - clean-main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            set -e
+
+            APP_PATH="${{ secrets.APP_PATH }}"
+
+            mkdir -p "$APP_PATH"
+
+            if [ ! -d "$APP_PATH/.git" ]; then
+              git clone --branch clean-main git@github.com:Tutzdev/Boost.Convert.git "$APP_PATH"
+            else
+              cd "$APP_PATH"
+              git pull origin clean-main
+            fi
+
+            if systemctl list-units --type=service --all | grep -q "boostconvert.service"; then
+              sudo systemctl restart boostconvert
+            fi
