@@ -1,9 +1,7 @@
 name: Deploy to Hostinger VPS
 
 on:
-  push:
-    branches:
-      - clean-main
+  workflow_dispatch:
 
 jobs:
   deploy:
