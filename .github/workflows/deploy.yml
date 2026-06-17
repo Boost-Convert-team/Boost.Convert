@@ -26,10 +26,10 @@ jobs:
             mkdir -p "$APP_PATH"
 
             if [ ! -d "$APP_PATH/.git" ]; then
-              git clone --branch clean-main git@github.com:Tutzdev/Boost.Convert.git "$APP_PATH"
+              git clone --branch clean-main https://github.com/Tutzdev/Boost.Convert.git "$APP_PATH"
             else
               cd "$APP_PATH"
-              git pull origin clean-main
+              git pull https://github.com/Tutzdev/Boost.Convert.git clean-main
             fi
 
             if systemctl list-units --type=service --all | grep -q "boostconvert.service"; then
