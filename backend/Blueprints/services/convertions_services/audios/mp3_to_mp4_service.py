@@ -1,16 +1,9 @@
-from Blueprints.services.convertions_services.conversion_option_values import get_audio_bitrate, get_h264_preset
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.conversion_option_values import get_audio_bitrate
+from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg_with_fallback
 
 
 def convert_mp3_mp4(input_path, output_path, options=None):
-    run_ffmpeg([
-        "-f", "lavfi"
-        ,"-i", "color=c=black:s=1280x720:r=30"
-        ,"-i", input_path
-        ,"-shortest"
-        ,"-c:v", "libx264"
-        ,"-preset", get_h264_preset()
-        ,"-c:a", "aac"
-        ,"-b:a", get_audio_bitrate(options or {})
-        ,output_path
-    ])
+    run_ffmpeg_with_fallback(
+        ["-i", input_path, "-vn", "-c:a", "copy", "-map_metadata", "0", output_path],
+        ["-i", input_path, "-vn", "-c:a", "aac", "-b:a", get_audio_bitrate(options or {}), "-map_metadata", "0", output_path],
+    )

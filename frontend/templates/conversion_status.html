@@ -46,7 +46,7 @@
             <p>Convers&atilde;o finalizada. O arquivo j&aacute; pode ser baixado.</p>
             <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
                 Baixar arquivo convertido
-                <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
+                <i data-lucide="download" aria-hidden="true"></i>
             </a>
         {% elif job.status == "done" %}
             <p>Convers&atilde;o finalizada. O arquivo convertido j&aacute; foi removido da reten&ccedil;&atilde;o tempor&aacute;ria.</p>

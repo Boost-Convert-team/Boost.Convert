@@ -40,7 +40,7 @@ def _fit_size(width, height, max_width, max_height):
 
 def _render_page(page):
     matrix = fitz.Matrix(RENDER_ZOOM, RENDER_ZOOM)
-    pixmap = page.get_pixmap(matrix=matrix, alpha=False)
+    pixmap = page.get_pixmap(matrix=matrix, alpha=True)
     return pixmap.tobytes("png")
 
 def _write_pptx(output_path, slide_cx, slide_cy, pages):

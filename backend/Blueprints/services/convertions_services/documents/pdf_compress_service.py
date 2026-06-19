@@ -6,5 +6,4 @@ def convert_pdf_compress(input_path, output_path, options=None):
              output_path
             ,garbage=4
             ,deflate=True
-            ,clean=True
         )

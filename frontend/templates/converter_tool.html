@@ -13,15 +13,19 @@
     <div class="converter-grid reveal">
         <section class="upload-card" aria-labelledby="converter-title">
             <form class="converter-form" action="{{ tool.route }}" method="POST" enctype="multipart/form-data" data-loading-form>
-                <label class="upload-zone" for="files">
-                    <input id="files" type="file" name="files" accept="{{ tool.accept }}" multiple required>
+                <div class="upload-zone">
+                    <input id="files" type="file" name="files" accept="{{ tool.accept }}" multiple required aria-label="Selecionar arquivos para converter">
                     <span class="upload-content">
                         <span class="mini-icon"><i data-lucide="cloud-upload" aria-hidden="true"></i></span>
                         <strong>Arraste arquivos ou clique para selecionar</strong>
                         <span class="upload-note">Aceita {{ tool.accept }}</span>
                     </span>
+                    <button class="upload-add-button" type="button" data-upload-add-button>
+                        <i data-lucide="plus" aria-hidden="true"></i>
+                        <span>Adicionar mais arquivos</span>
+                    </button>
                     <ul class="file-preview-list" aria-live="polite"></ul>
-                </label>
+                </div>
 
                 {% if conversion_options %}
                     <fieldset class="converter-options">

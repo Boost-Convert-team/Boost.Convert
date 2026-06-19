@@ -16,7 +16,7 @@
         {% if all_jobs_downloadable %}
             <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
                 Baixar todos
-                <i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i>
+                <i data-lucide="download" aria-hidden="true"></i>
             </a>
         {% endif %}
 

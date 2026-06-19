@@ -1,3 +1,3 @@
-from vtracer import convert_image_to_svg_py
+from Blueprints.services.convertions_services.images.image_preservation import embed_raster_image_in_svg
 
-def convert_png_svg(input_path, output_path): convert_image_to_svg_py(input_path, output_path)
+def convert_png_svg(input_path, output_path): embed_raster_image_in_svg(input_path, output_path, "image/png")

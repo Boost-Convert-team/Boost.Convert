@@ -13,7 +13,7 @@ def convert_pdf_png(input_path, output_path):
             for page_index, page in enumerate(document, start=1):
                 pixmap = page.get_pixmap(
                      matrix=fitz.Matrix(zoom, zoom)
-                    ,alpha=False
+                    ,alpha=True
                 )
                 image_path = os.path.join(temp_dir, f"page_{page_index}.png")
                 pixmap.save(image_path)
@@ -26,5 +26,5 @@ def convert_pdf_png(input_path, output_path):
 
 def get_pdf_render_zoom():
     try:
-        return max(1.0, float(os.getenv("PDF_RENDER_ZOOM", "1.5")))
-    except ValueError: return 1.5
+        return max(1.0, float(os.getenv("PDF_RENDER_ZOOM", "2.0")))
+    except ValueError: return 2.0

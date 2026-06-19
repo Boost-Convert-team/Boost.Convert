@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("is-ready");
     createIcons();
+    initHeroHeadlineRotator();
 
     window.BoostNavigation?.initTopbar();
     window.BoostNavigation?.initMegaMenu();
@@ -21,5 +22,66 @@ function createIcons() {
         attrs: {
             "stroke-width": 1.8
         }
+    });
+}
+
+function initHeroHeadlineRotator() {
+    const root = document.querySelector("[data-hero-headline-rotator]");
+    if (!root) return;
+
+    const copy = root.querySelector("[data-hero-headline-copy]");
+    const phrases = getHeroHeadlinePhrases(root);
+    if (!copy || phrases.length < 2) return;
+
+    let index = 0;
+    window.setInterval(() => {
+        index = (index + 1) % phrases.length;
+        swapHeroHeadlinePhrase(copy, phrases[index]);
+    }, 3000);
+}
+
+function getHeroHeadlinePhrases(root) {
+    return String(root.dataset.heroPhrases || "")
+        .split("|")
+        .map((phrase) => phrase.trim())
+        .filter(Boolean)
+        .map(splitHeroHeadlinePhrase);
+}
+
+function splitHeroHeadlinePhrase(phrase) {
+    const separatorIndex = phrase.indexOf(" ");
+    if (separatorIndex < 0) return { prefix: "", word: phrase };
+
+    return {
+        prefix: phrase.slice(0, separatorIndex),
+        word: phrase.slice(separatorIndex + 1)
+    };
+}
+
+function swapHeroHeadlinePhrase(copy, phrase) {
+    copy.classList.remove("is-active");
+    copy.classList.add("is-exiting");
+
+    window.setTimeout(() => {
+        renderHeroHeadlinePhrase(copy, phrase);
+        copy.classList.remove("is-exiting");
+        copy.classList.add("is-entering");
+        requestAnimationFrame(() => activateHeroHeadlinePhrase(copy));
+    }, 640);
+}
+
+function renderHeroHeadlinePhrase(copy, phrase) {
+    const prefix = copy.querySelector("[data-hero-headline-prefix]");
+    const word = copy.querySelector("[data-hero-headline-word]");
+    if (!prefix || !word) return;
+
+    prefix.textContent = phrase.prefix;
+    word.textContent = phrase.word;
+}
+
+function activateHeroHeadlinePhrase(copy) {
+    requestAnimationFrame(() => {
+        copy.classList.remove("is-entering");
+        copy.classList.add("is-active");
     });
 }

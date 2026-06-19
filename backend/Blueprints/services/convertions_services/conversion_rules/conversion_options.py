@@ -1,11 +1,11 @@
 def select_option(name, label, default, choices): return {"name": name, "label": label, "type": "select", "default": default, "choices": choices}
 
-AUDIO_BITRATE_OPTION = select_option("audio_bitrate", "Qualidade do MP3", "192k", [{"value": "128k", "label": "128 kbps"}, {"value": "192k", "label": "192 kbps"}, {"value": "256k", "label": "256 kbps"}, {"value": "320k", "label": "320 kbps"}])
+AUDIO_BITRATE_OPTION = select_option("audio_bitrate", "Qualidade do MP3", "320k", [{"value": "128k", "label": "128 kbps"}, {"value": "192k", "label": "192 kbps"}, {"value": "256k", "label": "256 kbps"}, {"value": "320k", "label": "320 kbps"}])
 AUDIO_SAMPLE_RATE_OPTION = select_option("sample_rate", "Taxa de amostragem", "original", [{"value": "original", "label": "Original"}, {"value": "44100", "label": "44.1 kHz"}, {"value": "48000", "label": "48 kHz"}])
-IMAGE_QUALITY_OPTION = select_option("image_quality", "Qualidade da imagem", "85", [{"value": "70", "label": "Menor arquivo"}, {"value": "85", "label": "Equilibrada"}, {"value": "95", "label": "Alta qualidade"}])
-GIF_FPS_OPTION = select_option("gif_fps", "Frames por segundo", "10", [{"value": "10", "label": "10 fps"}, {"value": "15", "label": "15 fps"}, {"value": "24", "label": "24 fps"}])
-GIF_WIDTH_OPTION = select_option("gif_width", "Largura do GIF", "480", [{"value": "480", "label": "480 px"}, {"value": "720", "label": "720 px"}, {"value": "1080", "label": "1080 px"}])
-VIDEO_QUALITY_OPTION = select_option("video_quality", "Qualidade do video", "balanced", [{"value": "smaller", "label": "Menor arquivo"}, {"value": "balanced", "label": "Equilibrada"}, {"value": "high", "label": "Alta qualidade"}])
+IMAGE_QUALITY_OPTION = select_option("image_quality", "Qualidade do JPEG", "95", [{"value": "70", "label": "Menor arquivo"}, {"value": "85", "label": "Equilibrada"}, {"value": "95", "label": "Alta qualidade"}])
+GIF_FPS_OPTION = select_option("gif_fps", "Frames por segundo", "original", [{"value": "original", "label": "Original"}, {"value": "10", "label": "10 fps"}, {"value": "15", "label": "15 fps"}, {"value": "24", "label": "24 fps"}])
+GIF_WIDTH_OPTION = select_option("gif_width", "Largura do GIF", "original", [{"value": "original", "label": "Original"}, {"value": "480", "label": "480 px"}, {"value": "720", "label": "720 px"}, {"value": "1080", "label": "1080 px"}])
+VIDEO_QUALITY_OPTION = select_option("video_quality", "Qualidade do video", "high", [{"value": "smaller", "label": "Menor arquivo"}, {"value": "balanced", "label": "Equilibrada"}, {"value": "high", "label": "Alta qualidade"}])
 PDF_COMPRESSION_OPTION = select_option("compression_level", "Nivel de compressao", "balanced", [{"value": "light", "label": "Leve"}, {"value": "balanced", "label": "Equilibrada"}, {"value": "strong", "label": "Forte"}])
 PDF_ROTATION_OPTION = select_option("rotation_angle", "Rotacao", "90", [{"value": "90", "label": "90 graus"}, {"value": "180", "label": "180 graus"}, {"value": "270", "label": "270 graus"}])
 PDF_PAGE_RANGES_OPTION = {"name": "page_ranges", "label": "Paginas ou intervalos", "type": "text", "default": "", "placeholder": "Ex: 1-3,5,8-10. Vazio separa todas as paginas."}
@@ -29,7 +29,7 @@ def get_conversion_options(route):
     if route == "/convert/pdf-edit": return [PDF_EDIT_TEXT_OPTION, PDF_EDIT_PAGE_OPTION, PDF_EDIT_X_OPTION, PDF_EDIT_Y_OPTION, PDF_EDIT_FONT_SIZE_OPTION]
     if route in MP3_ROUTES: return [AUDIO_BITRATE_OPTION]
     if route in WAV_ROUTES: return [AUDIO_SAMPLE_RATE_OPTION]
-    if route in JPG_ROUTES or route in WEBP_ROUTES: return [IMAGE_QUALITY_OPTION]
+    if route in JPG_ROUTES: return [IMAGE_QUALITY_OPTION]
     if route == "/convert/mp4-to-gif": return [GIF_FPS_OPTION, GIF_WIDTH_OPTION]
     if route in VIDEO_ROUTES: return [VIDEO_QUALITY_OPTION]
     return []

@@ -73,6 +73,55 @@
     font-size: 13px;
 }
 
+.converter-grid .upload-add-button {
+    position: relative;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    max-width: 100%;
+    margin: 14px auto 0;
+    padding: 0 16px;
+    border: 1px solid rgba(217, 107, 4, .22);
+    border-radius: 999px;
+    background: #fff;
+    color: #263f3b;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: var(--weight-ui-medium);
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 10px 22px rgba(88, 58, 24, .055);
+    transition:
+        transform 520ms var(--ease-air),
+        border-color 520ms var(--ease-air),
+        box-shadow 520ms var(--ease-air),
+        color 520ms var(--ease-air);
+}
+
+.converter-grid .upload-zone.has-files .upload-add-button {
+    display: inline-flex;
+}
+
+.converter-grid .upload-add-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(217, 107, 4, .42);
+    color: #171717;
+    box-shadow: 0 14px 28px rgba(88, 58, 24, .075);
+}
+
+.converter-grid .upload-add-button:focus-visible {
+    outline: 0;
+    box-shadow: var(--focus-ring);
+}
+
+.converter-grid .upload-add-button svg {
+    width: 16px;
+    height: 16px;
+}
+
 .converter-button {
     width: 100%;
     min-height: 44px;

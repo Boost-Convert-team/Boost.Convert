@@ -206,6 +206,43 @@
     font-style: normal;
 }
 
+.ab-hero h1 .headline-dynamic-phrase {
+    display: inline-grid;
+    vertical-align: baseline;
+}
+
+.ab-hero h1 .headline-dynamic-phrase::before,
+.ab-hero h1 .headline-dynamic-copy {
+    grid-area: 1 / 1;
+}
+
+.ab-hero h1 .headline-dynamic-phrase::before {
+    content: attr(data-longest-phrase);
+    visibility: hidden;
+    white-space: nowrap;
+}
+
+.ab-hero h1 .headline-dynamic-copy {
+    display: inline-block;
+    white-space: nowrap;
+    transform: translateY(0);
+    opacity: 1;
+    transition:
+        opacity 640ms var(--ease-air),
+        transform 640ms var(--ease-air);
+    will-change: opacity, transform;
+}
+
+.ab-hero h1 .headline-dynamic-copy.is-exiting {
+    transform: translateY(-.08em);
+    opacity: 0;
+}
+
+.ab-hero h1 .headline-dynamic-copy.is-entering {
+    transform: translateY(.08em);
+    opacity: 0;
+}
+
 .ab-hero-copy > p {
     max-width: 560px;
     margin: 0;

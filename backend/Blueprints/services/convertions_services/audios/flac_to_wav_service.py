@@ -13,7 +13,7 @@ def convert_flac_wav(input_path, output_path, options=None):
         args.extend(["-ar", str(sample_rate)])
 
     args.extend([
-        "-c:a", "pcm_s16le"
+        "-c:a", "pcm_s24le"
         ,output_path
     ])
     run_ffmpeg(args)

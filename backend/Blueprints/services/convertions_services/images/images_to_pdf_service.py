@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+from Blueprints.services.convertions_services.images.image_preservation import copy_pdf_compatible_image
 
 def convert_images_pdf(input_path, output_path):
     register_heif_support()
@@ -13,7 +14,7 @@ def convert_images_pdf(input_path, output_path):
 
     for path in image_paths:
         with Image.open(path) as image:
-            images.append(image.convert("RGB").copy())
+            images.append(copy_pdf_compatible_image(image))
 
     if not images: raise ValueError("Envie pelo menos uma imagem.")
 

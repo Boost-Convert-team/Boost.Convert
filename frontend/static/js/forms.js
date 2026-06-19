@@ -1,51 +1,90 @@
 (function () {
     function initUploadZones() {
-        document.querySelectorAll(".upload-zone").forEach((zone) => {
-            const input = zone.querySelector('input[type="file"]');
-            const list = zone.querySelector(".file-preview-list");
-            const note = zone.querySelector(".upload-note");
+        document.querySelectorAll(".upload-zone").forEach(initUploadZone);
+    }
 
-            if (!input || !list) return;
+    function initUploadZone(zone) {
+        const input = zone.querySelector('input[type="file"]');
+        const list = zone.querySelector(".file-preview-list");
+        const note = zone.querySelector(".upload-note");
+        const addButton = zone.querySelector("[data-upload-add-button]");
 
-            const renderFiles = () => {
-                list.innerHTML = "";
-                const files = Array.from(input.files || []).slice(0, 6);
-                zone.classList.toggle("has-files", files.length > 0);
+        if (!input || !list) return;
 
-                files.forEach((file, index) => {
-                    list.appendChild(createFilePreview(file, index));
-                });
+        if (note) note.dataset.defaultText = note.textContent;
 
-                if (note && input.files.length) {
-                    note.textContent = `${input.files.length} arquivo(s) pronto(s) para converter`;
-                }
+        const state = { files: Array.from(input.files || []) };
+        const render = () => renderUploadFiles(zone, list, note, state.files);
+        const acceptFiles = (files) => {
+            state.files = getNextUploadFiles(input, state.files, files);
+            if (!syncUploadInput(input, state.files)) state.files = Array.from(input.files || []);
+            render();
+        };
 
-                if (window.lucide) window.lucide.createIcons();
-            };
+        addUploadDragEvents(zone, acceptFiles);
+        input.addEventListener("change", () => acceptFiles(input.files));
+        if (addButton) addButton.addEventListener("click", (event) => openUploadPicker(event, input));
+        render();
+    }
 
-            ["dragenter", "dragover"].forEach((eventName) => {
-                zone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    zone.classList.add("is-dragging");
-                });
-            });
+    function renderUploadFiles(zone, list, note, files) {
+        list.innerHTML = "";
+        zone.classList.toggle("has-files", files.length > 0);
+        files.slice(0, 6).forEach((file, index) => list.appendChild(createFilePreview(file, index)));
+        renderUploadNote(note, files.length);
+        if (window.lucide) window.lucide.createIcons();
+    }
 
-            ["dragleave", "drop"].forEach((eventName) => {
-                zone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    zone.classList.remove("is-dragging");
-                });
-            });
+    function renderUploadNote(note, fileCount) {
+        if (!note) return;
 
-            zone.addEventListener("drop", (event) => {
-                if (event.dataTransfer.files.length) {
-                    input.files = event.dataTransfer.files;
-                    renderFiles();
-                }
-            });
+        note.textContent = fileCount
+            ? `${fileCount} arquivo(s) pronto(s) para converter`
+            : note.dataset.defaultText || "";
+    }
 
-            input.addEventListener("change", renderFiles);
+    function getNextUploadFiles(input, currentFiles, files) {
+        const incomingFiles = Array.from(files || []);
+        if (!incomingFiles.length) return currentFiles;
+        if (!input.multiple) return incomingFiles.slice(0, 1);
+        return currentFiles.concat(incomingFiles);
+    }
+
+    function syncUploadInput(input, files) {
+        if (typeof DataTransfer === "undefined") return false;
+
+        try {
+            const transfer = new DataTransfer();
+            files.forEach((file) => transfer.items.add(file));
+            input.files = transfer.files;
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function addUploadDragEvents(zone, acceptFiles) {
+        addUploadStateEvents(zone, ["dragenter", "dragover"], true);
+        addUploadStateEvents(zone, ["dragleave", "drop"], false);
+        zone.addEventListener("drop", (event) => {
+            const files = event.dataTransfer?.files;
+            if (files?.length) acceptFiles(files);
         });
+    }
+
+    function addUploadStateEvents(zone, eventNames, isDragging) {
+        eventNames.forEach((eventName) => {
+            zone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                zone.classList.toggle("is-dragging", isDragging);
+            });
+        });
+    }
+
+    function openUploadPicker(event, input) {
+        event.preventDefault();
+        event.stopPropagation();
+        input.click();
     }
 
     function createFilePreview(file, index) {
