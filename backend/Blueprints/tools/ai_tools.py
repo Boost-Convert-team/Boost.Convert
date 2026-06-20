@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import tempfile
@@ -19,8 +20,8 @@ from Blueprints.services.privacy.download_stream import stream_private_download
 
 ai_tools_bp = Blueprint("ai_tools", __name__)
 
-OPENAI_AUDIO_TRANSCRIPTION_URL = "https://api.openai.com/v1/audio/transcriptions"
-OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+OPENROUTER_AUDIO_TRANSCRIPTION_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
+OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 @ai_tools_bp.route("/tools/ai/youtube-analyzer", methods=["GET", "POST"])
@@ -120,7 +121,7 @@ def transcribe_youtube_audio(yt):
             raise RuntimeError("Nao encontrei audio disponivel para este video.")
 
         audio_path = audio.download(output_path=temp_dir, filename="audio.mp4")
-        return transcribe_file_with_openai(audio_path)
+        return transcribe_file_with_openrouter(audio_path)
 
 def transcribe_uploaded_mp4(uploaded_file):
     with tempfile.TemporaryDirectory(prefix="boost_mp4_text_") as temp_dir:
@@ -132,7 +133,7 @@ def transcribe_uploaded_mp4(uploaded_file):
         if not saved_valid:
             raise RuntimeError(saved_message)
 
-        text = transcribe_file_with_openai(input_path)
+        text = transcribe_file_with_openrouter(input_path)
         if not text.strip():
             raise RuntimeError("A transcricao voltou vazia.")
 
@@ -151,65 +152,96 @@ def validate_uploaded_mp4(uploaded_file):
     if not header_valid:
         raise ValueError(header_message)
 
-def transcribe_file_with_openai(file_path):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("Configure OPENAI_API_KEY para usar esta ferramenta.")
-
-    with open(file_path, "rb") as file:
-        response = requests.post(
-            OPENAI_AUDIO_TRANSCRIPTION_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={"model": os.getenv("OPENAI_TRANSCRIPTION_MODEL", "whisper-1")},
-            files={"file": file},
-            timeout=180,
-        )
+def transcribe_file_with_openrouter(file_path: str | Path) -> str:
+    api_key = get_required_openrouter_env("OPENROUTER_API_KEY")
+    model = get_required_openrouter_env("OPENROUTER_TRANSCRIPTION_MODEL")
+    response = requests.post(
+        OPENROUTER_AUDIO_TRANSCRIPTION_URL,
+        headers=build_openrouter_headers(api_key),
+        json=build_openrouter_transcription_payload(file_path, model),
+        timeout=180,
+    )
 
     if response.status_code >= 400:
-        raise RuntimeError("Erro na transcricao.")
+        raise RuntimeError(f"Erro na transcricao: status {response.status_code} no OpenRouter.")
 
     if response.headers.get("content-type", "").startswith("application/json"):
         return response.json().get("text", "").strip()
 
     return response.text.strip()
 
-def summarize_text(text, title):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+def get_required_openrouter_env(name: str) -> str:
+    value = os.getenv(name)
+    if value:
+        return value
+    raise RuntimeError(f"Configure {name} para usar esta ferramenta.")
+
+def build_openrouter_headers(api_key: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+def build_openrouter_transcription_payload(file_path: str | Path, model: str) -> dict[str, object]:
+    audio_path = Path(file_path)
+    return {
+        "model": model,
+        "input_audio": {
+            "data": base64.b64encode(audio_path.read_bytes()).decode("ascii"),
+            "format": get_audio_format(audio_path),
+        },
+    }
+
+def get_audio_format(audio_path: Path) -> str:
+    suffix = audio_path.suffix.lower().lstrip(".")
+    if suffix:
+        return suffix
+    raise RuntimeError("Formato de audio ausente. Esperado arquivo com extensao mp4, mp3 ou wav.")
+
+def summarize_text(text: str, title: str) -> str:
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    model = os.getenv("OPENROUTER_SUMMARY_MODEL")
+    if not api_key or not model:
         return build_local_summary(text)
 
     response = requests.post(
-        OPENAI_CHAT_COMPLETIONS_URL,
-        headers={"Authorization": f"Bearer {api_key}"},
-        json={
-            "model": os.getenv("OPENAI_SUMMARY_MODEL", "gpt-4o-mini"),
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "Resuma videos em portugues do Brasil com linguagem simples, objetiva e organizada.",
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Titulo: {title}\n\n"
-                        "Crie um resumo com: resumo geral, topicos principais, pontos importantes e conclusao pratica.\n\n"
-                        f"Transcricao:\n{text[:24000]}"
-                    ),
-                },
-            ],
-            "temperature": 0.3,
-        },
+        OPENROUTER_CHAT_COMPLETIONS_URL,
+        headers=build_openrouter_headers(api_key),
+        json=build_openrouter_summary_payload(text, title, model),
         timeout=120,
     )
 
     if response.status_code >= 400:
-        raise RuntimeError("Erro na IA.")
+        raise RuntimeError(f"Erro na IA: status {response.status_code} no OpenRouter.")
 
     choices = response.json().get("choices", [])
     if not choices:
         raise RuntimeError("A IA nao retornou resumo.")
 
     return choices[0]["message"]["content"].strip()
+
+def build_openrouter_summary_payload(text: str, title: str, model: str) -> dict[str, object]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Resuma videos em portugues do Brasil com linguagem simples, objetiva e organizada.",
+            },
+            {
+                "role": "user",
+                "content": build_summary_prompt(text, title),
+            },
+        ],
+        "temperature": 0.3,
+    }
+
+def build_summary_prompt(text: str, title: str) -> str:
+    return (
+        f"Titulo: {title}\n\n"
+        "Crie um resumo com: resumo geral, topicos principais, pontos importantes e conclusao pratica.\n\n"
+        f"Transcricao:\n{text[:24000]}"
+    )
 
 def build_local_summary(text):
     sentences = split_sentences(text)
