@@ -311,10 +311,6 @@
         top: 12%;
     }
 
-    .badge-ocr {
-        left: 0;
-    }
-
     .badge-ai {
         right: 0;
     }
@@ -464,7 +460,7 @@
     }
 
     .suite-card-flow,
-    .suite-card-ocr,
+    .suite-card-ai,
     .suite-card-organize {
         min-height: 480px;
     }
@@ -558,7 +554,8 @@
     }
 
     .tools-sidebar {
-        position: static;
+        position: sticky;
+        top: 78px;
         border-radius: 22px;
     }
 
@@ -1161,11 +1158,6 @@
         top: 154px;
     }
 
-    .orbit-ocr {
-        left: 3%;
-        bottom: 48px;
-    }
-
     .orbit-video {
         right: 5%;
         top: 34px;
@@ -1585,11 +1577,6 @@
         top: 8%;
     }
 
-    .badge-ocr {
-        left: 2%;
-        top: 24%;
-    }
-
     .badge-ai {
         right: 3%;
         top: 28%;
@@ -1864,12 +1851,6 @@
         height: 10px;
     }
 
-    .ocr-highlight {
-        margin-top: 14px;
-        padding: 9px 12px;
-        font-size: 12px;
-    }
-
     .workspace-output {
         left: 50%;
         right: auto;
@@ -1942,7 +1923,7 @@
 
     .suite-card,
     .suite-card-flow,
-    .suite-card-ocr,
+    .suite-card-ai,
     .suite-card-organize {
         --card-lift: 0px;
         min-height: 390px;
@@ -2145,12 +2126,15 @@
 
     .tools-sidebar {
         gap: 5px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
         padding: 8px;
         border-radius: 18px;
         justify-content: flex-start;
     }
 
     .tools-sidebar a {
+        flex: 0 0 auto;
         min-height: 38px;
         padding: 0 12px;
     }

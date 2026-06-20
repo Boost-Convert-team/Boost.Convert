@@ -22,6 +22,7 @@ SIGNATURES = {
     ,"png": lambda data: data.startswith(b"\x89PNG\r\n\x1a\n")
     ,"ppt": lambda data: data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
     ,"pptx": lambda data: data.startswith(b"PK")
+    ,"rtf": lambda data: data.lstrip().startswith(b"{\\rtf")
     ,"svg": lambda data: b"<svg" in data.lower()
     ,"wav": lambda data: data.startswith(b"RIFF") and data[8:12] == b"WAVE"
     ,"webp": lambda data: data.startswith(b"RIFF") and data[8:12] == b"WEBP"
@@ -30,7 +31,7 @@ SIGNATURES = {
     ,"zip": lambda data: data.startswith(b"PK")
 }
 ZIP_ROOTS = {"docx": "word/", "pptx": "ppt/", "xlsx": "xl/"}
-TEXT_EXTENSIONS = {"csv", "html", "htm", "md", "txt"}
+TEXT_EXTENSIONS = {"csv", "html", "htm", "md", "rtf", "txt"}
 GENERIC_MIME_TYPES = {"", "application/octet-stream", "binary/octet-stream"}
 ALLOWED_MIME_TYPES = {
     "aac": {"audio/aac", "audio/x-aac", "audio/vnd.dlna.adts"},
@@ -58,6 +59,7 @@ ALLOWED_MIME_TYPES = {
     "png": {"image/png"},
     "ppt": {"application/vnd.ms-powerpoint", "application/octet-stream"},
     "pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/zip"},
+    "rtf": {"application/rtf", "application/x-rtf", "text/rtf", "text/plain"},
     "svg": {"image/svg+xml", "text/xml", "application/xml"},
     "txt": {"text/plain"},
     "wav": {"audio/wav", "audio/x-wav"},

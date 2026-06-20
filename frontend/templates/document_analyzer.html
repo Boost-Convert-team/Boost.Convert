@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Document Analyzer AI - Boost.Convert{% endblock %}
+
+{% block content %}
+<main class="page-section">
+    <div class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="file-search" aria-hidden="true"></i> AI Tools</div>
+        <h1 id="document-analyzer-title">Document Analyzer AI</h1>
+        <p>Envie um documento e receba uma analise objetiva com IA.</p>
+    </div>
+
+    <div class="converter-grid reveal">
+        <section class="upload-card" aria-labelledby="document-analyzer-title">
+            <form class="converter-form" action="{{ url_for('ai_tools.document_analyzer') }}" method="POST" enctype="multipart/form-data" data-loading-form>
+                <label class="upload-zone" for="file">
+                    <input id="file" type="file" name="file" accept="{{ accept_attribute }}" required>
+                    <span class="upload-content">
+                        <span class="mini-icon"><i data-lucide="cloud-upload" aria-hidden="true"></i></span>
+                        <strong>Arraste arquivos ou clique para selecionar</strong>
+                        <span class="upload-note">Aceita PDF, DOCX, DOC, TXT, RTF, ODT e MD</span>
+                    </span>
+                    <ul class="file-preview-list" aria-live="polite"></ul>
+                </label>
+
+                <fieldset class="converter-options">
+                    <legend>Analise</legend>
+
+                    <div class="converter-option-field">
+                        <label for="analysis_type">Funcionalidade</label>
+                        <select id="analysis_type" name="analysis_type" required>
+                            {% for value, label in actions.items() %}
+                                <option value="{{ value }}" {% if selected_action|default('summary') == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="converter-option-field">
+                        <label for="question">Pergunta ao documento</label>
+                        <textarea id="question" name="question" rows="4" placeholder="Digite sua pergunta para usar a opcao Pergunte ao documento">{{ question|default('') }}</textarea>
+                    </div>
+                </fieldset>
+
+                <button class="button button-primary converter-button" type="submit">
+                    Analisar documento
+                    <i data-lucide="sparkles" aria-hidden="true"></i>
+                </button>
+            </form>
+
+            {% if error %}
+                <div class="tool-result tool-result-error">
+                    <strong>Nao foi possivel analisar</strong>
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+
+            {% if result %}
+                <div class="tool-result">
+                    <span class="file-name-safe file-name-truncated" title="{{ result.filename }}">{{ result.filename|truncate(45, True, '...', 0) }}</span>
+                    <strong>{{ result.action_label }}</strong>
+                    <pre>{{ result.answer }}</pre>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

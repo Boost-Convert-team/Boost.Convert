@@ -10,7 +10,10 @@ def get_user_friendly_conversion_error(error):
     if isinstance(error, subprocess.CalledProcessError): return "Nao foi possivel processar a midia enviada. Verifique se o arquivo abre normalmente e tente novamente."
     if is_ffmpeg_error(error): return "Nao foi possivel processar o audio ou video enviado. Verifique o arquivo e tente novamente."
     
-    message = clean_error_message(str(error))
+    raw_message = (str(error) or "").strip()
+    if not raw_message: return DEFAULT_CONVERSION_ERROR
+    if is_safe_runtime_message(raw_message): return raw_message[:300]
+    message = clean_error_message(raw_message)
     if is_safe_runtime_message(message): return message
     return DEFAULT_CONVERSION_ERROR
 
@@ -20,8 +23,8 @@ def is_ffmpeg_error(error):
     return "ffmpeg" in error_type or "ffmpeg" in error_module
 
 def is_safe_runtime_message(message):
-    safe_prefixes = ("Pagina fora do intervalo permitido:", "Intervalo invalido:", "Erro de conexao com a IA:", "Erro de conexao com OCR:", "Erro na IA:", "Erro no OCR:", "Erro na transcricao:", "FFmpeg nao encontrado.", "LibreOffice nao encontrado.")
-    safe_messages = {"Arquivo final nao foi criado.", "Arquivo final vazio.", "A transcricao voltou vazia.", "Configure OPENROUTER_API_KEY para usar esta ferramenta.", "Configure OPENROUTER_TRANSCRIPTION_MODEL para usar esta ferramenta.", "Configure OPENAI_API_KEY para usar OCR.", "Nao encontrei audio disponivel para este video.", "OCR nao encontrou texto.", "Envie pelo menos dois PDFs para juntar.", "Informe um texto para adicionar ao PDF.", "Pagina informada nao existe no PDF.", "Informe a senha do PDF.", "Informe uma senha para proteger o PDF.", "Senha do PDF invalida.", "Rotacao invalida.", "Nao encontrei imagens incorporadas neste PDF.", "Nao foi possivel converter este arquivo com LibreOffice. Verifique se o arquivo abre normalmente e tente novamente."}
+    safe_prefixes = ("Pagina fora do intervalo permitido:", "Intervalo invalido:", "Erro de conexao com a IA:", "Erro na IA:", "Erro na transcricao:", "Configure OPENROUTER_API_KEY com uma chave real.", "FFmpeg nao encontrado.", "LibreOffice nao encontrado.")
+    safe_messages = {"Arquivo final nao foi criado.", "Arquivo final vazio.", "A transcricao voltou vazia.", "Configure OPENROUTER_API_KEY para usar esta ferramenta.", "Configure OPENROUTER_TRANSCRIPTION_MODEL para usar esta ferramenta.", "Nao encontrei audio disponivel para este video.", "Envie pelo menos dois PDFs para juntar.", "Informe um texto para adicionar ao PDF.", "Pagina informada nao existe no PDF.", "Informe a senha do PDF.", "Informe uma senha para proteger o PDF.", "Senha do PDF invalida.", "Rotacao invalida.", "Nao encontrei imagens incorporadas neste PDF.", "Nao foi possivel converter este arquivo com LibreOffice. Verifique se o arquivo abre normalmente e tente novamente."}
     return message in safe_messages or any(message.startswith(prefix) for prefix in safe_prefixes)
 
 def clean_error_message(message):

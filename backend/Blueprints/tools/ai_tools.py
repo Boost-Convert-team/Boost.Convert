@@ -2,26 +2,30 @@ import base64
 import os
 import re
 import tempfile
-import uuid
+from collections.abc import Mapping
 from pathlib import Path
-import requests
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, render_template, request
+from flask.typing import ResponseReturnValue
 from pytubefix import YouTube
-from werkzeug.utils import secure_filename
+from requests import Response
 
-from Blueprints.services.convertions_services.file_security import (
-    remove_file_quietly,
-    validate_saved_file,
-    validate_upload_header,
-    validate_upload_mime,
-)
 from Blueprints.services.convertions_services.conversion_errors import get_user_friendly_conversion_error
-from Blueprints.services.privacy.download_stream import stream_private_download
+from Blueprints.services.ai.openrouter_client import (
+    call_openrouter_chat_completion,
+    get_openrouter_api_key,
+    post_openrouter_json,
+)
+from Blueprints.services.ai.document_analyzer import (
+    DOCUMENT_ANALYZER_ACTIONS,
+    DocumentAnalysisResult,
+    analyze_uploaded_document,
+    get_document_accept_attribute,
+)
 
 ai_tools_bp = Blueprint("ai_tools", __name__)
 
 OPENROUTER_AUDIO_TRANSCRIPTION_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
-OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
+DEFAULT_OPENROUTER_TRANSCRIPTION_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
 
 
 @ai_tools_bp.route("/tools/ai/youtube-analyzer", methods=["GET", "POST"])
@@ -40,35 +44,41 @@ def youtube_analyzer():
         return render_template("youtube_analyzer.html", url=url, error=get_user_friendly_conversion_error(exc))
 
 
-@ai_tools_bp.route("/tools/ai/mp4-to-text", methods=["GET", "POST"])
-def mp4_to_text():
+@ai_tools_bp.route("/tools/ai/document-analyzer", methods=["GET", "POST"])
+def document_analyzer() -> ResponseReturnValue:
     if request.method == "GET":
-        return render_template("mp4_to_text.html")
+        return render_document_analyzer_template()
 
     uploaded_file = request.files.get("file")
+    action = (request.form.get("analysis_type") or "summary").strip()
+    question = (request.form.get("question") or "").strip()
     if uploaded_file is None or not uploaded_file.filename:
-        return render_template("mp4_to_text.html", error="Envie um arquivo MP4.")
+        return render_document_analyzer_template(error="Envie um documento para analisar.")
 
     try:
-        validate_uploaded_mp4(uploaded_file)
-        result = transcribe_uploaded_mp4(uploaded_file)
-        return render_template("mp4_to_text.html", result=result)
+        result = analyze_uploaded_document(uploaded_file, action, question)
+        return render_document_analyzer_template(result=result, selected_action=action, question=question)
     except Exception as exc:
-        return render_template("mp4_to_text.html", error=get_user_friendly_conversion_error(exc))
+        error = get_user_friendly_conversion_error(exc)
+        return render_document_analyzer_template(error=error, selected_action=action, question=question)
 
-@ai_tools_bp.route("/tools/ai/mp4-to-text/download/<filename>")
-def mp4_to_text_download(filename):
-    safe_filename = secure_filename(filename)
-    transcript_path = get_transcript_dir() / safe_filename
 
-    if safe_filename != filename or not transcript_path.exists():
-        return "Arquivo nao encontrado.", 404
-
-    return stream_private_download(
-        transcript_path,
-        safe_filename,
-        lambda: remove_file_quietly(transcript_path),
+def render_document_analyzer_template(
+    error: str = "",
+    result: DocumentAnalysisResult | None = None,
+    selected_action: str = "summary",
+    question: str = "",
+) -> str:
+    return render_template(
+        "document_analyzer.html",
+        actions=DOCUMENT_ANALYZER_ACTIONS,
+        accept_attribute=get_document_accept_attribute(),
+        error=error,
+        result=result,
+        selected_action=selected_action,
+        question=question,
     )
+
 
 def analyze_youtube_video(url):
     yt = YouTube(url)
@@ -121,66 +131,75 @@ def transcribe_youtube_audio(yt):
             raise RuntimeError("Nao encontrei audio disponivel para este video.")
 
         audio_path = audio.download(output_path=temp_dir, filename="audio.mp4")
-        return transcribe_file_with_openrouter(audio_path)
+        return transcribe_file_with_openrouter(audio_path, "youtube_analyzer")
 
-def transcribe_uploaded_mp4(uploaded_file):
-    with tempfile.TemporaryDirectory(prefix="boost_mp4_text_") as temp_dir:
-        original_filename = secure_filename(uploaded_file.filename)
-        input_path = Path(temp_dir) / f"input_{uuid.uuid4().hex}.mp4"
-        uploaded_file.save(input_path)
-
-        saved_valid, saved_message = validate_saved_file(input_path, "mp4")
-        if not saved_valid:
-            raise RuntimeError(saved_message)
-
-        text = transcribe_file_with_openrouter(input_path)
-        if not text.strip():
-            raise RuntimeError("A transcricao voltou vazia.")
-
-        txt_filename = save_transcript_file(original_filename, text)
-        return {"filename": original_filename, "txt_filename": txt_filename, "text": text}
-
-def validate_uploaded_mp4(uploaded_file):
-    if not uploaded_file.filename.lower().endswith(".mp4"):
-        raise ValueError("Formato invalido. Envie um arquivo .mp4.")
-
-    mime_valid, mime_message = validate_upload_mime(uploaded_file, "mp4")
-    if not mime_valid:
-        raise ValueError(mime_message)
-
-    header_valid, header_message = validate_upload_header(uploaded_file, "mp4")
-    if not header_valid:
-        raise ValueError(header_message)
-
-def transcribe_file_with_openrouter(file_path: str | Path) -> str:
-    api_key = get_required_openrouter_env("OPENROUTER_API_KEY")
-    model = get_required_openrouter_env("OPENROUTER_TRANSCRIPTION_MODEL")
-    response = requests.post(
+def transcribe_file_with_openrouter(file_path: str | Path, tool_name: str) -> str:
+    api_key = get_openrouter_api_key()
+    model = get_openrouter_transcription_model()
+    response = post_openrouter_json(
+        api_key,
         OPENROUTER_AUDIO_TRANSCRIPTION_URL,
-        headers=build_openrouter_headers(api_key),
-        json=build_openrouter_transcription_payload(file_path, model),
-        timeout=180,
+        build_openrouter_transcription_payload(file_path, model),
+        tool_name,
+        model,
+        False,
+        180,
     )
 
+    if response.status_code == 401:
+        raise RuntimeError("Erro na transcricao: OPENROUTER_API_KEY invalida ou expirada.")
+    if response.status_code == 402:
+        raise RuntimeError(build_openrouter_transcription_payment_error(response))
     if response.status_code >= 400:
-        raise RuntimeError(f"Erro na transcricao: status {response.status_code} no OpenRouter.")
+        raise RuntimeError(build_openrouter_transcription_status_error(response))
 
     if response.headers.get("content-type", "").startswith("application/json"):
         return response.json().get("text", "").strip()
 
     return response.text.strip()
 
-def get_required_openrouter_env(name: str) -> str:
-    value = os.getenv(name)
-    if value:
-        return value
-    raise RuntimeError(f"Configure {name} para usar esta ferramenta.")
+def get_openrouter_transcription_model() -> str:
+    """Read the STT model slug, falling back to a current OpenRouter model.
 
-def build_openrouter_headers(api_key: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    Example: get_openrouter_transcription_model()
+    """
+    configured_model = os.getenv("OPENROUTER_TRANSCRIPTION_MODEL", "").strip()
+    return configured_model or DEFAULT_OPENROUTER_TRANSCRIPTION_MODEL
+
+def build_openrouter_transcription_payment_error(response: Response) -> str:
+    """Create a user-safe message for OpenRouter audio billing failures.
+
+    Example: build_openrouter_transcription_payment_error(response)
+    """
+    return (
+        "Erro na transcricao: saldo insuficiente na OpenRouter para audio. "
+        f"Status {response.status_code}; esperado pelo menos US$0.50 de saldo."
+    )
+
+def build_openrouter_transcription_status_error(response: Response) -> str:
+    """Create a user-safe status message for transcription failures.
+
+    Example: build_openrouter_transcription_status_error(response)
+    """
+    detail = extract_openrouter_error_message(response)
+    if detail:
+        return f"Erro na transcricao: status {response.status_code} no OpenRouter. Detalhe: {detail}"
+    return f"Erro na transcricao: status {response.status_code} no OpenRouter."
+
+def extract_openrouter_error_message(response: Response) -> str:
+    """Extract a safe OpenRouter error message from a JSON response.
+
+    Example: extract_openrouter_error_message(response)
+    """
+    try:
+        payload = response.json()
+    except ValueError:
+        return ""
+    error = payload.get("error") if isinstance(payload, Mapping) else None
+    if not isinstance(error, Mapping):
+        return ""
+    message = error.get("message")
+    return message.strip()[:160] if isinstance(message, str) else ""
 
 def build_openrouter_transcription_payload(file_path: str | Path, model: str) -> dict[str, object]:
     audio_path = Path(file_path)
@@ -199,42 +218,10 @@ def get_audio_format(audio_path: Path) -> str:
     raise RuntimeError("Formato de audio ausente. Esperado arquivo com extensao mp4, mp3 ou wav.")
 
 def summarize_text(text: str, title: str) -> str:
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    model = os.getenv("OPENROUTER_SUMMARY_MODEL")
-    if not api_key or not model:
-        return build_local_summary(text)
-
-    response = requests.post(
-        OPENROUTER_CHAT_COMPLETIONS_URL,
-        headers=build_openrouter_headers(api_key),
-        json=build_openrouter_summary_payload(text, title, model),
-        timeout=120,
+    return call_openrouter_chat_completion(
+        build_summary_prompt(text, title),
+        "youtube_analyzer",
     )
-
-    if response.status_code >= 400:
-        raise RuntimeError(f"Erro na IA: status {response.status_code} no OpenRouter.")
-
-    choices = response.json().get("choices", [])
-    if not choices:
-        raise RuntimeError("A IA nao retornou resumo.")
-
-    return choices[0]["message"]["content"].strip()
-
-def build_openrouter_summary_payload(text: str, title: str, model: str) -> dict[str, object]:
-    return {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": "Resuma videos em portugues do Brasil com linguagem simples, objetiva e organizada.",
-            },
-            {
-                "role": "user",
-                "content": build_summary_prompt(text, title),
-            },
-        ],
-        "temperature": 0.3,
-    }
 
 def build_summary_prompt(text: str, title: str) -> str:
     return (
@@ -262,14 +249,3 @@ def split_sentences(text):
     sentences = re.split(r"(?<=[.!?])\s+", text)
     return [sentence.strip() for sentence in sentences if len(sentence.strip()) > 30]
 
-def save_transcript_file(original_filename, text):
-    transcript_dir = get_transcript_dir()
-    transcript_dir.mkdir(parents=True, exist_ok=True)
-
-    txt_filename = secure_filename(f"transcricao_{uuid.uuid4().hex}.txt")
-    transcript_path = transcript_dir / txt_filename
-    transcript_path.write_text(text, encoding="utf-8")
-    return txt_filename
-
-def get_transcript_dir():
-    return Path(current_app.instance_path) / "ai_tools" / "transcripts"

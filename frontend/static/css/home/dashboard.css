@@ -968,12 +968,6 @@
     animation-delay: 520ms;
 }
 
-.badge-ocr {
-    left: 3%;
-    top: 43%;
-    animation-delay: 1040ms;
-}
-
 .badge-ai {
     right: 5%;
     top: 43%;
@@ -1238,28 +1232,6 @@
     width: 46%;
 }
 
-.ocr-highlight {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    width: fit-content;
-    margin-top: 28px;
-    padding: 11px 14px;
-    border: 1px solid rgba(240, 138, 36, .22);
-    border-radius: 999px;
-    background: rgba(255, 244, 232, .82);
-    color: var(--orange-deep);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: var(--weight-ui-medium);
-    box-shadow: 0 16px 38px rgba(240, 138, 36, .08);
-}
-
-.ocr-highlight svg {
-    width: 16px;
-    height: 16px;
-}
-
 .workspace-output {
     right: 2%;
     bottom: 12%;
@@ -1461,9 +1433,9 @@
     min-height: 548px;
 }
 
-.suite-card-ocr {
-    --card-lift: 28px;
-    min-height: 488px;
+.suite-card-ai {
+    --card-lift: 10px;
+    min-height: 526px;
 }
 
 .suite-card-organize {
@@ -1616,6 +1588,16 @@
 .chip-webp {
     left: 16%;
     bottom: 62px;
+}
+
+.chip-summary {
+    left: 12%;
+    top: 86px;
+}
+
+.chip-quiz {
+    right: 13%;
+    bottom: 68px;
 }
 
 .scan-sheet {

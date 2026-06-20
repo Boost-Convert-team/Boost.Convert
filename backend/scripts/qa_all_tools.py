@@ -252,8 +252,6 @@ def test_tool_pages(client):
         "/tools/pdf-to-pptx",
         "/tools/images-to-pdf",
         "/tools/files-to-zip",
-        "/tools/image-ocr-to-txt",
-        "/tools/pdf-ocr-to-txt",
         "/tools/png-to-jpg",
         "/tools/mp4-to-gif",
     ]

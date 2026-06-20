@@ -20,7 +20,6 @@ from Blueprints.services.convertions_services.documents.odt_to_pdf_service impor
 from Blueprints.services.convertions_services.documents.pdf_compress_service import convert_pdf_compress
 from Blueprints.services.convertions_services.documents.pdf_edit_service import convert_pdf_edit
 from Blueprints.services.convertions_services.documents.pdf_extract_images_service import convert_pdf_extract_images
-from Blueprints.services.convertions_services.documents.pdf_ocr_searchable_service import convert_pdf_ocr_searchable
 from Blueprints.services.convertions_services.documents.pdf_protect_service import convert_pdf_protect
 from Blueprints.services.convertions_services.documents.pdf_rotate_service import convert_pdf_rotate
 from Blueprints.services.convertions_services.documents.pdf_split_service import convert_pdf_split
@@ -72,7 +71,6 @@ DOCUMENT_CONVERTER_ROUTES = (
     SimpleConverterRoute("pdf_compress", "/convert/pdf-compress", ("pdf",), convert_pdf_compress, "pdf", "pdf_compress"),
     SimpleConverterRoute("pdf_edit", "/convert/pdf-edit", ("pdf",), convert_pdf_edit, "pdf", "pdf_edit"),
     SimpleConverterRoute("pdf_extract_images", "/convert/pdf-extract-images", ("pdf",), convert_pdf_extract_images, "zip", "pdf_extract_images"),
-    SimpleConverterRoute("pdf_ocr_searchable", "/convert/pdf-ocr-searchable", ("pdf",), convert_pdf_ocr_searchable, "pdf", "pdf_ocr_searchable"),
     SimpleConverterRoute("pdf_protect", "/convert/pdf-protect", ("pdf",), convert_pdf_protect, "pdf", "pdf_protect"),
     SimpleConverterRoute("pdf_rotate", "/convert/pdf-rotate", ("pdf",), convert_pdf_rotate, "pdf", "pdf_rotate"),
     SimpleConverterRoute("pdf_split", "/convert/pdf-split", ("pdf",), convert_pdf_split, "zip", "pdf_split"),

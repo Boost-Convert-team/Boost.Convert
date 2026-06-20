@@ -19,7 +19,6 @@ TOOLS = {
         {"name": "Proteger PDF", "route": "/convert/pdf-protect", "accept": ".pdf", "aliases": "senha pdf criptografar pdf bloquear pdf"},
         {"name": "Desbloquear PDF", "route": "/convert/pdf-unlock", "accept": ".pdf", "aliases": "remover senha pdf destravar pdf unlock pdf"},
         {"name": "Extrair imagens do PDF", "route": "/convert/pdf-extract-images", "accept": ".pdf", "aliases": "extrair fotos imagens de pdf exportar imagens"},
-        {"name": "OCR PDF pesquisavel", "route": "/convert/pdf-ocr-searchable", "accept": ".pdf", "aliases": "ocr pesquisavel pdf escaneado texto pesquisavel"},
         {"name": "Editar PDF", "route": "/convert/pdf-edit", "accept": ".pdf"},
         {"name": "CSV -> XLSX", "route": "/convert/csv-to-xlsx", "accept": ".csv"},
         {"name": "DOC -> DOCX", "route": "/convert/doc-to-docx", "accept": ".doc"},
@@ -91,11 +90,7 @@ TOOLS = {
     ],
     "AI Tools": [
         {"name": "Analisar video do YouTube", "route": "/tools/ai/youtube-analyzer", "page_route": "/tools/ai/youtube-analyzer", "accept": "URL do YouTube", "description": "Resume o conteudo em topicos completos e simples.", "badge": "IA", "icon": "bot", "aliases": "youtube analisar video resumo resumir conteudo topicos ia"},
-        {"name": "MP4 para texto", "route": "/tools/ai/mp4-to-text", "page_route": "/tools/ai/mp4-to-text", "accept": ".mp4", "description": "Transcreve o audio do video no site e em arquivo TXT.", "badge": "IA", "icon": "file-text", "aliases": "mp4 para texto transcricao transcrever video audio txt legenda"},
-    ],
-    "OCR": [
-        {"name": "OCR imagem -> TXT", "route": "/convert/image-ocr-to-txt", "accept": ".jpg,.jpeg,.png,.webp,.heic", "description": "Extraia texto de imagens e fotos usando OCR.", "badge": "OCR", "icon": "scan-text", "aliases": "ocr imagem foto extrair texto reconhecer texto scanner txt"},
-        {"name": "OCR PDF -> TXT", "route": "/convert/pdf-ocr-to-txt", "accept": ".pdf", "description": "Extraia texto de PDFs escaneados usando OCR.", "badge": "OCR", "icon": "scan-line", "aliases": "ocr pdf escaneado scanner extrair texto reconhecer texto txt pesquisavel"},
+        {"name": "Document Analyzer AI", "route": "/tools/ai/document-analyzer", "page_route": "/tools/ai/document-analyzer", "accept": ".pdf,.docx,.doc,.txt,.rtf,.odt,.md", "description": "Analise documentos com resumo, perguntas, quiz, flashcards e extracao de dados.", "badge": "IA", "icon": "file-search", "aliases": "document analyzer ai analisar documento resumo flashcards quiz perguntar documento extrair dados pdf docx doc txt rtf odt md ia"},
     ],
 }
 
@@ -116,7 +111,6 @@ def build_tool_counts():
         "Imagens": 5,
         "Videos": 4,
         "Audios": 4,
-        "OCR": 2,
         "AI Tools": 2,
     }
     mega_totals = {
@@ -124,7 +118,6 @@ def build_tool_counts():
         "Imagens": categories["Imagens"],
         "Videos": categories["Videos"],
         "Audios": categories["Audios"],
-        "OCR": categories["OCR"],
         "AI Tools": categories["AI Tools"],
     }
 

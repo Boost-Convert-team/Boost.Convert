@@ -15,7 +15,6 @@ from Blueprints.converter_routes import (
     heic_png_bp,
     html_docx_bp,
     html_pdf_bp,
-    image_ocr_txt_bp,
     images_pdf_bp,
     jpg_pdf_bp,
     jpg_png_bp,
@@ -51,7 +50,6 @@ from Blueprints.converter_routes import (
     pdf_html_bp,
     pdf_jpg_bp,
     pdf_merge_bp,
-    pdf_ocr_searchable_bp,
     pdf_png_bp,
     pdf_pptx_bp,
     pdf_protect_bp,
@@ -60,7 +58,6 @@ from Blueprints.converter_routes import (
     pdf_txt_bp,
     pdf_unlock_bp,
     pdf_xlsx_bp,
-    pdf_ocr_txt_bp,
     png_jpg_bp,
     png_svg_bp,
     png_webp_bp,
@@ -134,7 +131,6 @@ DOCUMENT_BLUEPRINTS = (
     pdf_split_bp,
     pdf_compress_bp,
     pdf_edit_bp,
-    pdf_ocr_searchable_bp,
     pdf_protect_bp,
     pdf_rotate_bp,
     pdf_unlock_bp,
@@ -180,11 +176,6 @@ VIDEO_BLUEPRINTS = (
     webm_mp4_bp,
 )
 
-OCR_BLUEPRINTS = (
-    image_ocr_txt_bp,
-    pdf_ocr_txt_bp,
-)
-
 AUDIO_BLUEPRINTS = (
     aac_mp3_bp,
     flac_mp3_bp,
@@ -208,7 +199,6 @@ ALL_BLUEPRINTS = (
     *DOCUMENT_BLUEPRINTS,
     *IMAGE_BLUEPRINTS,
     *VIDEO_BLUEPRINTS,
-    *OCR_BLUEPRINTS,
     *AUDIO_BLUEPRINTS,
     *TOOLS_BLUEPRINTS,
 )

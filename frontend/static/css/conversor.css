@@ -157,6 +157,7 @@
 
 .converter-option-field input,
 .converter-option-field select,
+.converter-option-field textarea,
 .form-field input {
     min-height: 48px;
     width: 100%;
@@ -170,11 +171,19 @@
         border-color 680ms var(--ease-air),
         box-shadow 680ms var(--ease-air),
         background-color 680ms var(--ease-air),
-        transform 420ms var(--ease-air);
+    transform 420ms var(--ease-air);
+}
+
+.converter-option-field textarea {
+    min-height: 112px;
+    padding: 14px;
+    resize: vertical;
+    line-height: 1.5;
 }
 
 .converter-option-field input:focus,
 .converter-option-field select:focus,
+.converter-option-field textarea:focus,
 .form-field input:focus {
     border-color: var(--orange);
     background: #fff;

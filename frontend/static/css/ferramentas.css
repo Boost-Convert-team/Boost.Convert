@@ -2,7 +2,7 @@
     position: relative;
     padding-top: 58px;
     padding-bottom: 96px;
-    overflow: hidden;
+    overflow: visible;
     background:
         radial-gradient(ellipse at 50% 0%, rgba(240, 138, 36, .08), transparent 34%),
         linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(252, 248, 243, .62));
@@ -64,12 +64,18 @@
 
 .tools-sidebar {
     position: sticky;
-    top: 94px;
-    z-index: 4;
+    top: 84px;
+    z-index: 30;
+    align-self: start;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
+    max-height: calc(100vh - 104px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
     padding: 10px;
     border: 1px solid rgba(234, 223, 211, .62);
     border-radius: 22px;
@@ -78,6 +84,10 @@
         0 14px 42px rgba(88, 58, 24, .035),
         inset 0 1px 0 rgba(255, 255, 255, .72);
     backdrop-filter: blur(18px);
+}
+
+.tools-sidebar::-webkit-scrollbar {
+    display: none;
 }
 
 .tools-sidebar a {

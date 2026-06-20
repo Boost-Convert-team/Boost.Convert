@@ -75,20 +75,6 @@ def build_tool_search_index():
     entries.extend(
         [
             {
-                "label": "OCR PDF",
-                "category": "OCR",
-                "url": url_for("home.tools") + "#ocr",
-                "icon": "scan-text",
-                "aliases": "ocr reconhecer texto extrair texto pdf imagem scanner texto pesquisavel",
-            },
-            {
-                "label": "OCR imagem",
-                "category": "OCR",
-                "url": url_for("home.tools") + "#ocr",
-                "icon": "scan-line",
-                "aliases": "ocr imagem foto reconhecer texto extrair texto scanner",
-            },
-            {
                 "label": "AI Tools",
                 "category": "AI",
                 "url": url_for("home.tools") + "#ai-tools",
@@ -182,7 +168,6 @@ def add_special_tool_aliases(slug, aliases):
         "pdf-protect": "proteger pdf senha pdf bloquear pdf criptografar pdf",
         "pdf-unlock": "desbloquear pdf remover senha pdf destravar pdf",
         "pdf-extract-images": "extrair imagens do pdf salvar fotos do pdf",
-        "pdf-ocr-searchable": "ocr pdf pesquisavel pdf escaneado texto pesquisavel",
     }
     if slug in special_aliases:
         aliases.add(special_aliases[slug])

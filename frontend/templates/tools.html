@@ -10,8 +10,8 @@
         <p>Organiza&ccedil;&atilde;o simples, categorias limpas e acesso r&aacute;pido aos conversores.</p>
     </div>
 
-    <div class="tools-layout reveal">
-        <aside class="tools-sidebar reveal" aria-label="Categorias">
+    <div class="tools-layout">
+        <aside class="tools-sidebar" aria-label="Categorias">
             {% for category, category_tools in tools.items() %}
                 {% set category_id = category|lower|replace(' ', '-') %}
                 <a href="#{{ category_id }}" class="{% if loop.first %}is-active{% endif %}">
