@@ -85,7 +85,6 @@ from Blueprints.main.checkout_routes import checkout_bp
 from Blueprints.main.home import home_bp
 from Blueprints.main.planos import planos_bp
 from Blueprints.main.webhook_routes import webhook_bp
-from Blueprints.tools.ai_tools import ai_tools_bp
 from Blueprints.tools.youtube_downloads import yt_download_bp
 
 
@@ -191,7 +190,6 @@ AUDIO_BLUEPRINTS = (
 
 TOOLS_BLUEPRINTS = (
     yt_download_bp,
-    ai_tools_bp,
 )
 
 ALL_BLUEPRINTS = (

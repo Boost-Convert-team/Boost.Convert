@@ -27,18 +27,21 @@ class ToolsRegistryTests(unittest.TestCase):
         self.assertNotIn("/convert/pdf-ocr-searchable", routes)
         self.assertFalse(any("OCR" in name for name in names))
 
-    def test_document_analyzer_tool_is_listed(self) -> None:
+    def test_ai_tools_are_not_listed(self) -> None:
         routes = [tool["route"] for tools in TOOLS.values() for tool in tools]
         names = [tool["name"] for tools in TOOLS.values() for tool in tools]
 
-        self.assertIn("/tools/ai/document-analyzer", routes)
-        self.assertIn("Document Analyzer AI", names)
+        self.assertNotIn("AI Tools", TOOLS)
+        self.assertNotIn("/tools/ai/document-analyzer", routes)
+        self.assertNotIn("/tools/ai/youtube-analyzer", routes)
+        self.assertNotIn("Document Analyzer AI", names)
+        self.assertNotIn("Analisar video do YouTube", names)
 
-    def test_ai_tools_count_matches_remaining_tools(self) -> None:
+    def test_tool_counts_do_not_include_ai_tools(self) -> None:
         counts = build_tool_counts()
 
-        self.assertEqual(counts["categories"]["AI Tools"], 2)
-        self.assertEqual(counts["mega_totals"]["AI Tools"], 2)
+        self.assertNotIn("AI Tools", counts["categories"])
+        self.assertNotIn("AI Tools", counts["mega_totals"])
         self.assertNotIn("OCR", counts["categories"])
         self.assertNotIn("OCR", counts["mega_totals"])
 

@@ -460,7 +460,7 @@
     }
 
     .suite-card-flow,
-    .suite-card-ai,
+    .suite-card-batch,
     .suite-card-organize {
         min-height: 480px;
     }
@@ -1923,7 +1923,7 @@
 
     .suite-card,
     .suite-card-flow,
-    .suite-card-ai,
+    .suite-card-batch,
     .suite-card-organize {
         --card-lift: 0px;
         min-height: 390px;
@@ -1956,12 +1956,6 @@
         height: 36px;
     }
 
-    .preview-arrow {
-        right: 10%;
-        width: 42px;
-        height: 42px;
-    }
-
     .chip-docx {
         right: 8%;
         top: 44px;
@@ -1970,6 +1964,36 @@
     .chip-webp {
         left: 8%;
         bottom: 42px;
+    }
+
+    .chip-mp4 {
+        right: 8%;
+        bottom: 88px;
+    }
+
+    .chip-docs {
+        left: 8%;
+        top: 92px;
+    }
+
+    .chip-merge {
+        left: 7%;
+        top: 62px;
+    }
+
+    .chip-split {
+        right: 7%;
+        top: 82px;
+    }
+
+    .chip-compress {
+        right: 0;
+        bottom: 54px;
+    }
+
+    .chip-protect {
+        left: 7%;
+        bottom: 78px;
     }
 
     .scan-sheet {

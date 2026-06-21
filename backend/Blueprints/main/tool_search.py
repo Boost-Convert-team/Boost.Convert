@@ -72,18 +72,6 @@ def build_tool_search_index():
                 }
             )
 
-    entries.extend(
-        [
-            {
-                "label": "AI Tools",
-                "category": "AI",
-                "url": url_for("home.tools") + "#ai-tools",
-                "icon": "bot",
-                "aliases": "ai ia inteligencia artificial automacao assistente ferramentas inteligentes",
-            },
-        ]
-    )
-
     return entries
 
 

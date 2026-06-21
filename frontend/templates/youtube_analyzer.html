@@ -1,43 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Analisar video do YouTube - Boost.Convert{% endblock %}
+{% block title %}Ferramenta removida - Boost.Convert{% endblock %}
 
 {% block content %}
 <main class="page-section">
     <div class="section-heading reveal">
-        <div class="eyebrow"><i data-lucide="bot" aria-hidden="true"></i> AI Tools</div>
-        <h1 id="youtube-analyzer-title">Analisar video do YouTube</h1>
-        <p>Cole uma URL e receba um resumo organizado.</p>
-    </div>
-
-    <div class="converter-grid reveal">
-        <section class="upload-card" aria-labelledby="youtube-analyzer-title">
-            <form class="converter-form" action="{{ url_for('ai_tools.youtube_analyzer') }}" method="POST" data-loading-form>
-                <div class="form-field">
-                    <label for="url">Link do YouTube</label>
-                    <input id="url" type="url" name="url" value="{{ url }}" placeholder="https://www.youtube.com/watch?v=..." required>
-                </div>
-
-                <button class="button button-primary converter-button" type="submit">
-                    Analisar video
-                    <i data-lucide="sparkles" aria-hidden="true"></i>
-                </button>
-            </form>
-
-            {% if error %}
-                <div class="tool-result tool-result-error">
-                    <strong>Nao foi possivel analisar</strong>
-                    <p>{{ error }}</p>
-                </div>
-            {% endif %}
-
-            {% if result %}
-                <div class="tool-result">
-                    <span>{{ result.title }}</span>
-                    <pre>{{ result.summary }}</pre>
-                </div>
-            {% endif %}
-        </section>
+        <div class="eyebrow"><i data-lucide="wrench" aria-hidden="true"></i> Ferramenta removida</div>
+        <h1>Esta ferramenta n&atilde;o est&aacute; mais dispon&iacute;vel.</h1>
+        <p>Use a biblioteca de convers&otilde;es para escolher outro formato.</p>
+        <a class="button button-primary" href="{{ url_for('home.tools') }}">
+            Ver ferramentas
+            <i data-lucide="arrow-right" aria-hidden="true"></i>
+        </a>
     </div>
 </main>
 {% endblock %}

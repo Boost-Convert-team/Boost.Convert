@@ -88,10 +88,6 @@ TOOLS = {
         {"name": "MP4 -> WEBM", "route": "/convert/mp4-to-webm", "accept": ".mp4"},
         {"name": "WEBM -> MP4", "route": "/convert/webm-to-mp4", "accept": ".webm"},
     ],
-    "AI Tools": [
-        {"name": "Analisar video do YouTube", "route": "/tools/ai/youtube-analyzer", "page_route": "/tools/ai/youtube-analyzer", "accept": "URL do YouTube", "description": "Resume o conteudo em topicos completos e simples.", "badge": "IA", "icon": "bot", "aliases": "youtube analisar video resumo resumir conteudo topicos ia"},
-        {"name": "Document Analyzer AI", "route": "/tools/ai/document-analyzer", "page_route": "/tools/ai/document-analyzer", "accept": ".pdf,.docx,.doc,.txt,.rtf,.odt,.md", "description": "Analise documentos com resumo, perguntas, quiz, flashcards e extracao de dados.", "badge": "IA", "icon": "file-search", "aliases": "document analyzer ai analisar documento resumo flashcards quiz perguntar documento extrair dados pdf docx doc txt rtf odt md ia"},
-    ],
 }
 
 
@@ -111,14 +107,12 @@ def build_tool_counts():
         "Imagens": 5,
         "Videos": 4,
         "Audios": 4,
-        "AI Tools": 2,
     }
     mega_totals = {
         "pdf": get_pdf_tool_count(),
         "Imagens": categories["Imagens"],
         "Videos": categories["Videos"],
         "Audios": categories["Audios"],
-        "AI Tools": categories["AI Tools"],
     }
 
     return {

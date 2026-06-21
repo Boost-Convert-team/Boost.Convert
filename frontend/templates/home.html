@@ -246,7 +246,7 @@
             <div class="ecosystem-center">
                 <span class="eyebrow">Ecossistema</span>
                 <h2>Tudo conectado<br>em um &uacute;nico fluxo.</h2>
-                <p>PDF, imagem, v&iacute;deo e IA em uma experi&ecirc;ncia limpa, r&aacute;pida e sem ru&iacute;do.</p>
+                <p>PDF, imagem, v&iacute;deo e &aacute;udio em uma experi&ecirc;ncia limpa, r&aacute;pida e sem ru&iacute;do.</p>
                 <a class="button button-primary" href="{{ url_for('home.tools') }}">
                     Explorar ferramentas
                     <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -255,7 +255,6 @@
 
             <span class="format-badge badge-pdf"><i data-lucide="file-text" aria-hidden="true"></i> PDF</span>
             <span class="format-badge badge-docx"><i data-lucide="file-type" aria-hidden="true"></i> DOCX</span>
-            <span class="format-badge badge-ai"><i data-lucide="sparkles" aria-hidden="true"></i> AI</span>
             <span class="format-badge badge-png"><i data-lucide="image" aria-hidden="true"></i> PNG</span>
             <span class="format-badge badge-webp"><i data-lucide="image" aria-hidden="true"></i> WEBP</span>
             <span class="format-badge badge-mp4"><i data-lucide="video" aria-hidden="true"></i> MP4</span>
@@ -267,9 +266,9 @@
 
     <section class="suite-section">
         <div class="suite-heading reveal">
-            <h2>Um workspace inteligente que parece leve.</h2>
+            <h2>Um workspace completo que parece leve.</h2>
             <p>
-                Convers&otilde;es, Document Analyzer, YouTube e IA aparecem como partes do mesmo fluxo:
+                Convers&otilde;es, PDF, imagens, v&iacute;deos e &aacute;udios aparecem como partes do mesmo fluxo:
                 visual, organizado e r&aacute;pido de trocar.
             </p>
         </div>
@@ -286,30 +285,13 @@
                             <small></small>
                         </div>
                     </div>
-                    <span class="preview-arrow"><i data-lucide="arrow-right" aria-hidden="true"></i></span>
                     <span class="preview-chip chip-docx">DOCX</span>
                     <span class="preview-chip chip-webp">WEBP</span>
+                    <span class="preview-chip chip-mp4">MP4</span>
+                    <span class="preview-chip chip-docs">DOCS</span>
                 </div>
                 <h3>Convers&otilde;es sem complica&ccedil;&atilde;o.</h3>
                 <p>PDF, imagens, v&iacute;deos e &aacute;udios em um &uacute;nico fluxo, com resultados r&aacute;pidos e formatos prontos para usar.</p>
-            </article>
-            <article class="suite-card suite-card-ai reveal">
-                <div class="suite-visual ai-visual">
-                    <div class="scan-sheet">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                        <b></b>
-                    </div>
-                    <span class="preview-chip chip-summary">Resumo</span>
-                    <span class="preview-chip chip-quiz">Quiz</span>
-                    <span class="extract-pill">
-                        <i data-lucide="sparkles" aria-hidden="true"></i>
-                        Document Analyzer
-                    </span>
-                </div>
-                <h3>IA que entende seus documentos.</h3>
-                <p>Resuma, destaque pontos importantes, crie flashcards, quizzes e obtenha respostas com base no conte&uacute;do enviado.</p>
             </article>
             <article class="suite-card suite-card-organize reveal">
                 <div class="suite-visual organize-visual">
@@ -317,15 +299,35 @@
                         <span>YouTube</span>
                         <span>IMG</span>
                         <span>ZIP</span>
-                        <span>AI</span>
+                        <span>PDF</span>
                     </div>
                     <div class="output-capsule">
-                        <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+                        <i data-lucide="rocket" aria-hidden="true"></i>
                         <strong>Boost</strong>
                     </div>
                 </div>
                 <h3>Tudo o que voc&ecirc; precisa, em um s&oacute; lugar.</h3>
-                <p>Converta arquivos, analise documentos, processe v&iacute;deos e utilize ferramentas inteligentes sem mudar de plataforma.</p>
+                <p>Converta arquivos, organize documentos e processe v&iacute;deos sem mudar de plataforma.</p>
+            </article>
+            <article class="suite-card suite-card-batch reveal">
+                <div class="suite-visual batch-visual">
+                    <div class="scan-sheet">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <b></b>
+                    </div>
+                    <span class="preview-chip chip-merge">Juntar PDF</span>
+                    <span class="preview-chip chip-split">Dividir PDF</span>
+                    <span class="preview-chip chip-compress">Compactar</span>
+                    <span class="preview-chip chip-protect">Proteger</span>
+                    <span class="extract-pill">
+                        <i data-lucide="archive" aria-hidden="true"></i>
+                        ZIP pronto
+                    </span>
+                </div>
+                <h3>Pacotes prontos para baixar.</h3>
+                <p>Junte, divida, compacte, proteja e entregue documentos em ZIP quando precisar mandar v&aacute;rios formatos de uma vez.</p>
             </article>
         </div>
     </section>
