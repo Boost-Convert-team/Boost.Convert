@@ -12,24 +12,37 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USER }}
-          port: ${{ secrets.HOSTINGER_PORT }}
+          host: 187.127.28.99
+          username: root
+          port: 22
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             set -e
 
             APP_PATH="${{ secrets.APP_PATH }}"
 
+            echo "APP_PATH=$APP_PATH"
+
             mkdir -p "$APP_PATH"
 
             if [ ! -d "$APP_PATH/.git" ]; then
+              echo "Clonando repositório..."
               git clone --branch clean-main https://github.com/Tutzdev/Boost.Convert.git "$APP_PATH"
             else
+              echo "Atualizando repositório..."
               cd "$APP_PATH"
-              git pull https://github.com/Tutzdev/Boost.Convert.git clean-main
+              git fetch origin clean-main
+              git reset --hard origin/clean-main
             fi
 
+            cd "$APP_PATH"
+
+            echo "Reiniciando serviço..."
             if systemctl list-units --type=service --all | grep -q "boostconvert.service"; then
-              sudo systemctl restart boostconvert
+              sudo systemctl restart boostconvert.service
+              sudo systemctl status boostconvert.service --no-pager
+            else
+              echo "boostconvert.service não encontrado"
             fi
+
+            echo "Deploy finalizado."
