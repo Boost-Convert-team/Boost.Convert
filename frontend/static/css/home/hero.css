@@ -273,23 +273,41 @@
 .hero-metrics {
     display: grid;
     align-items: center;
-    grid-template-columns: repeat(4, max-content);
-    gap: 34px;
-    max-width: 680px;
-    margin-top: 58px;
+    grid-template-columns: repeat(2, minmax(0, 230px));
+    gap: 12px;
+    max-width: 500px;
+    margin-top: 16px;
 }
 
 .hero-metrics div {
     display: grid;
-    grid-template-columns: 44px max-content;
-    gap: 8px 12px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 6px 12px;
     align-items: center;
+    min-height: 76px;
+    padding: 12px;
+    border: 1px solid rgba(232, 218, 203, .46);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .36);
+    cursor: pointer;
+    transition:
+        border-color 360ms var(--ease-air),
+        background-color 360ms var(--ease-air),
+        transform 360ms var(--ease-air),
+        box-shadow 360ms var(--ease-air);
+}
+
+.hero-metrics div:hover {
+    border-color: rgba(240, 138, 36, .16);
+    background: rgba(255, 255, 255, .64);
+    box-shadow: 0 12px 26px rgba(88, 58, 24, .045);
+    transform: translateY(-2px);
 }
 
 .hero-metrics .mini-icon {
     grid-row: 1 / span 2;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     background: #fff4e8;
 }
 
@@ -299,20 +317,22 @@
     font-family: var(--font-ui);
     font-size: 15px;
     font-weight: var(--weight-ui-medium);
+    line-height: 1.2;
 }
 
 .hero-metrics small {
     align-self: start;
     color: var(--muted);
     font-size: 12px;
-    line-height: 1.35;
+    line-height: 1.32;
+    max-width: 160px;
 }
 
 .boost-hero-visual {
     position: relative;
     z-index: 4;
-    width: min(100%, 690px);
-    height: 580px;
+    width: min(100%, 790px);
+    height: 620px;
     margin-left: auto;
     isolation: isolate;
     transform: translateY(-26px);
@@ -604,10 +624,10 @@
 }
 
 .hero-upload-card {
-    width: min(100%, 570px);
+    width: min(100%, 700px);
     min-width: 0;
     max-width: 100%;
-    padding: 18px;
+    padding: 20px;
     border: 1px solid rgba(232, 218, 203, .78);
     border-radius: 28px;
     background:
@@ -644,8 +664,8 @@
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    min-height: 350px;
-    padding: 44px 28px;
+    min-height: 430px;
+    padding: 56px 40px;
     overflow: hidden;
     border: 1.5px dashed rgba(240, 138, 36, .28);
     border-radius: 20px;
@@ -740,6 +760,7 @@
 }
 
 .hero-upload-card.has-file .hero-upload-dropzone small,
+.hero-upload-card.has-file .hero-upload-file-types,
 .hero-upload-card.has-file .hero-upload-limit {
     display: none;
 }
@@ -848,6 +869,37 @@
     line-height: 1.45;
 }
 
+.hero-upload-file-types {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    width: min(100%, 390px);
+    margin-top: 18px;
+}
+
+.hero-upload-file-types span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(232, 218, 203, .76);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .72);
+    color: #4d5a57;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: var(--weight-ui-medium);
+    line-height: 1;
+}
+
+.hero-upload-file-types svg {
+    width: 14px;
+    height: 14px;
+    color: var(--orange-deep);
+}
+
 .hero-upload-button {
     position: relative;
     isolation: isolate;
@@ -855,10 +907,10 @@
     align-items: center;
     justify-content: center;
     gap: 9px;
-    min-width: 220px;
-    min-height: 44px;
-    margin-top: 34px;
-    padding: 0 18px;
+    min-width: 244px;
+    min-height: 48px;
+    margin-top: 28px;
+    padding: 0 22px;
     border: 0;
     border-radius: 999px;
     background: linear-gradient(110deg, #f28b22 0%, #f7932b 48%, #e97911 100%);
@@ -1226,7 +1278,7 @@
 }
 
 .boost-proof-bar {
-    --proof-item-width: 286px;
+    --proof-item-width: 318px;
     position: relative;
     z-index: 5;
     grid-column: 1 / -1;

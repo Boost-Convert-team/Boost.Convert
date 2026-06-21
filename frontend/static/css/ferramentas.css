@@ -209,6 +209,8 @@
     border-radius: 22px;
     background: rgba(255, 255, 255, .46);
     box-shadow: none;
+    color: inherit;
+    cursor: pointer;
     transition:
         transform 760ms var(--ease-air),
         box-shadow 760ms var(--ease-air),
@@ -226,14 +228,23 @@
     transition: opacity 900ms var(--ease-air);
 }
 
-.tool-card:hover {
+.tool-card:hover,
+.tool-card:focus-visible {
     transform: translateY(-3px);
+    outline: 0;
     border-color: var(--tool-border, rgba(240, 138, 36, .26));
     background: rgba(255, 255, 255, .74);
     box-shadow: 0 18px 46px rgba(88, 58, 24, .045);
 }
 
-.tool-card:hover::before {
+.tool-card:focus-visible {
+    box-shadow:
+        0 18px 46px rgba(88, 58, 24, .045),
+        var(--focus-ring);
+}
+
+.tool-card:hover::before,
+.tool-card:focus-visible::before {
     opacity: 1;
 }
 

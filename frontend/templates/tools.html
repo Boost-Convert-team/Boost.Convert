@@ -46,7 +46,13 @@
                     <div class="tools-grid">
                         {% for tool in category_tools %}
                             {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}
-                            <article class="tool-card tool-card-{{ category_id }} {% if loop.index <= 2 %}is-featured{% endif %}">
+                            <a
+                                class="tool-card tool-card-{{ category_id }} {% if loop.index <= 2 %}is-featured{% endif %}"
+                                href="{{ tool_page_route }}"
+                                data-convert-route="{{ tool.route }}"
+                                data-accept="{{ tool.accept }}"
+                                aria-label="Abrir {{ tool.name }}"
+                            >
                                 <div class="tool-card-top">
                                     <span class="tool-icon">
                                         {% if tool.icon is defined %}
@@ -70,18 +76,8 @@
                                     {% endif %}
                                 </div>
                                 <h3 class="tool-title">{{ tool.name }}</h3>
-                                <p class="tool-accept">
-                                    {% if tool.description is defined %}
-                                        {{ tool.description }}
-                                    {% else %}
-                                        Aceita {{ tool.accept }}
-                                    {% endif %}
-                                </p>
-                                <a class="tool-link" href="{{ tool_page_route }}" data-convert-route="{{ tool.route }}" data-accept="{{ tool.accept }}">
-                                    Converter
-                                    <i data-lucide="arrow-right" aria-hidden="true"></i>
-                                </a>
-                            </article>
+                                <p class="tool-accept">{{ tool.description }}</p>
+                            </a>
                         {% endfor %}
                     </div>
                 </section>
