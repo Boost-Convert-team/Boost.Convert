@@ -1201,6 +1201,23 @@
     font-weight: 700;
 }
 
+@media (min-width: 1181px) {
+    .boost-hero-visual {
+        width: min(100%, 860px);
+        height: 650px;
+    }
+
+    .hero-upload-card {
+        width: min(100%, 780px);
+        padding: 22px;
+    }
+
+    .hero-upload-dropzone {
+        min-height: 470px;
+        padding: 62px 48px;
+    }
+}
+
 @keyframes heroUploadIconFloat {
     0%, 100% {
         transform: translateY(0);

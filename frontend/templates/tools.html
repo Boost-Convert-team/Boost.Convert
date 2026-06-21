@@ -2,8 +2,64 @@
 
 {% block title %}Ferramentas - Boost.Convert{% endblock %}
 
+{% macro tool_card(tool, category, category_id, is_featured=False, badge_text=None) -%}
+    {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}
+    {% if tool.route == "/convert/doc-to-docx" %}
+        {% set friendly_tool_name = "DOC antigo -> Word" %}
+    {% elif tool.route == "/convert/ppt-to-pptx" %}
+        {% set friendly_tool_name = "PowerPoint antigo -> PowerPoint" %}
+    {% elif tool.route == "/convert/xls-to-xlsx" %}
+        {% set friendly_tool_name = "Excel antigo -> Excel" %}
+    {% else %}
+        {% set friendly_tool_name = tool.name
+            |replace("DOCX", "Word")
+            |replace("DOC", "Word")
+            |replace("PPTX", "PowerPoint")
+            |replace("PPT", "PowerPoint")
+            |replace("XLSX", "Excel")
+            |replace("XLS", "Excel")
+            |replace("TXT", "Texto")
+            |replace("MD", "Markdown")
+            |replace("ODT", "Documento")
+            |replace("ODS", "Planilha")
+            |replace("ODP", "Apresentacao")
+        %}
+    {% endif %}
+    <a
+        class="tool-card tool-card-{{ category_id }} {% if is_featured %}is-featured{% endif %}"
+        href="{{ tool_page_route }}"
+        data-convert-route="{{ tool.route }}"
+        data-accept="{{ tool.accept }}"
+        aria-label="Abrir {{ friendly_tool_name }}"
+    >
+        <div class="tool-card-top">
+            <span class="tool-icon">
+                {% if tool.icon is defined %}
+                    <i data-lucide="{{ tool.icon }}" aria-hidden="true"></i>
+                {% elif 'Imagem' in category or 'image' in category|lower %}
+                    <i data-lucide="image" aria-hidden="true"></i>
+                {% elif 'Video' in category or 'deo' in category %}
+                    <i data-lucide="clapperboard" aria-hidden="true"></i>
+                {% elif 'Audio' in category or 'udio' in category %}
+                    <i data-lucide="audio-lines" aria-hidden="true"></i>
+                {% else %}
+                    <i data-lucide="file-text" aria-hidden="true"></i>
+                {% endif %}
+            </span>
+            {% if badge_text %}
+                <span class="tool-badge">{{ badge_text }}</span>
+            {% elif tool.badge is defined %}
+                <span class="tool-badge">{{ tool.badge }}</span>
+            {% endif %}
+        </div>
+        <h3 class="tool-title">{{ friendly_tool_name }}</h3>
+        <p class="tool-accept">{{ tool.description }}</p>
+    </a>
+{%- endmacro %}
+
 {% block content %}
 <main class="page-section tools-page">
+    {% set category_order = ["Documentos", "Audios", "Imagens", "Videos"] %}
     <div class="section-heading reveal">
         <div class="eyebrow"><i data-lucide="wand-sparkles" aria-hidden="true"></i> Biblioteca de convers&otilde;es</div>
         <h1>Escolha uma ferramenta e envie seus arquivos.</h1>
@@ -11,18 +67,33 @@
     </div>
 
     <div class="tools-layout">
-        <aside class="tools-sidebar" aria-label="Categorias">
-            {% for category, category_tools in tools.items() %}
-                {% set category_id = category|lower|replace(' ', '-') %}
-                <a href="#{{ category_id }}" class="{% if loop.first %}is-active{% endif %}">
-                    <span>{{ category }}</span>
-                    <span>{{ category_tools|length }}</span>
-                </a>
-            {% endfor %}
-        </aside>
+        <div class="tools-navigation-block">
+            <aside class="tools-sidebar" aria-label="Categorias">
+                {% for category in category_order if category in tools %}
+                    {% set category_tools = tools[category] %}
+                    {% set category_id = category|lower|replace(' ', '-') %}
+                    <a href="#{{ category_id }}" class="{% if loop.first %}is-active{% endif %}">
+                        <span>{{ category }}</span>
+                        <span>{{ category_tools|length }}</span>
+                    </a>
+                {% endfor %}
+            </aside>
 
-        <div class="tools-content">
-            {% for category, category_tools in tools.items() %}
+            <nav class="tools-quick-nav" aria-label="Atalhos de convers&otilde;es">
+                <a href="#ferramentas" class="is-active">Todas</a>
+                <a href="#mais-usados">Mais usados</a>
+                <a href="#documentos-pdf">PDF</a>
+                <a href="#documentos-word">Word</a>
+                <a href="#documentos-excel">Excel</a>
+                <a href="#imagens">Imagens</a>
+                <a href="#videos">V&iacute;deos</a>
+                <a href="#audios">&Aacute;udios</a>
+            </nav>
+        </div>
+
+        <div class="tools-content" id="ferramentas">
+            {% for category in category_order if category in tools %}
+                {% set category_tools = tools[category] %}
                 {% set category_id = category|lower|replace(' ', '-') %}
                 <section class="tools-section" id="{{ category_id }}">
                     <div class="section-header">
@@ -43,43 +114,73 @@
                         </span>
                     </div>
 
-                    <div class="tools-grid">
-                        {% for tool in category_tools %}
-                            {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}
-                            <a
-                                class="tool-card tool-card-{{ category_id }} {% if loop.index <= 2 %}is-featured{% endif %}"
-                                href="{{ tool_page_route }}"
-                                data-convert-route="{{ tool.route }}"
-                                data-accept="{{ tool.accept }}"
-                                aria-label="Abrir {{ tool.name }}"
-                            >
-                                <div class="tool-card-top">
-                                    <span class="tool-icon">
-                                        {% if tool.icon is defined %}
-                                            <i data-lucide="{{ tool.icon }}" aria-hidden="true"></i>
-                                        {% elif 'Imagem' in category or 'image' in category|lower %}
-                                            <i data-lucide="image" aria-hidden="true"></i>
-                                        {% elif 'Video' in category or 'deo' in category %}
-                                            <i data-lucide="clapperboard" aria-hidden="true"></i>
-                                        {% elif 'Audio' in category or 'udio' in category %}
-                                            <i data-lucide="audio-lines" aria-hidden="true"></i>
-                                        {% else %}
-                                            <i data-lucide="file-text" aria-hidden="true"></i>
+                    {% if category == "Documentos" %}
+                        <div class="tool-subsection" id="mais-usados">
+                            <div class="tool-subsection-heading">
+                                <h3>Mais usados</h3>
+                                <p>Convers&otilde;es comuns para editar, enviar ou organizar documentos.</p>
+                            </div>
+                            <div class="tools-grid">
+                                {% set most_used_routes = ["/convert/pdf-to-docx", "/convert/docx-to-pdf", "/convert/jpg-to-pdf", "/convert/pdf-to-xlsx", "/convert/pdf-merge", "/convert/pdf-compress"] %}
+                                {% for most_used_route in most_used_routes %}
+                                    {% for tool in category_tools %}
+                                        {% if tool.route == most_used_route %}
+                                            {{ tool_card(tool, category, category_id, false, "Mais usado") }}
                                         {% endif %}
-                                    </span>
-                                    {% if tool.badge is defined %}
-                                        <span class="tool-badge">{{ tool.badge }}</span>
-                                    {% elif loop.index == 1 %}
-                                        <span class="tool-badge">Mais usado</span>
-                                    {% elif loop.index == 2 %}
-                                        <span class="tool-badge">Novo</span>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for image_tool in tools["Imagens"] %}
+                                    {% if image_tool.route == "/convert/jpg-to-pdf" %}
+                                        {{ tool_card(image_tool, "Imagens", category_id, false, "Mais usado") }}
                                     {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {% set document_groups = [
+                            ("documentos-pdf", "PDF", "Tudo para converter, juntar, dividir, proteger ou extrair conte&uacute;do de PDFs.", ["pdf"], ["/convert/pdf-to-docx", "/convert/pdf-to-xlsx", "/convert/pdf-to-pptx", "/convert/pdf-compress", "/convert/pdf-merge", "/convert/pdf-split", "/convert/pdf-to-jpg", "/convert/pdf-to-png"]),
+                            ("documentos-word", "Word", "Converta documentos Word para PDF, texto ou formatos edit&aacute;veis.", ["doc", "docx", "odt"], ["/convert/docx-to-pdf", "/convert/doc-to-pdf", "/convert/doc-to-docx", "/convert/odt-to-docx", "/convert/odt-to-pdf", "/convert/docx-to-txt", "/convert/docx-to-xlsx"]),
+                            ("documentos-excel", "Excel", "Planilhas para PDF, CSV, JSON ou arquivos mais f&aacute;ceis de compartilhar.", ["xls", "xlsx", "csv", "ods"], ["/convert/xlsx-to-pdf", "/convert/pdf-to-xlsx", "/convert/xlsx-to-csv", "/convert/csv-to-xlsx", "/convert/xls-to-xlsx", "/convert/xls-to-pdf", "/convert/xlsx-to-json"]),
+                            ("documentos-powerpoint", "PowerPoint", "Apresenta&ccedil;&otilde;es em PDF ou no formato atual do PowerPoint.", ["ppt", "pptx", "odp"], ["/convert/pptx-to-pdf", "/convert/pdf-to-pptx", "/convert/ppt-to-pdf", "/convert/ppt-to-pptx", "/convert/odp-to-pptx", "/convert/odp-to-pdf"]),
+                            ("documentos-dados", "Texto e dados", "Arquivos simples, HTML, Markdown, JSON e ZIP para organizar melhor.", ["txt", "html", "md", "json", "zip"], ["/convert/files-to-zip", "/convert/txt-to-pdf", "/convert/txt-to-docx", "/convert/html-to-pdf", "/convert/html-to-docx", "/convert/md-to-pdf", "/convert/json-to-csv", "/convert/json-to-xlsx"])
+                        ] %}
+                        {% for group_id, group_title, group_description, group_terms, priority_routes in document_groups %}
+                            <div class="tool-subsection" id="{{ group_id }}">
+                                <div class="tool-subsection-heading">
+                                    <h3>{{ group_title }}</h3>
+                                    <p>{{ group_description|safe }}</p>
                                 </div>
-                                <h3 class="tool-title">{{ tool.name }}</h3>
-                                <p class="tool-accept">{{ tool.description }}</p>
-                            </a>
+                                <div class="tools-grid">
+                                    {% set rendered = namespace(routes=[]) %}
+                                    {% for priority_route in priority_routes %}
+                                        {% for tool in category_tools %}
+                                            {% if tool.route == priority_route %}
+                                                {{ tool_card(tool, category, category_id) }}
+                                                {% set rendered.routes = rendered.routes + [tool.route] %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for tool in category_tools %}
+                                        {% set route_formats = tool.route|replace("/convert/", "")|replace("-", " ") %}
+                                        {% set accept_formats = tool.accept|replace(".", "")|replace(",", " ") %}
+                                        {% set match = namespace(found=false) %}
+                                        {% for term in group_terms %}
+                                            {% if not match.found and tool.route not in rendered.routes and (term in route_formats.split() or term in accept_formats.split()) %}
+                                                {{ tool_card(tool, category, category_id) }}
+                                                {% set match.found = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </div>
+                            </div>
                         {% endfor %}
-                    </div>
+                    {% else %}
+                        <div class="tools-grid">
+                            {% for tool in category_tools %}
+                                {{ tool_card(tool, category, category_id, loop.index <= 2, "Mais usado" if loop.index == 1 else ("Novo" if loop.index == 2 else none)) }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </section>
             {% endfor %}
 

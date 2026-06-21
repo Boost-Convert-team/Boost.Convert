@@ -2178,23 +2178,66 @@
         gap: 28px;
     }
 
+    .tools-navigation-block {
+        position: sticky;
+        top: 76px;
+        gap: 9px;
+        padding: 9px;
+        border-radius: 20px;
+    }
+
     .tools-sidebar {
         gap: 5px;
         flex-wrap: nowrap;
         overflow-x: auto;
-        padding: 8px;
-        border-radius: 18px;
+        padding: 0 0 8px;
+        border-radius: 0;
         justify-content: flex-start;
     }
 
     .tools-sidebar a {
         flex: 0 0 auto;
-        min-height: 38px;
-        padding: 0 12px;
+        min-height: 40px;
+        padding: 0 13px;
+    }
+
+    .tools-quick-nav {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin: 0;
+        padding: 0;
+        border-radius: 0;
+        scrollbar-width: none;
+    }
+
+    .tools-quick-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tools-quick-nav a {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 0 13px;
+        font-size: 13px;
     }
 
     .tools-section {
         padding: 34px 0;
+    }
+
+    .tool-subsection {
+        padding-top: 18px;
+        scroll-margin-top: 150px;
+    }
+
+    .tool-subsection + .tool-subsection {
+        margin-top: 22px;
+        padding-top: 26px;
+    }
+
+    .tool-subsection-heading h3 {
+        font-size: 21px;
     }
 
     .section-header {

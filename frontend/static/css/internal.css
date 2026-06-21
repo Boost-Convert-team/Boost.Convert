@@ -237,9 +237,10 @@ body:has(.status-card) .section-heading h1 {
     border-top-color: rgba(234, 223, 211, .42);
 }
 
+.tools-navigation-block,
 .tools-sidebar {
     border-color: rgba(234, 223, 211, .52);
-    background: rgba(255, 255, 255, .56);
+    background: rgba(255, 255, 255, .94);
 }
 
 .tools-sidebar a::before {
