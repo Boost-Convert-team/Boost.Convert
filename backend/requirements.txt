@@ -26,3 +26,4 @@ python-pptx>=1.0.2
 vtracer>=0.6.0
 mercadopago>=2.2.0
 requests>=2.31.0
+youtube-transcript-api>=1.2.4
