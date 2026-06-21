@@ -1,86 +1,147 @@
-.status-pill {
-    padding: 4px 7px;
-    border-radius: 999px;
-    background: var(--accent);
-    color: #7a3c06;
-    font-weight: var(--weight-ui-medium);
+body:has(.conversion-status-stage) {
+    background: #f7f7fb;
 }
 
-.status-card {
-    max-width: 840px;
-    margin: 0 auto;
-    padding: 34px;
+body:has(.conversion-status-stage) .site-shell {
+    width: 100%;
+    max-width: none;
+    background: transparent;
 }
 
-.status-card h2,
-.status-card h3 {
-    margin: 18px 0 10px;
-    color: #243f3c;
-    font-size: 20px;
-    font-weight: var(--weight-logo);
+body:has(.conversion-status-stage) .topbar,
+body:has(.conversion-status-stage) .footer {
+    display: none;
 }
 
-.status-card p {
-    color: var(--muted);
-    font-weight: var(--weight-ui);
-    line-height: 1.55;
-}
-
-.details-list {
+.conversion-status-stage {
     display: grid;
-    gap: 1px;
-    margin: 26px 0;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    overflow: hidden;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 100vh;
+    padding: clamp(26px, 5vw, 42px) 24px clamp(48px, 8vw, 82px);
+    background:
+        radial-gradient(ellipse 42% 24% at 50% 0%, rgba(240, 138, 36, .06), transparent 68%),
+        #f7f7fb;
 }
 
-.details-row {
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 18px;
-    padding: 14px 16px;
-    background: #fff;
-    transition: background-color 680ms var(--ease-air);
+.conversion-status-logo {
+    justify-self: center;
 }
 
-.details-row:hover {
-    background: rgba(255, 244, 232, .42);
+.conversion-status-logo img {
+    display: block;
+    width: clamp(160px, 18vw, 214px);
+    height: auto;
 }
 
-.details-row dt {
-    color: var(--muted);
-}
-
-.details-row dd {
-    margin: 0;
-    color: #253f3c;
-    font-weight: var(--weight-ui-medium);
-    word-break: break-word;
-}
-
-.batch-list {
-    display: grid;
-    gap: 12px;
-    margin: 24px 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.batch-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 14px;
+.conversion-status-panel {
+    display: flex;
     align-items: center;
-    padding: 14px 16px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: #fff;
-    transition: transform 760ms var(--ease-air), border-color 760ms var(--ease-air), box-shadow 760ms var(--ease-air);
+    align-self: center;
+    flex-direction: column;
+    justify-content: center;
+    width: min(100%, 860px);
+    margin: 0 auto;
+    text-align: center;
 }
 
-.batch-item:hover {
-    transform: translateY(-2px);
-    border-color: rgba(240, 138, 36, .24);
-    box-shadow: var(--shadow-lift);
+.conversion-status-panel h1 {
+    margin: clamp(54px, 8vw, 86px) 0 28px;
+    color: #1f2937;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.14;
+    font-weight: 700;
+}
+
+.conversion-status-spinner {
+    width: 108px;
+    height: 108px;
+    margin: 0 auto 34px;
+    border: 12px solid rgba(226, 226, 229, .94);
+    border-top-color: var(--orange);
+    border-right-color: var(--orange);
+    border-radius: 999px;
+    animation: conversionStatusSpin 1.08s linear infinite;
+}
+
+.conversion-status-text,
+.conversion-status-wait-note {
+    max-width: 760px;
+    margin: 0 auto;
+    color: #35423f;
+    font-family: var(--font-ui);
+    font-size: clamp(16px, 2vw, 18px);
+    line-height: 1.65;
+}
+
+.conversion-status-wait-note {
+    margin-top: 18px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 420ms var(--ease-air), transform 420ms var(--ease-air);
+}
+
+.conversion-status-wait-note.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.conversion-status-success {
+    display: grid;
+    place-items: center;
+    width: 108px;
+    height: 108px;
+    margin: clamp(52px, 7vw, 78px) auto 4px;
+    border-radius: 999px;
+    background: rgba(255, 244, 232, .96);
+    color: var(--orange-deep);
+    box-shadow: inset 0 0 0 1px rgba(240, 138, 36, .16);
+}
+
+.conversion-status-success svg {
+    width: 52px;
+    height: 52px;
+    stroke-width: 2.4;
+}
+
+.conversion-status-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.conversion-status-actions .button {
+    min-width: 210px;
+}
+
+@keyframes conversionStatusSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 640px) {
+    .conversion-status-stage {
+        padding-inline: 18px;
+    }
+
+    .conversion-status-panel h1 {
+        margin-top: 48px;
+    }
+
+    .conversion-status-spinner,
+    .conversion-status-success {
+        width: 88px;
+        height: 88px;
+    }
+
+    .conversion-status-spinner {
+        border-width: 10px;
+    }
+
+    .conversion-status-actions,
+    .conversion-status-actions .button {
+        width: 100%;
+    }
 }

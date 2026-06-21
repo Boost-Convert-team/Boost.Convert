@@ -1,65 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}Status da convers&atilde;o - Boost.Convert{% endblock %}
+{% block title %}Convers&atilde;o - Boost.Convert{% endblock %}
 
 {% block content %}
-{% if job.status in ["queued", "processing"] %}
-    <meta http-equiv="refresh" content="3">
-{% endif %}
+{% set format_labels = {
+    "aac": "AAC",
+    "avi": "AVI",
+    "csv": "CSV",
+    "doc": "WORD",
+    "docx": "WORD",
+    "excel": "EXCEL",
+    "files": "ARQUIVOS",
+    "flac": "FLAC",
+    "gif": "GIF",
+    "heic": "HEIC",
+    "html": "HTML",
+    "images": "IMAGENS",
+    "jpeg": "JPG",
+    "jpg": "JPG",
+    "json": "JSON",
+    "md": "MARKDOWN",
+    "mkv": "MKV",
+    "mov": "MOV",
+    "mp3": "MP3",
+    "mp4": "MP4",
+    "odp": "POWERPOINT",
+    "ods": "EXCEL",
+    "odt": "WORD",
+    "ogg": "OGG",
+    "pdf": "PDF",
+    "png": "PNG",
+    "ppt": "POWERPOINT",
+    "pptx": "POWERPOINT",
+    "svg": "SVG",
+    "text": "TXT",
+    "txt": "TXT",
+    "wav": "WAV",
+    "webm": "WEBM",
+    "webp": "WEBP",
+    "wma": "WMA",
+    "xls": "EXCEL",
+    "xlsx": "EXCEL",
+    "zip": "ZIP"
+} %}
+{% set source_parts = (job.original_filename or "").rsplit(".", 1) %}
+{% set target_parts = (job.output_filename or "").rsplit(".", 1) %}
+{% set source_ext = source_parts[1]|lower if source_parts|length > 1 else "arquivo" %}
+{% set target_ext = target_parts[1]|lower if target_parts|length > 1 else "arquivo" %}
+{% set tool_parts = (job.tool_name or "").split("_to_", 1) %}
+{% set source_token = tool_parts[0] if tool_parts|length == 2 else source_ext %}
+{% set target_token = tool_parts[1] if tool_parts|length == 2 else target_ext %}
+{% set source_format = format_labels.get(source_token, source_token|upper) %}
+{% set target_format = format_labels.get(target_token, target_token|upper) %}
+{% set is_pending = job.status in ["queued", "processing"] %}
 
-<main class="page-section">
-    <section class="status-card reveal" aria-labelledby="conversion-status-title">
-        <div class="eyebrow"><i data-lucide="activity" aria-hidden="true"></i> Status da convers&atilde;o</div>
-        <h2 class="file-name-safe file-name-truncated" id="conversion-status-title" title="{{ job.output_filename }}">{{ job.output_filename|truncate(35, True, '...', 0) }}</h2>
+<main
+    class="conversion-status-stage"
+    {% if is_pending %}
+        data-conversion-status-page
+        data-status-urls='["{{ url_for("home.conversion_status_json", job_id=job.id) }}"]'
+    {% endif %}
+>
+    <a class="conversion-status-logo" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
+        <img src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+    </a>
 
-        <dl class="details-list">
-            <div class="details-row">
-                <dt>Ferramenta</dt>
-                <dd>{{ job.tool_name }}</dd>
-            </div>
-            <div class="details-row">
-                <dt>Arquivo original</dt>
-                <dd class="file-name-safe file-name-truncated" title="{{ job.original_filename }}">{{ job.original_filename|truncate(35, True, '...', 0) }}</dd>
-            </div>
-            <div class="details-row">
-                <dt>Status</dt>
-                <dd>{{ job.status }}</dd>
-            </div>
-        </dl>
-
-        {% if job.options %}
-            <section class="side-note">
-                <h3>Op&ccedil;&otilde;es usadas</h3>
-                <ul>
-                    {% for name, value in job.options.items() %}
-                        <li>{{ name }}: {{ value }}</li>
-                    {% endfor %}
-                </ul>
-            </section>
-        {% endif %}
-
-        {% if job.status == "queued" %}
-            <p>Sua convers&atilde;o entrou na fila. Esta p&aacute;gina ser&aacute; atualizada automaticamente.</p>
-        {% elif job.status == "processing" %}
-            <p>Seu arquivo est&aacute; sendo processado. Esta p&aacute;gina ser&aacute; atualizada automaticamente.</p>
+    <section class="conversion-status-panel reveal" aria-labelledby="conversion-status-title">
+        {% if is_pending %}
+            <h1 id="conversion-status-title">Convertendo {{ source_format }} para {{ target_format }}...</h1>
+            <div class="conversion-status-spinner" aria-hidden="true"></div>
+            <p class="conversion-status-text">Seu arquivo est&aacute; sendo processado. Isso normalmente leva apenas alguns segundos.</p>
+            <p class="conversion-status-wait-note" data-delayed-conversion-note hidden>
+                N&atilde;o feche esta p&aacute;gina. Arquivos maiores podem levar alguns minutos para ficarem prontos.
+            </p>
         {% elif job.status == "done" and is_downloadable %}
-            <p>Convers&atilde;o finalizada. O arquivo j&aacute; pode ser baixado.</p>
-            <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
-                Baixar arquivo convertido
-                <i data-lucide="download" aria-hidden="true"></i>
-            </a>
+            <div class="conversion-status-success" aria-hidden="true">
+                <i data-lucide="check" aria-hidden="true"></i>
+            </div>
+            <h1 id="conversion-status-title">Convers&atilde;o conclu&iacute;da</h1>
+            <p class="conversion-status-text">Seu arquivo est&aacute; pronto para download.</p>
+            <div class="conversion-status-actions">
+                <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
+                    Baixar arquivo convertido
+                    <i data-lucide="download" aria-hidden="true"></i>
+                </a>
+                <a class="button button-secondary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
+            </div>
         {% elif job.status == "done" %}
-            <p>Convers&atilde;o finalizada. O arquivo convertido j&aacute; foi removido da reten&ccedil;&atilde;o tempor&aacute;ria.</p>
+            <h1 id="conversion-status-title">Arquivo indispon&iacute;vel</h1>
+            <p class="conversion-status-text">Esse download expirou. Voc&ecirc; pode converter o arquivo novamente.</p>
+            <div class="conversion-status-actions">
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
+            </div>
         {% elif job.status == "failed" %}
-            <p>N&atilde;o foi poss&iacute;vel concluir a convers&atilde;o.</p>
-            <section class="side-note">
-                <h3>O que aconteceu</h3>
-                <p>{{ job.error_message or "Ocorreu um erro inesperado durante a convers&atilde;o." }}</p>
-                <p>Verifique se o arquivo abre normalmente no seu computador e tente enviar novamente.</p>
-            </section>
+            <h1 id="conversion-status-title">N&atilde;o foi poss&iacute;vel concluir</h1>
+            <p class="conversion-status-text">Verifique se o arquivo abre normalmente no seu computador e tente converter novamente.</p>
+            <div class="conversion-status-actions">
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
+            </div>
         {% endif %}
-
-        <p><a class="tool-link" href="{{ url_for('home.tools') }}">Voltar para ferramentas <i data-lucide="arrow-right" aria-hidden="true"></i></a></p>
     </section>
 </main>
 {% endblock %}

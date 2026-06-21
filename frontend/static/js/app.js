@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.BoostForms?.initHeroUpload();
     window.BoostForms?.initLoadingForms();
     window.BoostForms?.initAuthToggle();
+    initConversionStatusPage();
     window.BoostNavigation?.initPageTransitions();
     window.BoostNavigation?.initToolsSidebar();
 });
@@ -84,4 +85,65 @@ function activateHeroHeadlinePhrase(copy) {
         copy.classList.remove("is-entering");
         copy.classList.add("is-active");
     });
+}
+
+function initConversionStatusPage() {
+    const root = document.querySelector("[data-conversion-status-page]");
+    if (!root) return;
+
+    showLongConversionMessage(root);
+    startConversionStatusPolling(root);
+}
+
+function showLongConversionMessage(root) {
+    const note = root.querySelector("[data-delayed-conversion-note]");
+    if (!note) return;
+
+    window.setTimeout(() => {
+        note.hidden = false;
+        note.classList.add("is-visible");
+    }, 10000);
+}
+
+function startConversionStatusPolling(root) {
+    const urls = getConversionStatusUrls(root);
+    if (urls.length === 0) return;
+
+    window.setInterval(() => {
+        refreshCompletedConversionStatus(urls);
+    }, 3000);
+}
+
+function getConversionStatusUrls(root) {
+    try {
+        return JSON.parse(root.dataset.statusUrls || "[]");
+    } catch (error) {
+        return [];
+    }
+}
+
+async function refreshCompletedConversionStatus(urls) {
+    try {
+        const statuses = await Promise.all(urls.map(fetchConversionStatus));
+        if (statuses.length > 0 && statuses.every(isConversionStatusReady)) {
+            window.location.reload();
+        }
+    } catch (error) {
+        return;
+    }
+}
+
+async function fetchConversionStatus(url) {
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return "";
+
+    const payload = await response.json();
+    return String(payload.status || "");
+}
+
+function isConversionStatusReady(status) {
+    const pendingStatuses = ["queued", "processing"];
+    if (!status) return false;
+
+    return !pendingStatuses.includes(status);
 }

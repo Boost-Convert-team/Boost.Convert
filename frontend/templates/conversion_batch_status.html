@@ -1,43 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}Lote de convers&otilde;es - Boost.Convert{% endblock %}
+{% block title %}Convers&atilde;o - Boost.Convert{% endblock %}
 
 {% block content %}
-{% if has_pending_jobs %}
-    <meta http-equiv="refresh" content="3">
-{% endif %}
+<main
+    class="conversion-status-stage"
+    {% if has_pending_jobs %}
+        data-conversion-status-page
+        data-status-urls='[{% for job in jobs %}"{{ url_for("home.conversion_status_json", job_id=job.id) }}"{% if not loop.last %},{% endif %}{% endfor %}]'
+    {% endif %}
+>
+    <a class="conversion-status-logo" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
+        <img src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+    </a>
 
-<main class="page-section">
-    <section class="status-card reveal">
-        <div class="eyebrow"><i data-lucide="list-checks" aria-hidden="true"></i> Lote de convers&otilde;es</div>
-        <h2>Arquivos enviados</h2>
-        <p>Acompanhe cada arquivo do lote e baixe tudo quando as convers&otilde;es terminarem.</p>
-
-        {% if all_jobs_downloadable %}
-            <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
-                Baixar todos
-                <i data-lucide="download" aria-hidden="true"></i>
-            </a>
+    <section class="conversion-status-panel reveal" aria-labelledby="conversion-batch-title">
+        {% if has_pending_jobs %}
+            <h1 id="conversion-batch-title">Convertendo seus arquivos...</h1>
+            <div class="conversion-status-spinner" aria-hidden="true"></div>
+            <p class="conversion-status-text">Seus arquivos est&atilde;o sendo processados. Isso normalmente leva apenas alguns segundos.</p>
+            <p class="conversion-status-wait-note" data-delayed-conversion-note hidden>
+                N&atilde;o feche esta p&aacute;gina. Arquivos maiores podem levar alguns minutos para ficarem prontos.
+            </p>
+        {% elif all_jobs_downloadable %}
+            <div class="conversion-status-success" aria-hidden="true">
+                <i data-lucide="check" aria-hidden="true"></i>
+            </div>
+            <h1 id="conversion-batch-title">Convers&atilde;o conclu&iacute;da</h1>
+            <p class="conversion-status-text">Seus arquivos est&atilde;o prontos para download.</p>
+            <div class="conversion-status-actions">
+                <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
+                    Baixar arquivos
+                    <i data-lucide="download" aria-hidden="true"></i>
+                </a>
+                <a class="button button-secondary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
+            </div>
+        {% else %}
+            <h1 id="conversion-batch-title">N&atilde;o foi poss&iacute;vel concluir</h1>
+            <p class="conversion-status-text">Verifique se os arquivos abrem normalmente no seu computador e tente converter novamente.</p>
+            <div class="conversion-status-actions">
+                <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
+            </div>
         {% endif %}
-
-        <ul class="batch-list">
-            {% for job in jobs %}
-                <li class="batch-item">
-                    <strong class="file-name-safe file-name-truncated" title="{{ job.original_filename }}">{{ job.original_filename|truncate(35, True, '...', 0) }}</strong>
-                    <span class="status-pill">{{ job.status }}</span>
-
-                    {% if job.id in downloadable_job_ids %}
-                        <a class="tool-link" href="{{ url_for('home.conversion_download', job_id=job.id) }}">Baixar</a>
-                    {% elif job.status == "done" %}
-                        <span class="tool-link">Removido</span>
-                    {% elif job.status == "failed" %}
-                        <a class="tool-link" href="{{ url_for('home.conversion_status', job_id=job.id) }}">Ver detalhes</a>
-                    {% else %}
-                        <a class="tool-link" href="{{ url_for('home.conversion_status', job_id=job.id) }}">Ver status</a>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
     </section>
 </main>
 {% endblock %}
