@@ -1,0 +1,136 @@
+.format-badge-cloud {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.format-badge {
+    min-width: max-content;
+    color: #203f3a;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.format-badge:focus-visible {
+    outline: 3px solid rgba(240, 138, 36, .34);
+    outline-offset: 5px;
+    border-color: rgba(240, 138, 36, .44);
+}
+
+.format-badge:active {
+    transform: translateY(-1px) scale(.99);
+}
+
+@media (max-width: 1024px) {
+    .home-page .format-cloud {
+        min-height: auto;
+        max-width: min(100%, 820px);
+        gap: 36px;
+        place-items: center;
+    }
+
+    .home-page .format-badge-cloud {
+        position: relative;
+        inset: auto;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        width: 100%;
+        max-width: 760px;
+        pointer-events: auto;
+    }
+
+    .home-page .format-badge {
+        position: relative;
+        inset: auto;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        padding: 0 14px;
+        font-size: 14px;
+        animation: none;
+    }
+
+    .home-page .badge-pdf,
+    .home-page .badge-docx,
+    .home-page .badge-png,
+    .home-page .badge-webp,
+    .home-page .badge-mp4,
+    .home-page .badge-mp3,
+    .home-page .badge-compress,
+    .home-page .badge-export {
+        top: auto;
+        right: auto;
+        bottom: auto;
+        left: auto;
+        display: inline-flex;
+    }
+}
+
+@media (max-width: 520px) {
+    .home-page .format-ecosystem {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .home-page .format-cloud {
+        gap: 28px;
+    }
+
+    .home-page .ecosystem-center {
+        max-width: 100%;
+    }
+
+    .home-page .ecosystem-center h2 {
+        font-size: 38px;
+        line-height: 1;
+    }
+
+    .home-page .ecosystem-center .button {
+        max-width: 280px;
+    }
+
+    .home-page .format-badge-cloud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .home-page .format-badge {
+        min-height: 42px;
+        gap: 7px;
+        padding: 0 10px;
+        font-size: 13px;
+    }
+
+    .home-page .format-badge svg {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+@media (max-width: 360px) {
+    .home-page .format-ecosystem {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .home-page .ecosystem-center h2 {
+        font-size: 34px;
+    }
+
+    .home-page .format-badge-cloud {
+        gap: 8px;
+    }
+
+    .home-page .format-badge {
+        gap: 6px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+}

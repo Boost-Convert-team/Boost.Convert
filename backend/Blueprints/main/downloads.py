@@ -2,6 +2,7 @@ import os
 import tempfile
 import zipfile
 from flask import current_app
+from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.main.job_access import is_job_downloadable
 from Blueprints.services.privacy.download_stream import stream_private_download
 from Blueprints.services.privacy.file_retention import expire_conversion_job_files
@@ -19,9 +20,9 @@ def send_conversion_file(job):
 def send_conversion_batch_zip(jobs):
     downloadable_jobs = [job for job in jobs if is_job_downloadable(job)]
     if not downloadable_jobs:
-        return "Nenhum arquivo finalizado para baixar.", 409
+        return render_conversion_error_response(ValueError("Nenhum arquivo finalizado para baixar."), 409)
     if len(downloadable_jobs) != len(jobs):
-        return "Aguarde todas as conversoes finalizarem para baixar o lote.", 409
+        return render_conversion_error_response(ValueError("Aguarde todas as conversoes finalizarem para baixar o lote."), 409)
 
     zip_path = create_batch_zip(downloadable_jobs)
     app = current_app._get_current_object()

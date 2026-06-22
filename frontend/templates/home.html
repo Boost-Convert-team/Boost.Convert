@@ -262,14 +262,16 @@
                 </a>
             </div>
 
-            <span class="format-badge badge-pdf"><i data-lucide="file-text" aria-hidden="true"></i> PDF</span>
-            <span class="format-badge badge-docx"><i data-lucide="file-type" aria-hidden="true"></i> DOCX</span>
-            <span class="format-badge badge-png"><i data-lucide="image" aria-hidden="true"></i> PNG</span>
-            <span class="format-badge badge-webp"><i data-lucide="image" aria-hidden="true"></i> WEBP</span>
-            <span class="format-badge badge-mp4"><i data-lucide="video" aria-hidden="true"></i> MP4</span>
-            <span class="format-badge badge-mp3"><i data-lucide="music" aria-hidden="true"></i> MP3</span>
-            <span class="format-badge badge-compress"><i data-lucide="minimize-2" aria-hidden="true"></i> Compress&atilde;o</span>
-            <span class="format-badge badge-export"><i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</span>
+            <div class="format-badge-cloud" aria-label="Formatos e recursos populares">
+                <a class="format-badge badge-pdf" href="{{ url_for('home.tools') }}#documentos-pdf"><i data-lucide="file-text" aria-hidden="true"></i> PDF</a>
+                <a class="format-badge badge-docx" href="{{ url_for('home.tools') }}#documentos-word"><i data-lucide="file-type" aria-hidden="true"></i> DOCX</a>
+                <a class="format-badge badge-png" href="{{ url_for('home.tools') }}#imagens"><i data-lucide="image" aria-hidden="true"></i> PNG</a>
+                <a class="format-badge badge-webp" href="{{ url_for('home.tools') }}#imagens"><i data-lucide="image" aria-hidden="true"></i> WEBP</a>
+                <a class="format-badge badge-mp4" href="{{ url_for('home.tools') }}#videos"><i data-lucide="video" aria-hidden="true"></i> MP4</a>
+                <a class="format-badge badge-mp3" href="{{ url_for('home.tools') }}#audios"><i data-lucide="music" aria-hidden="true"></i> MP3</a>
+                <a class="format-badge badge-compress" href="{{ url_for('home.tools') }}#documentos-pdf"><i data-lucide="minimize-2" aria-hidden="true"></i> Compress&atilde;o</a>
+                <a class="format-badge badge-export" href="{{ url_for('home.tools') }}#ferramentas"><i class="converting-icon" data-lucide="refresh-cw" aria-hidden="true"></i> Exporta&ccedil;&atilde;o</a>
+            </div>
         </div>
     </section>
 

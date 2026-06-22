@@ -6,6 +6,7 @@ load_dotenv()
 from flask_migrate import Migrate
 import pip_system_certs.wrapt_requests
 from config import Config
+from error_pages import register_error_handlers
 from extensions import db, lm, oauth
 from models import Usuario
 from register_blueprints import registrando_blueprints
@@ -51,11 +52,9 @@ def create_app():
             "tool_counts": build_tool_counts(),
         }
 
-    @app.errorhandler(413)
-    def request_entity_too_large(error): return "Arquivo muito grande para upload.", 413
-
     @app.before_request
     def cleanup_conversion_files(): run_conversion_file_cleanup(app)
 
     registrando_blueprints(app)
+    register_error_handlers(app)
     return app

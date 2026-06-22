@@ -1,5 +1,6 @@
 from flask import current_app, redirect, url_for
 from extensions import db
+from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.services.convertions_services.conversion_limits import validate_multi_file_count
 from Blueprints.services.convertions_services.upload_flow.job_factory import create_file_collection_job, create_pdf_collection_job, create_single_conversion_job
 from Blueprints.services.convertions_services.upload_flow.job_submission import submit_jobs
@@ -36,7 +37,8 @@ def handle_pdf_collection_conversion(convert_function, output_extension, tool_na
         context = get_conversion_request_context()
         files = get_valid_upload_files()
 
-        if len(files) < 2: return "Envie pelo menos dois arquivos PDF.", 400
+        if len(files) < 2:
+            return render_conversion_error_response(ValueError("Envie pelo menos dois arquivos PDF."), 400)
 
         validate_uploaded_file_count(files, context.usuario)
         reserve_usage(context, amount=1)
@@ -61,7 +63,8 @@ def handle_file_collection_conversion(allowed_extensions, convert_function, outp
         context = get_conversion_request_context()
         files = get_valid_upload_files()
 
-        if len(files) < 1: return "Envie pelo menos um arquivo.", 400
+        if len(files) < 1:
+            return render_conversion_error_response(ValueError("Envie pelo menos um arquivo."), 400)
 
         validate_uploaded_file_count(files, context.usuario)
         reserve_usage(context, amount=1)
@@ -119,12 +122,15 @@ def redirect_to_job_status(job_ids):
     return redirect(url_for("home.conversion_batch_status", job_ids=",".join(job_ids)))
 
 def handle_conversion_error(exc, refused_log_message, internal_log_message):
-    if isinstance(exc, PermissionError): return str(exc), 403
     db.session.rollback()
+
+    if isinstance(exc, PermissionError):
+        current_app.logger.info(refused_log_message, type(exc).__name__)
+        return render_conversion_error_response(exc, 403)
 
     if isinstance(exc, ValueError):
         current_app.logger.info(refused_log_message, type(exc).__name__)
-        return str(exc), 400
+        return render_conversion_error_response(exc, 400)
     
     current_app.logger.error("%s: %s", internal_log_message, type(exc).__name__, exc_info=False)
-    return "Erro ao processar os arquivos.", 500
+    return render_conversion_error_response(RuntimeError("Erro ao processar os arquivos."), 500)

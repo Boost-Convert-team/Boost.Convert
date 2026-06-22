@@ -94,8 +94,18 @@
                 <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
             </div>
         {% elif job.status == "failed" %}
+            <div class="conversion-status-error-icon" aria-hidden="true">
+                <i data-lucide="circle-alert" aria-hidden="true"></i>
+            </div>
             <h1 id="conversion-status-title">N&atilde;o foi poss&iacute;vel concluir</h1>
-            <p class="conversion-status-text">Verifique se o arquivo abre normalmente no seu computador e tente converter novamente.</p>
+            <p class="conversion-status-text">
+                {% if job.error_message %}
+                    {{ job.error_message }}
+                {% else %}
+                    O Boost n&atilde;o conseguiu processar este arquivo com seguran&ccedil;a.
+                {% endif %}
+            </p>
+            <p class="conversion-status-help">Verifique se o arquivo abre normalmente, salve uma nova c&oacute;pia e tente converter novamente.</p>
             <div class="conversion-status-actions">
                 <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
             </div>

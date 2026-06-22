@@ -4,6 +4,7 @@
 
 {% block content %}
 {% set is_ready_for_download = all_jobs_downloadable %}
+{% set failed_jobs = jobs|selectattr("status", "equalto", "failed")|list %}
 <main
     class="conversion-status-stage{% if is_ready_for_download %} conversion-status-stage--download-ready{% endif %}"
     {% if has_pending_jobs %}
@@ -37,8 +38,28 @@
                 <a class="button button-secondary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
             </div>
         {% else %}
+            <div class="conversion-status-error-icon" aria-hidden="true">
+                <i data-lucide="circle-alert" aria-hidden="true"></i>
+            </div>
             <h1 id="conversion-batch-title">N&atilde;o foi poss&iacute;vel concluir</h1>
-            <p class="conversion-status-text">Verifique se os arquivos abrem normalmente no seu computador e tente converter novamente.</p>
+            <p class="conversion-status-text">Alguns arquivos n&atilde;o puderam ser processados pelo Boost.</p>
+            {% if failed_jobs %}
+                <ul class="conversion-status-error-list" aria-label="Erros por arquivo">
+                    {% for job in failed_jobs %}
+                        <li>
+                            <strong class="file-name-safe">{{ job.original_filename }}</strong>
+                            <span>
+                                {% if job.error_message %}
+                                    {{ job.error_message }}
+                                {% else %}
+                                    N&atilde;o foi poss&iacute;vel processar este arquivo com seguran&ccedil;a.
+                                {% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <p class="conversion-status-help">Abra os arquivos no seu computador, salve novas c&oacute;pias quando necess&aacute;rio e envie novamente apenas os arquivos compat&iacute;veis.</p>
             <div class="conversion-status-actions">
                 <a class="button button-primary" href="{{ url_for('home.tools') }}">Converter outro arquivo</a>
             </div>

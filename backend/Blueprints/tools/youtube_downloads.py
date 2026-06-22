@@ -3,10 +3,11 @@ import shutil
 import subprocess
 import tempfile
 
-from flask import Blueprint, render_template, request, send_file
+from flask import Blueprint, current_app, render_template, request, send_file
 from pytubefix import YouTube
 from werkzeug.utils import secure_filename
 
+from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.services.convertions_services.ffmpeg_runner import get_ffmpeg_command
 
 
@@ -24,9 +25,9 @@ def download_youtube():
     qualidade = (request.form.get("qualidade") or "").strip()
 
     if not url:
-        return "Envie uma URL do YouTube", 400
+        return render_conversion_error_response(ValueError("Envie uma URL do YouTube"), 400)
     if not qualidade:
-        return "Escolha uma qualidade", 400
+        return render_conversion_error_response(ValueError("Escolha uma qualidade"), 400)
 
     temp_dir = None
     try:
@@ -37,11 +38,12 @@ def download_youtube():
     except ValueError as exc:
         if temp_dir:
             shutil.rmtree(temp_dir, ignore_errors=True)
-        return str(exc), 400
+        return render_conversion_error_response(exc, 400)
     except Exception as exc:
         if temp_dir:
             shutil.rmtree(temp_dir, ignore_errors=True)
-        return f"Erro ao processar o video: {exc}", 500
+        current_app.logger.error("Erro ao processar video do YouTube: %s", type(exc).__name__, exc_info=False)
+        return render_conversion_error_response(RuntimeError("Nao foi possivel processar o video do YouTube."), 500)
 
 
 def processar_download(url, qualidade):

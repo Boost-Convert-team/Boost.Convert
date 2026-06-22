@@ -1,6 +1,7 @@
 import os
 from flask import abort, jsonify, render_template, Blueprint, request, url_for
 
+from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.main.account_workspace import get_account_workspace
 from Blueprints.main.downloads import send_conversion_batch_zip, send_conversion_file
 from Blueprints.main.job_access import get_accessible_job_or_404, get_accessible_jobs_from_ids, is_job_downloadable
@@ -160,9 +161,9 @@ def conversion_status_json(job_id):
 def conversion_download(job_id):
     job = get_accessible_job_or_404(job_id)
     if job.status != "done":
-        return "Conversao ainda nao finalizada.", 409
+        return render_conversion_error_response(ValueError("Conversao ainda nao finalizada."), 409)
     if not os.path.exists(job.output_path):
-        return "Arquivo final nao encontrado.", 404
+        return render_conversion_error_response(ValueError("Arquivo final nao encontrado."), 404)
     return send_conversion_file(job)
 
 
