@@ -2,14 +2,14 @@ body:has(.conversion-status-stage) {
     background: #f7f7fb;
 }
 
-body:has(.conversion-status-stage) .site-shell {
+body:has(.conversion-status-stage:not(.conversion-status-stage--download-ready)) .site-shell {
     width: 100%;
     max-width: none;
     background: transparent;
 }
 
-body:has(.conversion-status-stage) .topbar,
-body:has(.conversion-status-stage) .footer {
+body:has(.conversion-status-stage:not(.conversion-status-stage--download-ready)) .topbar,
+body:has(.conversion-status-stage:not(.conversion-status-stage--download-ready)) .footer {
     display: none;
 }
 
@@ -31,6 +31,15 @@ body:has(.conversion-status-stage) .footer {
     display: block;
     width: clamp(160px, 18vw, 214px);
     height: auto;
+}
+
+.conversion-status-stage--download-ready {
+    min-height: auto;
+    padding-block: clamp(76px, 8vw, 118px);
+}
+
+.conversion-status-stage--download-ready .conversion-status-logo {
+    display: none;
 }
 
 .conversion-status-panel {
@@ -90,7 +99,7 @@ body:has(.conversion-status-stage) .footer {
     place-items: center;
     width: 108px;
     height: 108px;
-    margin: clamp(52px, 7vw, 78px) auto 4px;
+    margin: 0 auto 4px;
     border-radius: 999px;
     background: rgba(255, 244, 232, .96);
     color: var(--orange-deep);
@@ -113,6 +122,25 @@ body:has(.conversion-status-stage) .footer {
 
 .conversion-status-actions .button {
     min-width: 210px;
+}
+
+.conversion-status-download-actions {
+    align-items: center;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.conversion-status-download-actions .button-primary {
+    width: min(100%, 420px);
+    min-height: 58px;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.conversion-status-download-actions .button-secondary {
+    width: min(100%, 280px);
+    justify-content: center;
 }
 
 @keyframes conversionStatusSpin {

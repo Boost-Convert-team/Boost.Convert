@@ -53,17 +53,18 @@
 {% set source_format = format_labels.get(source_token, source_token|upper) %}
 {% set target_format = format_labels.get(target_token, target_token|upper) %}
 {% set is_pending = job.status in ["queued", "processing"] %}
+{% set is_ready_for_download = job.status == "done" and is_downloadable %}
 
 <main
-    class="conversion-status-stage"
+    class="conversion-status-stage{% if is_ready_for_download %} conversion-status-stage--download-ready{% endif %}"
     {% if is_pending %}
         data-conversion-status-page
         data-status-urls='["{{ url_for("home.conversion_status_json", job_id=job.id) }}"]'
     {% endif %}
 >
-    <a class="conversion-status-logo" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
+    <div class="conversion-status-logo" aria-label="Boost.Convert">
         <img src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
-    </a>
+    </div>
 
     <section class="conversion-status-panel reveal" aria-labelledby="conversion-status-title">
         {% if is_pending %}
@@ -73,13 +74,13 @@
             <p class="conversion-status-wait-note" data-delayed-conversion-note hidden>
                 N&atilde;o feche esta p&aacute;gina. Arquivos maiores podem levar alguns minutos para ficarem prontos.
             </p>
-        {% elif job.status == "done" and is_downloadable %}
+        {% elif is_ready_for_download %}
             <div class="conversion-status-success" aria-hidden="true">
                 <i data-lucide="check" aria-hidden="true"></i>
             </div>
             <h1 id="conversion-status-title">Convers&atilde;o conclu&iacute;da</h1>
             <p class="conversion-status-text">Seu arquivo est&aacute; pronto para download.</p>
-            <div class="conversion-status-actions">
+            <div class="conversion-status-actions conversion-status-download-actions">
                 <a class="button button-primary" href="{{ url_for('home.conversion_download', job_id=job.id) }}">
                     Baixar arquivo convertido
                     <i data-lucide="download" aria-hidden="true"></i>

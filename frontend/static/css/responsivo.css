@@ -30,9 +30,12 @@
         font-size: clamp(54px, 4.8vw, 66px);
     }
 
-    .hero-actions,
-    .hero-metrics {
+    .hero-actions {
         max-width: 540px;
+    }
+
+    .hero-metrics {
+        max-width: 560px;
     }
 
     .hero-actions .button-secondary {
@@ -40,14 +43,14 @@
     }
 
     .hero-metrics {
-        grid-template-columns: repeat(2, max-content);
-        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
         margin-top: 14px;
     }
 
     .hero-metrics div {
-        grid-template-columns: 40px max-content;
-        gap: 9px;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 9px 12px;
     }
 
     .hero-metrics .mini-icon {

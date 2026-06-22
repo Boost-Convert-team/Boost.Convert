@@ -273,19 +273,19 @@
 .hero-metrics {
     display: grid;
     align-items: center;
-    grid-template-columns: repeat(2, minmax(0, 230px));
-    gap: 12px;
-    max-width: 500px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    max-width: 600px;
     margin-top: 16px;
 }
 
 .hero-metrics div {
     display: grid;
     grid-template-columns: 40px minmax(0, 1fr);
-    gap: 6px 12px;
+    gap: 6px 14px;
     align-items: center;
     min-height: 76px;
-    padding: 12px;
+    padding: 12px 14px;
     border: 1px solid rgba(232, 218, 203, .46);
     border-radius: 16px;
     background: rgba(255, 255, 255, .36);
@@ -325,7 +325,7 @@
     color: var(--muted);
     font-size: 12px;
     line-height: 1.32;
-    max-width: 160px;
+    max-width: 190px;
 }
 
 .boost-hero-visual {
@@ -1301,7 +1301,7 @@
     grid-column: 1 / -1;
     overflow: hidden;
     width: min(100%, 1360px);
-    margin: 20px auto -1px;
+    margin: -14px auto -1px;
     padding: 22px 0;
     border: 0;
     border-radius: 0;

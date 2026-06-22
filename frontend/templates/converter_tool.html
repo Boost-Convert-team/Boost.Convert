@@ -7,7 +7,7 @@
     <div class="section-heading reveal">
         <div class="eyebrow"><i data-lucide="file" aria-hidden="true"></i> Conversor</div>
         <h1 id="converter-title">{{ tool.name }}</h1>
-        <p>Envie seus arquivos e baixe o resultado convertido.</p>
+        <p>{{ tool.description|default("Envie seus arquivos e baixe o resultado convertido.", true) }}</p>
     </div>
 
     <div class="converter-grid reveal">

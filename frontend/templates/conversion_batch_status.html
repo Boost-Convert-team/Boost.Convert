@@ -3,16 +3,17 @@
 {% block title %}Convers&atilde;o - Boost.Convert{% endblock %}
 
 {% block content %}
+{% set is_ready_for_download = all_jobs_downloadable %}
 <main
-    class="conversion-status-stage"
+    class="conversion-status-stage{% if is_ready_for_download %} conversion-status-stage--download-ready{% endif %}"
     {% if has_pending_jobs %}
         data-conversion-status-page
         data-status-urls='[{% for job in jobs %}"{{ url_for("home.conversion_status_json", job_id=job.id) }}"{% if not loop.last %},{% endif %}{% endfor %}]'
     {% endif %}
 >
-    <a class="conversion-status-logo" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
+    <div class="conversion-status-logo" aria-label="Boost.Convert">
         <img src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
-    </a>
+    </div>
 
     <section class="conversion-status-panel reveal" aria-labelledby="conversion-batch-title">
         {% if has_pending_jobs %}
@@ -22,13 +23,13 @@
             <p class="conversion-status-wait-note" data-delayed-conversion-note hidden>
                 N&atilde;o feche esta p&aacute;gina. Arquivos maiores podem levar alguns minutos para ficarem prontos.
             </p>
-        {% elif all_jobs_downloadable %}
+        {% elif is_ready_for_download %}
             <div class="conversion-status-success" aria-hidden="true">
                 <i data-lucide="check" aria-hidden="true"></i>
             </div>
             <h1 id="conversion-batch-title">Convers&atilde;o conclu&iacute;da</h1>
             <p class="conversion-status-text">Seus arquivos est&atilde;o prontos para download.</p>
-            <div class="conversion-status-actions">
+            <div class="conversion-status-actions conversion-status-download-actions">
                 <a class="button button-primary" href="{{ url_for('home.conversion_batch_download', job_ids=job_ids) }}">
                     Baixar arquivos
                     <i data-lucide="download" aria-hidden="true"></i>
