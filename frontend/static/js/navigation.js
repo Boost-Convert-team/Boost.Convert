@@ -61,6 +61,9 @@
     }
 
     function initPageTransitions() {
+        resetPageTransitionState();
+        window.addEventListener("pageshow", resetPageTransitionState);
+
         document.querySelectorAll("a[href]").forEach((link) => {
             link.addEventListener("click", (event) => {
                 const url = new URL(link.href, window.location.href);
@@ -79,6 +82,11 @@
                 }, 260);
             });
         });
+    }
+
+    function resetPageTransitionState() {
+        document.body.classList.remove("is-leaving");
+        document.body.classList.add("is-ready");
     }
 
     function initToolsSidebar() {

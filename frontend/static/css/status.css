@@ -42,6 +42,11 @@ body:has(.conversion-status-stage:not(.conversion-status-stage--download-ready))
     display: none;
 }
 
+body:has(.conversion-status-stage--download-ready) .footer {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+}
+
 .conversion-status-panel {
     display: flex;
     align-items: center;
