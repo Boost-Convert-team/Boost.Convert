@@ -119,67 +119,32 @@
 
         <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
             <div class="boost-proof-track">
-            <article class="boost-proof-item">
-                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
-                <strong>PDF &rarr; Word</strong>
-                <small>para editar</small>
-            </article>
-            <article class="boost-proof-item">
-                <span><i data-lucide="files" aria-hidden="true"></i></span>
-                <strong>Word &rarr; PDF</strong>
-                <small>para enviar</small>
-            </article>
-            <article class="boost-proof-item boost-proof-format">
-                <span class="boost-proof-format-icon"><i data-lucide="image" aria-hidden="true"></i></span>
-                <strong>JPG &rarr; PDF</strong>
-                <small>fotos em PDF</small>
-            </article>
-            <article class="boost-proof-item">
-                <span><i data-lucide="music" aria-hidden="true"></i></span>
-                <strong>MP4 &rarr; MP3</strong>
-                <small>&aacute;udio do v&iacute;deo</small>
-            </article>
-            <article class="boost-proof-item">
-                <span><i data-lucide="table" aria-hidden="true"></i></span>
-                <strong>Excel &rarr; PDF</strong>
-                <small>planilha pronta</small>
-            </article>
-            <article class="boost-proof-item">
-                <span><i data-lucide="presentation" aria-hidden="true"></i></span>
-                <strong>PowerPoint &rarr; PDF</strong>
-                <small>slides protegidos</small>
-            </article>
-
-            <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="file-text" aria-hidden="true"></i></span>
-                <strong>PDF &rarr; Word</strong>
-                <small>para editar</small>
-            </article>
-            <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="files" aria-hidden="true"></i></span>
-                <strong>Word &rarr; PDF</strong>
-                <small>para enviar</small>
-            </article>
-            <article class="boost-proof-item boost-proof-format" aria-hidden="true">
-                <span class="boost-proof-format-icon"><i data-lucide="image" aria-hidden="true"></i></span>
-                <strong>JPG &rarr; PDF</strong>
-                <small>fotos em PDF</small>
-            </article>
-            <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="music" aria-hidden="true"></i></span>
-                <strong>MP4 &rarr; MP3</strong>
-                <small>&aacute;udio do v&iacute;deo</small>
-            </article>
-            <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="table" aria-hidden="true"></i></span>
-                <strong>Excel &rarr; PDF</strong>
-                <small>planilha pronta</small>
-            </article>
-            <article class="boost-proof-item" aria-hidden="true">
-                <span><i data-lucide="presentation" aria-hidden="true"></i></span>
-                <strong>PowerPoint &rarr; PDF</strong>
-                <small>slides protegidos</small>
-            </article>
+                {% macro proof_item(icon, source, target, caption, is_duplicate=false) -%}
+                    <article class="boost-proof-item" {% if is_duplicate %}aria-hidden="true"{% endif %}>
+                        <span><i data-lucide="{{ icon }}" aria-hidden="true"></i></span>
+                        <strong>
+                            {{ source }}
+                            {% if target %}&rarr; {{ target }}{% endif %}
+                        </strong>
+                        <small>{{ caption }}</small>
+                    </article>
+                {%- endmacro %}
+                {% set proof_items = [
+                    ("file-text", "PDF", "Word", "para editar"),
+                    ("file-check-2", "Word", "PDF", "para enviar"),
+                    ("image", "JPG", "PDF", "fotos em PDF"),
+                    ("music", "MP4", "MP3", "áudio do vídeo"),
+                    ("image-down", "PNG", "JPG", "imagens leves"),
+                    ("images", "PDF", "JPG", "páginas em imagem"),
+                    ("table", "Excel", "PDF", "planilhas prontas"),
+                    ("layout-grid", "+80 ferramentas", none, "em um só lugar")
+                ] %}
+                {% for icon, source, target, caption in proof_items %}
+                    {{ proof_item(icon, source, target, caption) }}
+                {% endfor %}
+                {% for icon, source, target, caption in proof_items %}
+                    {{ proof_item(icon, source, target, caption, true) }}
+                {% endfor %}
             </div>
         </div>
     </section>

@@ -1295,7 +1295,7 @@
 }
 
 .boost-proof-bar {
-    --proof-item-width: 318px;
+    --proof-item-width: 282px;
     position: relative;
     z-index: 5;
     grid-column: 1 / -1;
@@ -1317,7 +1317,7 @@
     display: flex;
     width: max-content;
     min-width: max-content;
-    animation: boostProofFilm 32s linear infinite;
+    animation: boostProofFilm 42s linear infinite;
     backface-visibility: hidden;
     transform: translate3d(0, 0, 0);
     will-change: transform;
@@ -1329,7 +1329,7 @@
     flex: 0 0 var(--proof-item-width);
     gap: 5px 16px;
     align-items: center;
-    padding: 2px 24px;
+    padding: 2px 22px;
     contain: layout paint style;
 }
 
@@ -1377,8 +1377,9 @@
     align-self: end;
     color: var(--text);
     font-family: var(--font-ui);
-    font-size: 25px;
-    line-height: 1.05;
+    min-width: 0;
+    font-size: 24px;
+    line-height: 1.08;
     font-weight: 800;
 }
 

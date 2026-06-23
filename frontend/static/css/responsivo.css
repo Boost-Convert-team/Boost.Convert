@@ -78,7 +78,7 @@
     }
 
     .boost-proof-item {
-        flex-basis: 300px;
+        flex-basis: 280px;
         padding-inline: 20px;
     }
 
@@ -162,7 +162,7 @@
     }
 
     .boost-proof-item {
-        flex-basis: 292px;
+        flex-basis: 276px;
         padding-inline: 18px;
     }
 
@@ -967,14 +967,14 @@
     }
 
     .boost-proof-track {
-        animation-duration: 28s;
+        animation-duration: 38s;
     }
 
     .boost-proof-item,
     .boost-proof-item:nth-child(2n),
     .boost-proof-item:nth-child(n + 3) {
         grid-template-columns: 52px 1fr;
-        flex-basis: 270px;
+        flex-basis: 250px;
         padding: 8px 16px;
         border-left: 1px solid rgba(234, 223, 211, .92);
         border-top: 0;
@@ -986,7 +986,7 @@
     }
 
     .boost-proof-bar strong {
-        font-size: 25px;
+        font-size: 22px;
     }
 
     .hero-device {
