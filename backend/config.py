@@ -1,4 +1,6 @@
 import os
+import secrets
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy.engine import URL
@@ -87,23 +89,48 @@ def get_int_env(name, default):
 
 def get_secret_key():
     secret_key = os.getenv("SECRET_KEY")
-    environment = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "").lower()
+    environment = get_app_environment()
     if secret_key:
+        if is_weak_secret_key(secret_key):
+            raise RuntimeError("SECRET_KEY insegura: valor fraco; esperado segredo aleatorio com pelo menos 32 caracteres.")
         return secret_key
     if environment in {"production", "prod"}:
         raise RuntimeError("SECRET_KEY precisa ser configurado em producao.")
-    return "dev"
+    return secrets.token_urlsafe(32)
+
+
+def get_app_environment():
+    return (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "development").lower()
+
+
+def is_production_environment():
+    return get_app_environment() in {"production", "prod"}
+
+
+def is_weak_secret_key(secret_key):
+    weak_values = {"dev", "development", "secret", "change-me", "changeme", "boost"}
+    return len(secret_key.strip()) < 32 or secret_key.strip().lower() in weak_values
 
 
 class Config:
+    APP_ENV = get_app_environment()
     SECRET_KEY = get_secret_key()
     SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_ENGINE_OPTIONS = get_sqlalchemy_engine_options(SQLALCHEMY_DATABASE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_UPLOAD_MB", "2048")) * 1024 * 1024
+    FORCE_HTTPS = get_bool_env("FORCE_HTTPS", is_production_environment())
+    PREFERRED_URL_SCHEME = "https" if FORCE_HTTPS else "http"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
-    SESSION_COOKIE_SECURE = get_bool_env("SESSION_COOKIE_SECURE", False)
+    SESSION_COOKIE_SECURE = get_bool_env("SESSION_COOKIE_SECURE", FORCE_HTTPS)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=get_int_env("SESSION_LIFETIME_MINUTES", 120))
+    SESSION_PERMANENT = get_bool_env("SESSION_PERMANENT", True)
+    TRUST_PROXY_HEADERS = get_bool_env("TRUST_PROXY_HEADERS", is_production_environment())
+    CSRF_ENABLED = get_bool_env("CSRF_ENABLED", True)
+    RATE_LIMIT_ENABLED = get_bool_env("RATE_LIMIT_ENABLED", True)
+    HSTS_MAX_AGE_SECONDS = get_int_env("HSTS_MAX_AGE_SECONDS", 31536000)
+    PAYMENT_WEBHOOK_SECRET = os.getenv("PAYMENT_WEBHOOK_SECRET")
     CONVERSION_FILE_RETENTION_MINUTES = get_int_env("CONVERSION_FILE_RETENTION_MINUTES", 15)
     AI_TRANSCRIPT_RETENTION_MINUTES = get_int_env("AI_TRANSCRIPT_RETENTION_MINUTES", 15)
     CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env("CONVERSION_CLEANUP_INTERVAL_MINUTES", 5)

@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from os import PathLike
@@ -23,7 +24,24 @@ def get_ffmpeg_command() -> str:
 
 
 def run_ffmpeg(arguments: Sequence[FFmpegArgument]) -> None:
-    subprocess.run([get_ffmpeg_command(), "-y", *arguments], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    subprocess.run(
+        [get_ffmpeg_command(), "-y", *arguments],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+        timeout=get_conversion_timeout_seconds(),
+    )
+
+
+def get_conversion_timeout_seconds() -> int:
+    """Return the subprocess timeout used by media conversions.
+
+    Example: timeout = get_conversion_timeout_seconds()
+    """
+    try:
+        return max(1, int(os.getenv("CONVERSION_TIMEOUT_SECONDS", "300")))
+    except ValueError:
+        return 300
 
 
 def run_ffmpeg_with_fallback(

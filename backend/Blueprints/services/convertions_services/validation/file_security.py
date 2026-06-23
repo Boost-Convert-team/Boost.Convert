@@ -2,6 +2,10 @@ import json
 import os
 import zipfile
 
+MAX_ZIP_ENTRIES = 1000
+MAX_ZIP_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+MAX_ZIP_RATIO_ENTRY_BYTES = 10 * 1024 * 1024
+MAX_ZIP_COMPRESSION_RATIO = 100
 SIGNATURES = {
      "aac": lambda data: len(data) >= 2 and data[0] == 0xFF and data[1] in (0xF1, 0xF9)
     ,"avi": lambda data: data.startswith(b"RIFF") and data[8:12] == b"AVI "
@@ -101,7 +105,10 @@ def validate_saved_file(path, extension):
 
 def validate_office_file(path, required_root):
     try:
-        with zipfile.ZipFile(path) as archive: names = archive.namelist()
+        with zipfile.ZipFile(path) as archive:
+            archive_valid, archive_message = validate_zip_archive(archive)
+            if not archive_valid: return False, archive_message
+            names = archive.namelist()
     except zipfile.BadZipFile:
         return False, "Arquivo Office invalido."
     
@@ -128,10 +135,48 @@ def validate_svg_file(path):
 def validate_zip_file(path):
     try:
         with zipfile.ZipFile(path) as archive:
+            archive_valid, archive_message = validate_zip_archive(archive)
+            if not archive_valid: return False, archive_message
             if archive.testzip() is not None: return False, "Arquivo ZIP invalido."
     except zipfile.BadZipFile:
         return False, "Arquivo ZIP invalido."
     return True, None
+
+def validate_zip_archive(archive: zipfile.ZipFile) -> tuple[bool, str | None]:
+    """Validate ZIP structure before accepting user-controlled archives.
+
+    Example: validate_zip_archive(archive)
+    """
+    infos = archive.infolist()
+    if len(infos) > MAX_ZIP_ENTRIES: return False, "Arquivo ZIP contem entradas demais."
+    paths_valid, paths_message = validate_zip_member_paths(infos)
+    if not paths_valid: return False, paths_message
+    size_valid, size_message = validate_zip_uncompressed_size(infos)
+    if not size_valid: return False, size_message
+    return True, None
+
+def validate_zip_member_paths(infos: list[zipfile.ZipInfo]) -> tuple[bool, str | None]:
+    for info in infos:
+        if is_unsafe_zip_member_name(info.filename):
+            return False, "Arquivo ZIP contem caminho inseguro."
+    return True, None
+
+def is_unsafe_zip_member_name(filename: object) -> bool:
+    normalized = str(filename or "").replace("\\", "/").strip("/")
+    if not normalized or ":" in normalized:
+        return True
+    return any(part in {"", ".", ".."} for part in normalized.split("/"))
+
+def validate_zip_uncompressed_size(infos: list[zipfile.ZipInfo]) -> tuple[bool, str | None]:
+    total_size = sum(info.file_size for info in infos)
+    if total_size > MAX_ZIP_UNCOMPRESSED_BYTES: return False, "Arquivo ZIP expande alem do limite permitido."
+    if any(has_dangerous_zip_ratio(info) for info in infos): return False, "Arquivo ZIP possui compressao suspeita."
+    return True, None
+
+def has_dangerous_zip_ratio(info: zipfile.ZipInfo) -> bool:
+    if info.file_size < MAX_ZIP_RATIO_ENTRY_BYTES or info.compress_size <= 0:
+        return False
+    return (info.file_size / info.compress_size) > MAX_ZIP_COMPRESSION_RATIO
 
 def remove_file_quietly(path):
     try:

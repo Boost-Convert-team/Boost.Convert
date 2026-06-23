@@ -13,6 +13,7 @@
     <div class="converter-grid reveal">
         <section class="upload-card" aria-labelledby="youtube-download-title">
             <form class="converter-form" action="{{ url_for('youtube_downloads.download_youtube') }}" method="POST" data-loading-form data-no-page-transition>
+                {% include "partials/csrf_field.html" %}
                 <div class="form-field">
                     <label for="url">URL do YouTube</label>
                     <input id="url" type="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>

@@ -23,5 +23,10 @@ def get_accessible_jobs_from_ids(job_ids):
 
 def is_job_downloadable(job):
     import os
+    from flask import current_app
+    from Blueprints.services.privacy.file_retention import get_conversions_root, is_inside_root
 
-    return job.status == "done" and os.path.exists(job.output_path)
+    if job.status != "done" or not os.path.exists(job.output_path):
+        return False
+    root = get_conversions_root(current_app._get_current_object())
+    return is_inside_root(job.output_path, root)

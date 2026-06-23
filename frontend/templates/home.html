@@ -72,6 +72,7 @@
 
         <div class="boost-hero-visual reveal" aria-label="Escolher arquivo e conversao">
             <form class="hero-upload-card" method="POST" enctype="multipart/form-data" data-hero-upload-form>
+                {% include "partials/csrf_field.html" %}
                 <label class="hero-upload-dropzone" for="hero-upload-file">
                     <input id="hero-upload-file" class="hero-upload-input" type="file" name="files" required>
                     <span class="hero-upload-icon" aria-hidden="true">

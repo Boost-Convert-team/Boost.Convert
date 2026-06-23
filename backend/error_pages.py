@@ -9,6 +9,7 @@ HTTP_ERROR_MESSAGES: dict[int, str] = {
     400: "Requisicao invalida.",
     403: "Acesso nao permitido.",
     404: "Pagina nao encontrada.",
+    429: "Muitas requisicoes. Tente novamente em instantes.",
     413: "Arquivo maior que o limite geral.",
     500: "Erro interno do Boost.",
 }

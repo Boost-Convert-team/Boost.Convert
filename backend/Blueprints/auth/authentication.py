@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import login_user, logout_user
 from extensions import db, oauth
 from models import Usuario
@@ -7,6 +7,7 @@ from Blueprints.auth.passwords import hash_password, needs_password_rehash, veri
 auth_bp = Blueprint("auth", __name__)
 EMAIL_FIELD = "nomeForm"
 PASSWORD_FIELD = "senhaForm"
+INVALID_LOGIN_MESSAGE = "Usuario ou senha invalidos."
 
 def normalize_email(email): return (email or "").strip().lower()
 def get_auth_form_data(): return normalize_email(request.form.get(EMAIL_FIELD)), request.form.get(PASSWORD_FIELD, "")
@@ -16,6 +17,13 @@ def flash_and_redirect(message, endpoint):
 def validate_local_credentials(email, password, redirect_endpoint):
     if not email or not password: return flash_and_redirect("Preencha email e senha para continuar.", redirect_endpoint)
     return None
+def validate_login_credentials(email, password):
+    if not email or not password: return flash_and_redirect(INVALID_LOGIN_MESSAGE, "auth.login")
+    return None
+def start_authenticated_session(user):
+    session.clear()
+    session.permanent = True
+    login_user(user)
 def create_local_user(email, password):
     user = Usuario(email=email, senha=hash_password(password))
     db.session.add(user)
@@ -57,25 +65,26 @@ def registrar():
     email, password = get_auth_form_data()
     invalid_response = validate_local_credentials(email, password, "auth.registrar")
     if invalid_response: return invalid_response
-    if Usuario.query.filter_by(email=email).first(): return flash_and_redirect("Email ja cadastrado.", "auth.login")
+    if Usuario.query.filter_by(email=email).first(): return flash_and_redirect("Nao foi possivel concluir o cadastro com estes dados.", "auth.registrar")
     user = create_local_user(email, password)
-    login_user(user)
+    start_authenticated_session(user)
     return redirect(url_for("home.conta"))
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET": return render_template("login.html")
     email, password = get_auth_form_data()
-    invalid_response = validate_local_credentials(email, password, "auth.login")
+    invalid_response = validate_login_credentials(email, password)
     if invalid_response: return invalid_response
     user = authenticate_local_user(email, password)
-    if not user: return flash_and_redirect("Email ou senha invalidos.", "auth.login")
-    login_user(user)
+    if not user: return flash_and_redirect(INVALID_LOGIN_MESSAGE, "auth.login")
+    start_authenticated_session(user)
     return redirect(url_for("home.conta"))
 
 @auth_bp.route("/logout")
 def logout():
     logout_user()
+    session.clear()
     return redirect(url_for("home.home"))
 
 @auth_bp.route("/login/google")
@@ -95,5 +104,5 @@ def google_callback():
         current_app.logger.warning("Falha no callback do login Google: %s", error)
         return flash_and_redirect("Nao foi possivel entrar com Google. Tente novamente.", "auth.login")
     if not user: return flash_and_redirect("Nao foi possivel entrar com Google.", "auth.login")
-    login_user(user)
+    start_authenticated_session(user)
     return redirect(url_for("home.conta"))

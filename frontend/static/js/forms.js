@@ -91,12 +91,21 @@
         const item = document.createElement("li");
         item.className = "file-preview";
         item.style.animationDelay = `${index * 70}ms`;
-        item.innerHTML = `
-            <span class="file-icon"><i data-lucide="file"></i></span>
-            <span class="file-name file-name-safe"></span>
-            <span class="file-size">${window.BoostUtils.formatBytes(file.size)}</span>
-        `;
-        item.querySelector(".file-name").textContent = file.name;
+        const icon = document.createElement("span");
+        icon.className = "file-icon";
+        const iconGlyph = document.createElement("i");
+        iconGlyph.setAttribute("data-lucide", "file");
+        icon.appendChild(iconGlyph);
+
+        const name = document.createElement("span");
+        name.className = "file-name file-name-safe";
+        name.textContent = file.name;
+
+        const size = document.createElement("span");
+        size.className = "file-size";
+        size.textContent = window.BoostUtils.formatBytes(file.size);
+
+        item.append(icon, name, size);
         return item;
     }
 
@@ -176,10 +185,11 @@
                 button.className = "hero-upload-output-option";
                 button.type = "submit";
                 button.dataset.route = tool.route;
-                button.innerHTML = `
-                    <span>${tool.output || tool.name}</span>
-                    <small>${tool.name}</small>
-                `;
+                const output = document.createElement("span");
+                output.textContent = tool.output || tool.name;
+                const name = document.createElement("small");
+                name.textContent = tool.name;
+                button.append(output, name);
                 button.addEventListener("click", () => {
                     selectedRoute = tool.route;
                     form.action = tool.route;

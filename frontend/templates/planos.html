@@ -74,6 +74,7 @@
                 </ul>
 
                 <form id="checkout-form" class="plan-action" data-loading-form>
+                    {% include "partials/csrf_field.html" %}
                     <button class="button button-primary plan-button" type="submit">Assinar agora</button>
                 </form>
                 <p class="plan-note"><i data-lucide="lock-keyhole" aria-hidden="true"></i> Cancelamento f&aacute;cil a qualquer momento.</p>
@@ -112,9 +113,11 @@
     if (form) {
         form.addEventListener("submit", async function(e) {
             e.preventDefault();
+            const csrfInput = form.querySelector('input[name="{{ csrf_field_name }}"]');
 
             const response = await fetch("/checkout/pro", {
-                method: "POST"
+                method: "POST",
+                headers: csrfInput ? { "X-CSRF-Token": csrfInput.value } : {}
             });
 
             const data = await response.json();

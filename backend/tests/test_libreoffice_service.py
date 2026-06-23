@@ -150,6 +150,7 @@ class LibreOfficeServiceTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,
+            timeout=300,
         )
         find_converted.assert_called_once_with(temp_dir, "document.doc", "pdf")
         move.assert_called_once_with(converted_path, "document.pdf")

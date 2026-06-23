@@ -8,5 +8,6 @@ except ImportError:
 
 lm = LoginManager()
 lm.login_view = 'auth.login'
+lm.session_protection = "strong"
 
 oauth = OAuth() if OAuth is not None else None

@@ -13,6 +13,7 @@
     <div class="converter-grid reveal">
         <section class="upload-card" aria-labelledby="converter-title">
             <form class="converter-form" action="{{ tool.route }}" method="POST" enctype="multipart/form-data" data-loading-form>
+                {% include "partials/csrf_field.html" %}
                 <div class="upload-zone">
                     <input id="files" type="file" name="files" accept="{{ tool.accept }}" multiple required aria-label="Selecionar arquivos para converter">
                     <span class="upload-content">

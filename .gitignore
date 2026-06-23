@@ -50,3 +50,5 @@ skills-lock.json
 *.p12
 *.pfx
 AGENTS.md
+.env.example
+DEPLOY_SECURITY.md

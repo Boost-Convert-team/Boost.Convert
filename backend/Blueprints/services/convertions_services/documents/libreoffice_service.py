@@ -32,8 +32,9 @@ def run_libreoffice_conversion(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=True,
+                timeout=get_conversion_timeout_seconds(),
             )
-        except subprocess.CalledProcessError as exc:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError(
                 "Nao foi possivel converter este arquivo com LibreOffice. "
                 "Verifique se o arquivo abre normalmente e tente novamente."
@@ -77,3 +78,14 @@ def find_converted_file(
             return os.path.join(temp_dir, filename)
 
     raise RuntimeError("Arquivo final nao foi criado.")
+
+
+def get_conversion_timeout_seconds() -> int:
+    """Return the subprocess timeout used by LibreOffice conversions.
+
+    Example: timeout = get_conversion_timeout_seconds()
+    """
+    try:
+        return max(1, int(os.getenv("CONVERSION_TIMEOUT_SECONDS", "300")))
+    except ValueError:
+        return 300

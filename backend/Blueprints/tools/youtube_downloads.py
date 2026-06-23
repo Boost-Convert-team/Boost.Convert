@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from urllib.parse import urlparse
 
 from flask import Blueprint, current_app, render_template, request, send_file
 from pytubefix import YouTube
@@ -12,6 +13,8 @@ from Blueprints.services.convertions_services.ffmpeg_runner import get_ffmpeg_co
 
 
 yt_download_bp = Blueprint("youtube_downloads", __name__)
+ALLOWED_YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
+ALLOWED_QUALITIES = {"720p", "480p", "360p"}
 
 
 @yt_download_bp.route("/tools/youtube-download", methods=["GET"])
@@ -28,6 +31,10 @@ def download_youtube():
         return render_conversion_error_response(ValueError("Envie uma URL do YouTube"), 400)
     if not qualidade:
         return render_conversion_error_response(ValueError("Escolha uma qualidade"), 400)
+    try:
+        validate_youtube_request(url, qualidade)
+    except ValueError as exc:
+        return render_conversion_error_response(exc, 400)
 
     temp_dir = None
     try:
@@ -109,7 +116,45 @@ def juntar_video_audio(video_path, audio_path, output_path):
         "aac",
         output_path,
     ]
-    subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    subprocess.run(
+        comando,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+        timeout=get_youtube_timeout_seconds(),
+    )
+
+
+def validate_youtube_request(url: str, qualidade: str) -> None:
+    """Validate YouTube download form values before remote access.
+
+    Example: validate_youtube_request(url, "720p")
+    """
+    if qualidade not in ALLOWED_QUALITIES:
+        raise ValueError("Qualidade invalida.")
+    validate_youtube_url(url)
+
+
+def validate_youtube_url(url: str) -> None:
+    """Accept only YouTube HTTPS/HTTP hosts for remote downloads.
+
+    Example: validate_youtube_url("https://www.youtube.com/watch?v=abc")
+    """
+    parsed_url = urlparse(url)
+    host = (parsed_url.hostname or "").lower().rstrip(".")
+    if parsed_url.scheme not in {"http", "https"} or host not in ALLOWED_YOUTUBE_HOSTS:
+        raise ValueError("URL do YouTube invalida.")
+
+
+def get_youtube_timeout_seconds() -> int:
+    """Return the subprocess timeout used while muxing YouTube media.
+
+    Example: timeout = get_youtube_timeout_seconds()
+    """
+    try:
+        return max(1, int(os.getenv("YOUTUBE_DOWNLOAD_TIMEOUT_SECONDS", "300")))
+    except ValueError:
+        return 300
 
 
 def get_output_filename(title):
