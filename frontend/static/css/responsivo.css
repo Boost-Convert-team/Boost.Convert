@@ -21,13 +21,17 @@
 
 @media (max-width: 1320px) and (min-width: 1181px) {
     .ab-hero {
-        grid-template-columns: minmax(460px, .92fr) minmax(500px, 1.08fr);
-        gap: 28px;
-        padding-inline: 64px;
+        grid-template-columns: minmax(530px, 1.04fr) minmax(460px, .96fr);
+        gap: 20px;
+        padding-inline: 40px;
     }
 
     .ab-hero h1 {
-        font-size: clamp(54px, 4.8vw, 66px);
+        font-size: clamp(50px, 4.25vw, 58px);
+    }
+
+    .ab-hero-copy {
+        min-width: 0;
     }
 
     .hero-actions {

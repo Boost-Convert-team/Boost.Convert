@@ -229,6 +229,19 @@
     border-top: 0;
 }
 
+.most-used-section {
+    display: grid;
+    gap: 24px;
+    padding-bottom: 52px;
+}
+
+.most-used-section .tool-subsection-heading h2 {
+    margin: 0;
+    color: #213f3a;
+    font-size: 28px;
+    font-weight: var(--weight-logo);
+}
+
 .section-header {
     display: flex;
     align-items: end;

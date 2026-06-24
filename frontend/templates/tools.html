@@ -92,6 +92,37 @@
         </div>
 
         <div class="tools-content" id="ferramentas">
+            <section class="tools-section most-used-section" id="mais-usados">
+                <div class="tool-subsection-heading">
+                    <h2>Mais usados</h2>
+                    <p>As ferramentas mais procuradas de todo o Boost.Convert.</p>
+                </div>
+                <div class="tools-grid">
+                    {% set most_used_tools = [
+                        ("Videos", "/tools/youtube-download"),
+                        ("Documentos", "/convert/pdf-to-docx"),
+                        ("Documentos", "/convert/docx-to-pdf"),
+                        ("Imagens", "/convert/images-to-pdf"),
+                        ("Videos", "/convert/mp4-to-mp3"),
+                        ("Documentos", "/convert/pdf-compress"),
+                        ("Documentos", "/convert/pdf-merge"),
+                        ("Imagens", "/convert/jpg-to-png"),
+                        ("Videos", "/convert/mov-to-mp4"),
+                        ("Videos", "/convert/mp4-to-gif"),
+                        ("Audios", "/convert/wav-to-mp3"),
+                        ("Documentos", "/convert/files-to-zip")
+                    ] %}
+                    {% for most_used_category, most_used_route in most_used_tools %}
+                        {% set most_used_category_id = most_used_category|lower|replace(' ', '-') %}
+                        {% for tool in tools[most_used_category] %}
+                            {% if tool.route == most_used_route %}
+                                {{ tool_card(tool, most_used_category, most_used_category_id, false, "Mais usado") }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </section>
+
             {% for category in category_order if category in tools %}
                 {% set category_tools = tools[category] %}
                 {% set category_id = category|lower|replace(' ', '-') %}
@@ -115,28 +146,6 @@
                     </div>
 
                     {% if category == "Documentos" %}
-                        <div class="tool-subsection" id="mais-usados">
-                            <div class="tool-subsection-heading">
-                                <h3>Mais usados</h3>
-                                <p>Convers&otilde;es comuns para editar, enviar ou organizar documentos.</p>
-                            </div>
-                            <div class="tools-grid">
-                                {% set most_used_routes = ["/convert/pdf-to-docx", "/convert/docx-to-pdf", "/convert/jpg-to-pdf", "/convert/pdf-to-xlsx", "/convert/pdf-merge", "/convert/pdf-compress"] %}
-                                {% for most_used_route in most_used_routes %}
-                                    {% for tool in category_tools %}
-                                        {% if tool.route == most_used_route %}
-                                            {{ tool_card(tool, category, category_id, false, "Mais usado") }}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endfor %}
-                                {% for image_tool in tools["Imagens"] %}
-                                    {% if image_tool.route == "/convert/jpg-to-pdf" %}
-                                        {{ tool_card(image_tool, "Imagens", category_id, false, "Mais usado") }}
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-
                         {% set document_groups = [
                             ("documentos-pdf", "PDF", "Tudo para converter, juntar, dividir, proteger ou extrair conte&uacute;do de PDFs.", ["pdf"], ["/convert/pdf-to-docx", "/convert/pdf-to-xlsx", "/convert/pdf-to-pptx", "/convert/pdf-compress", "/convert/pdf-merge", "/convert/pdf-split", "/convert/pdf-to-jpg", "/convert/pdf-to-png"]),
                             ("documentos-word", "Word", "Converta documentos Word para PDF, texto ou formatos edit&aacute;veis.", ["doc", "docx", "odt"], ["/convert/docx-to-pdf", "/convert/doc-to-pdf", "/convert/doc-to-docx", "/convert/odt-to-docx", "/convert/odt-to-pdf", "/convert/docx-to-txt", "/convert/docx-to-xlsx"]),

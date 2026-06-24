@@ -1,0 +1,143 @@
+.home-page {
+    display: flex;
+    flex-direction: column;
+}
+
+.home-page > .ab-hero {
+    order: 1;
+}
+
+.home-page > .home-popular-tools {
+    order: 2;
+}
+
+.home-page > .format-ecosystem {
+    order: 3;
+}
+
+.home-page > .price-premium {
+    order: 4;
+}
+
+.home-page > .simple-flow-section {
+    order: 5;
+}
+
+.home-page > .suite-section {
+    order: 6;
+}
+
+.home-page > .home-plans {
+    order: 7;
+}
+
+.home-popular-tools {
+    position: relative;
+    padding: 34px 38px 88px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.home-popular-tools::before,
+.home-popular-tools::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.home-popular-tools::before {
+    top: 70px;
+    left: -90px;
+    width: 210px;
+    height: 210px;
+    background: rgba(255, 184, 106, .08);
+    filter: blur(18px);
+}
+
+.home-popular-tools::after {
+    right: -70px;
+    bottom: 50px;
+    width: 180px;
+    height: 180px;
+    background: rgba(45, 139, 117, .06);
+    filter: blur(20px);
+}
+
+.home-popular-tools-layout {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+.home-popular-tools .most-used-section {
+    justify-items: center;
+}
+
+.home-popular-tools .tool-subsection-heading {
+    gap: 9px;
+}
+
+.home-popular-heading-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 3px;
+    border: 1px solid rgba(240, 138, 36, .22);
+    border-radius: 16px;
+    background: linear-gradient(145deg, #fff, #fff1e2);
+    color: var(--orange-deep);
+    box-shadow: 0 14px 32px rgba(240, 138, 36, .10);
+}
+
+.home-popular-heading-icon svg {
+    width: 23px;
+    height: 23px;
+}
+
+.home-popular-all-button {
+    width: fit-content;
+    min-width: 250px;
+    margin-top: 16px;
+    box-shadow: 0 16px 34px rgba(240, 138, 36, .18);
+    transition:
+        transform 420ms var(--ease-air),
+        box-shadow 420ms var(--ease-air),
+        background-color 420ms var(--ease-air);
+}
+
+.home-popular-all-button svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 420ms var(--ease-air);
+}
+
+.home-popular-all-button:hover,
+.home-popular-all-button:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 44px rgba(240, 138, 36, .24);
+}
+
+.home-popular-all-button:hover svg,
+.home-popular-all-button:focus-visible svg {
+    transform: translateX(4px);
+}
+
+@media (max-width: 780px) {
+    .home-popular-tools {
+        padding: 24px 16px 68px;
+    }
+
+    .home-popular-all-button {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-popular-all-button,
+    .home-popular-all-button svg {
+        transition: none;
+    }
+}

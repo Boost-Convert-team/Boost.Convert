@@ -1,0 +1,108 @@
+.hero-metric-link {
+    display: block;
+    border-radius: 16px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.hero-metric-link > div {
+    position: relative;
+    height: 100%;
+    padding-right: 34px;
+}
+
+.hero-metric-link > div::after {
+    content: "\2192";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0;
+    transform: translate(-5px, -50%);
+    transition:
+        opacity 240ms var(--ease-air),
+        transform 240ms var(--ease-air);
+}
+
+.hero-metric-link:hover > div::after,
+.hero-metric-link:focus-visible > div::after {
+    opacity: 1;
+    transform: translate(0, -50%);
+}
+
+.hero-metric-link:focus-visible {
+    outline: 3px solid rgba(240, 138, 36, .24);
+    outline-offset: 3px;
+}
+
+.hero-metric-link:focus-visible > div {
+    border-color: rgba(240, 138, 36, .34);
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 12px 26px rgba(88, 58, 24, .06);
+    transform: translateY(-2px);
+}
+
+.home-plan-card:focus-within,
+.pricing-card:focus-within {
+    border-color: rgba(240, 138, 36, .40);
+    box-shadow: 0 28px 74px rgba(88, 58, 24, .09);
+}
+
+.home-plan-limit-summary,
+.plan-limit-summary {
+    display: grid;
+    gap: 3px;
+    margin: 14px 0 0;
+    padding: 11px 13px;
+    border: 1px solid rgba(234, 223, 211, .82);
+    border-radius: 14px;
+    background: rgba(252, 248, 243, .72);
+    font-family: var(--font-ui);
+}
+
+.home-plan-limit-summary strong,
+.plan-limit-summary strong {
+    color: #334946;
+    font-size: 13px;
+    line-height: 1.3;
+    font-weight: 800;
+}
+
+.home-plan-limit-summary span,
+.plan-limit-summary span {
+    color: #747474;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 600;
+}
+
+.home-plan-limit-summary.is-unlimited,
+.plan-limit-summary.is-unlimited {
+    border-color: rgba(240, 138, 36, .24);
+    background: rgba(255, 244, 232, .72);
+}
+
+.home-plan-limit-summary.is-unlimited strong,
+.plan-limit-summary.is-unlimited strong {
+    color: var(--orange-deep);
+}
+
+@media (max-width: 420px) {
+    .hero-metric-link > div {
+        padding-right: 38px;
+    }
+
+    .home-plan-limit-summary,
+    .plan-limit-summary {
+        padding: 10px 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-metric-link > div::after {
+        transition: none;
+    }
+}

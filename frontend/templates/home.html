@@ -47,26 +47,50 @@
             </div>
 
             <div class="hero-metrics" aria-label="Mais procurados">
-                <div>
-                    <span class="mini-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
-                    <strong>PDF para Word</strong>
-                    <small>Edite documentos facilmente</small>
-                </div>
-                <div>
-                    <span class="mini-icon"><i data-lucide="files" aria-hidden="true"></i></span>
-                    <strong>Word para PDF</strong>
-                    <small>Compartilhe sem alterar o layout</small>
-                </div>
-                <div>
-                    <span class="mini-icon"><i data-lucide="image" aria-hidden="true"></i></span>
-                    <strong>Imagem para PDF</strong>
-                    <small>Transforme fotos em documentos</small>
-                </div>
-                <div>
-                    <span class="mini-icon"><i data-lucide="layout-grid" aria-hidden="true"></i></span>
-                    <strong>+80 convers&otilde;es</strong>
-                    <small>PDF, imagens, &aacute;udio, v&iacute;deo e mais</small>
-                </div>
+                <a
+                    class="hero-metric-link"
+                    href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}"
+                    aria-label="Abrir conversor de PDF para Word"
+                >
+                    <div>
+                        <span class="mini-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                        <strong>PDF para Word</strong>
+                        <small>Edite documentos facilmente</small>
+                    </div>
+                </a>
+                <a
+                    class="hero-metric-link"
+                    href="{{ url_for('home.converter_tool', slug='docx-to-pdf') }}"
+                    aria-label="Abrir conversor de Word para PDF"
+                >
+                    <div>
+                        <span class="mini-icon"><i data-lucide="files" aria-hidden="true"></i></span>
+                        <strong>Word para PDF</strong>
+                        <small>Compartilhe sem alterar o layout</small>
+                    </div>
+                </a>
+                <a
+                    class="hero-metric-link"
+                    href="{{ url_for('home.converter_tool', slug='images-to-pdf') }}"
+                    aria-label="Abrir conversor de imagens para PDF"
+                >
+                    <div>
+                        <span class="mini-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                        <strong>Imagem para PDF</strong>
+                        <small>Transforme fotos em documentos</small>
+                    </div>
+                </a>
+                <a
+                    class="hero-metric-link"
+                    href="{{ url_for('home.tools') }}"
+                    aria-label="Ver todas as convers&otilde;es dispon&iacute;veis"
+                >
+                    <div>
+                        <span class="mini-icon"><i data-lucide="layout-grid" aria-hidden="true"></i></span>
+                        <strong>+80 convers&otilde;es</strong>
+                        <small>PDF, imagens, &aacute;udio, v&iacute;deo e mais</small>
+                    </div>
+                </a>
             </div>
         </div>
 
@@ -117,34 +141,124 @@
 
         </div>
 
-        <div class="boost-proof-bar reveal" aria-label="Resumo do Boost Convert">
-            <div class="boost-proof-track">
-                {% macro proof_item(icon, source, target, caption, is_duplicate=false) -%}
-                    <article class="boost-proof-item" {% if is_duplicate %}aria-hidden="true"{% endif %}>
-                        <span><i data-lucide="{{ icon }}" aria-hidden="true"></i></span>
-                        <strong>
-                            {{ source }}
-                            {% if target %}&rarr; {{ target }}{% endif %}
-                        </strong>
-                        <small>{{ caption }}</small>
-                    </article>
-                {%- endmacro %}
-                {% set proof_items = [
-                    ("file-text", "PDF", "Word", "para editar"),
-                    ("file-check-2", "Word", "PDF", "para enviar"),
-                    ("image", "JPG", "PDF", "fotos em PDF"),
-                    ("music", "MP4", "MP3", "áudio do vídeo"),
-                    ("image-down", "PNG", "JPG", "imagens leves"),
-                    ("images", "PDF", "JPG", "páginas em imagem"),
-                    ("table", "Excel", "PDF", "planilhas prontas"),
-                    ("layout-grid", "+80 ferramentas", none, "em um só lugar")
-                ] %}
-                {% for icon, source, target, caption in proof_items %}
-                    {{ proof_item(icon, source, target, caption) }}
-                {% endfor %}
-                {% for icon, source, target, caption in proof_items %}
-                    {{ proof_item(icon, source, target, caption, true) }}
-                {% endfor %}
+    </section>
+
+    <section class="home-popular-tools" aria-labelledby="home-popular-tools-title">
+        <div class="tools-layout home-popular-tools-layout reveal">
+            <div class="tools-content">
+                <section class="tools-section most-used-section">
+                    <div class="tool-subsection-heading">
+                        <span class="home-popular-heading-icon">
+                            <i data-lucide="flame" aria-hidden="true"></i>
+                        </span>
+                        <h2 id="home-popular-tools-title">Mais usados</h2>
+                        <p>As ferramentas mais procuradas de todo o Boost.Convert.</p>
+                    </div>
+
+                    <div class="tools-grid">
+                        <a class="tool-card tool-card-videos" href="/tools/youtube-download">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="video" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Baixar v&iacute;deo do YouTube</h3>
+                            <p class="tool-accept">Cole o link do YouTube e baixe o v&iacute;deo em MP4 para assistir offline.</p>
+                        </a>
+                        <a class="tool-card tool-card-documentos" href="{{ url_for('home.converter_tool', slug='pdf-to-docx') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">PDF -&gt; Word</h3>
+                            <p class="tool-accept">Converta PDF em Word edit&aacute;vel para alterar texto e reorganizar conte&uacute;do.</p>
+                        </a>
+                        <a class="tool-card tool-card-documentos" href="{{ url_for('home.converter_tool', slug='docx-to-pdf') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Word -&gt; PDF</h3>
+                            <p class="tool-accept">Salve seu Word moderno em PDF, preservando texto, imagens e layout.</p>
+                        </a>
+                        <a class="tool-card tool-card-imagens" href="{{ url_for('home.converter_tool', slug='images-to-pdf') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="file-image" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Imagens -&gt; PDF</h3>
+                            <p class="tool-accept">Junte fotos JPG, PNG, WEBP ou HEIC em um PDF organizado.</p>
+                        </a>
+                        <a class="tool-card tool-card-videos" href="{{ url_for('home.converter_tool', slug='mp4-to-mp3') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="clapperboard" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">MP4 -&gt; MP3</h3>
+                            <p class="tool-accept">Extraia o &aacute;udio de um v&iacute;deo MP4 e salve como MP3.</p>
+                        </a>
+                        <a class="tool-card tool-card-documentos" href="{{ url_for('home.converter_tool', slug='pdf-compress') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Comprimir PDF</h3>
+                            <p class="tool-accept">Reduza o tamanho do PDF para enviar por email ou aplicativos sem pesar tanto.</p>
+                        </a>
+                        <a class="tool-card tool-card-documentos" href="{{ url_for('home.converter_tool', slug='pdf-merge') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="file-text" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Juntar PDF</h3>
+                            <p class="tool-accept">Una v&aacute;rios PDFs em um &uacute;nico arquivo, mantendo as p&aacute;ginas na ordem escolhida.</p>
+                        </a>
+                        <a class="tool-card tool-card-imagens" href="{{ url_for('home.converter_tool', slug='jpg-to-png') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="image" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">JPG -&gt; PNG</h3>
+                            <p class="tool-accept">Troque JPG por PNG para usar a imagem em edi&ccedil;&otilde;es e fundos mais flex&iacute;veis.</p>
+                        </a>
+                        <a class="tool-card tool-card-videos" href="{{ url_for('home.converter_tool', slug='mov-to-mp4') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="clapperboard" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">MOV -&gt; MP4</h3>
+                            <p class="tool-accept">Passe v&iacute;deos MOV, comuns no iPhone, para MP4 mais compat&iacute;vel.</p>
+                        </a>
+                        <a class="tool-card tool-card-videos" href="{{ url_for('home.converter_tool', slug='mp4-to-gif') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="clapperboard" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">MP4 -&gt; GIF</h3>
+                            <p class="tool-accept">Crie um GIF animado a partir de um trecho de v&iacute;deo MP4.</p>
+                        </a>
+                        <a class="tool-card tool-card-audios" href="{{ url_for('home.converter_tool', slug='wav-to-mp3') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="audio-lines" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">WAV -&gt; MP3</h3>
+                            <p class="tool-accept">Converta WAV para MP3 para diminuir o tamanho e facilitar o envio.</p>
+                        </a>
+                        <a class="tool-card tool-card-documentos" href="{{ url_for('home.converter_tool', slug='files-to-zip') }}">
+                            <div class="tool-card-top">
+                                <span class="tool-icon"><i data-lucide="archive" aria-hidden="true"></i></span>
+                                <span class="tool-badge">Mais usado</span>
+                            </div>
+                            <h3 class="tool-title">Arquivos -&gt; ZIP</h3>
+                            <p class="tool-accept">Junte documentos, imagens, &aacute;udios e v&iacute;deos em um ZIP para baixar tudo junto.</p>
+                        </a>
+                    </div>
+
+                    <a class="button button-primary home-popular-all-button" href="{{ url_for('home.tools') }}">
+                        Ver todas as ferramentas
+                        <i data-lucide="arrow-right" aria-hidden="true"></i>
+                    </a>
+                </section>
             </div>
         </div>
     </section>
@@ -317,7 +431,7 @@
                 Comece gratuitamente e fa&ccedil;a upgrade quando precisar de mais recursos,
                 volume e prioridade para os seus arquivos.
             </p>
-            <strong class="home-pricing-save">Economize 45%</strong>
+            <strong class="home-pricing-save">Economize 60%</strong>
             <a class="text-link" href="{{ url_for('main.planos') }}">Comparar planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
         </div>
 
@@ -339,14 +453,13 @@
                 <ul>
                     <li><i data-lucide="check" aria-hidden="true"></i> 10 usos por dia</li>
                     <li><i data-lucide="check" aria-hidden="true"></i> Recursos b&aacute;sicos</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Suporte da comunidade</li>
                     <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
                     <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Uploads maiores</li>
                     <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
                 </ul>
 
                 <a class="button button-secondary home-plan-button" href="{{ url_for('auth.registrar') }}">Come&ccedil;ar gr&aacute;tis</a>
-                <p class="home-plan-note">N&atilde;o &eacute; necess&aacute;rio cart&atilde;o de cr&eacute;dito.</p>
+                <p class="home-plan-note">Precisa converter mais? Evolua para o PRO.</p>
             </article>
 
             <article class="home-plan-card home-plan-pro">
@@ -358,10 +471,10 @@
                     <p>Mais recursos para voc&ecirc;</p>
                 </div>
 
-                <div class="home-plan-price home-plan-price-promo" aria-label="De R$ 35,90 por R$ 19,90 por m&ecirc;s">
+                <div class="home-plan-price home-plan-price-promo" aria-label="De R$ 49,90 por R$ 19,90 por m&ecirc;s">
                     <div class="home-plan-price-before">
                         <span>De</span>
-                        <del class="home-plan-price-old">R$ 35,90</del>
+                        <del class="home-plan-price-old">R$ 49,90</del>
                     </div>
                     <div class="home-plan-price-current">
                         <span>por</span>
@@ -376,11 +489,10 @@
                     <li><i data-lucide="check" aria-hidden="true"></i> Recursos avan&ccedil;ados</li>
                     <li><i data-lucide="check" aria-hidden="true"></i> Uploads maiores</li>
                     <li><i data-lucide="check" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
-                    <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Suporte dedicado</li>
                 </ul>
 
                 <a class="button button-primary home-plan-button" href="{{ url_for('main.planos') }}">Assinar agora</a>
-                <p class="home-plan-note"><i data-lucide="lock-keyhole" aria-hidden="true"></i> Cancelamento f&aacute;cil a qualquer momento.</p>
+                <p class="home-plan-note"><i data-lucide="zap" aria-hidden="true"></i> Converta sem limites e ganhe tempo todos os dias.</p>
             </article>
         </div>
     </section>
