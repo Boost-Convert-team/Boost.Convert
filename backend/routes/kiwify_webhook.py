@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import os
@@ -23,22 +24,32 @@ def receive_kiwify_webhook() -> tuple[Response, int]:
     payload = _read_kiwify_payload()
     _log_kiwify_request(payload)
 
-    if not _is_kiwify_signature_valid():
-        return jsonify({"success": False}), 401
-
     if payload is None:
         return jsonify({"success": False}), 400
+
+    if not _is_kiwify_signature_valid(payload):
+        return jsonify({"success": False}), 401
 
     _stage_kiwify_event(payload)
     return jsonify({"success": True}), 200
 
 
-def _is_kiwify_signature_valid() -> bool:
-    expected_token = os.getenv("KIWIFY_WEBHOOK_TOKEN", "").strip()
+def _is_kiwify_signature_valid(payload: dict[str, object]) -> bool:
+    secret_token = os.getenv("KIWIFY_WEBHOOK_TOKEN", "").strip()
     submitted_signature = request.args.get(KIWIFY_SIGNATURE_ARG, "").strip()
-    if not expected_token or not submitted_signature:
+    if not secret_token or not submitted_signature:
         return False
-    return hmac.compare_digest(expected_token, submitted_signature)
+    calculated_signature = _calculate_kiwify_signature(payload, secret_token)
+    return hmac.compare_digest(calculated_signature, submitted_signature)
+
+
+def _calculate_kiwify_signature(payload: dict[str, object], secret_token: str) -> str:
+    canonical_payload = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+    return hmac.new(
+        secret_token.encode("utf-8"),
+        canonical_payload.encode("utf-8"),
+        hashlib.sha1,
+    ).hexdigest()
 
 
 def _read_kiwify_payload() -> dict[str, object] | None:
@@ -58,7 +69,7 @@ def _log_kiwify_request(payload: dict[str, object] | None) -> None:
         "request.args": request.args.to_dict(flat=False),
         "request.get_json": payload,
     }
-    current_app.logger.info(json.dumps(log_data, ensure_ascii=False))
+    current_app.logger.debug(json.dumps(log_data, ensure_ascii=False))
 
 
 def _extract_kiwify_event(payload: dict[str, object]) -> str:
