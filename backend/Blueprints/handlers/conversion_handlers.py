@@ -6,7 +6,7 @@ from Blueprints.services.convertions_services.upload_flow.job_factory import cre
 from Blueprints.services.convertions_services.upload_flow.job_submission import submit_jobs
 from Blueprints.services.convertions_services.upload_flow.request_context import get_conversion_request_context, get_uploaded_files
 from Blueprints.services.privacy.audit import create_conversion_audit
-from Blueprints.services.subscription.access_service import reserve_tool_usage
+from Blueprints.services.subscription.access_service import UpgradeRequiredError, is_pro_user, reserve_tool_usage
 
 def handle_conversion(allowed_extension, convert_function, output_extension, tool_name):
     try:
@@ -95,7 +95,9 @@ def get_valid_upload_files():
 def validate_uploaded_file_count(files, usuario):
     count_valid, count_message = validate_multi_file_count(files, usuario)
 
-    if not count_valid: raise ValueError(count_message)
+    if count_valid: return
+    if not is_pro_user(usuario): raise UpgradeRequiredError(count_message)
+    raise ValueError(count_message)
 
 def reserve_usage(context, amount): reserve_tool_usage(usuario=context.usuario, session_id=context.session_id, amount=amount)
 
@@ -123,6 +125,10 @@ def redirect_to_job_status(job_ids):
 
 def handle_conversion_error(exc, refused_log_message, internal_log_message):
     db.session.rollback()
+
+    if isinstance(exc, UpgradeRequiredError):
+        current_app.logger.info(refused_log_message, type(exc).__name__)
+        return redirect(url_for("main.planos"))
 
     if isinstance(exc, PermissionError):
         current_app.logger.info(refused_log_message, type(exc).__name__)

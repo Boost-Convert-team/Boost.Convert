@@ -13,7 +13,11 @@ CSRF_FIELD_NAME = "_csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
-CSRF_EXEMPT_ENDPOINTS = {"webhook.webhook", "webhook.payment_webhook"}
+CSRF_EXEMPT_ENDPOINTS = {
+    "kiwify_webhook.receive_kiwify_webhook",
+    "webhook.webhook",
+    "webhook.payment_webhook",
+}
 
 
 @dataclass(frozen=True)

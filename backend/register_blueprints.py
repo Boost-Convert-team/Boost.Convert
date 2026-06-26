@@ -86,6 +86,7 @@ from Blueprints.main.home import home_bp
 from Blueprints.main.planos import planos_bp
 from Blueprints.main.webhook_routes import webhook_bp
 from Blueprints.tools.youtube_downloads import yt_download_bp
+from routes.kiwify_webhook import kiwify_webhook_bp
 
 
 MAIN_BLUEPRINTS = (
@@ -93,6 +94,7 @@ MAIN_BLUEPRINTS = (
     home_bp,
     planos_bp,
     webhook_bp,
+    kiwify_webhook_bp,
     checkout_bp,
 )
 

@@ -118,6 +118,16 @@
                 headers: csrfInput ? { "X-CSRF-Token": csrfInput.value } : {}
             });
 
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+
+            if (!response.ok) {
+                alert("Erro ao iniciar pagamento");
+                return;
+            }
+
             const data = await response.json();
 
             if (data.checkout_url) {

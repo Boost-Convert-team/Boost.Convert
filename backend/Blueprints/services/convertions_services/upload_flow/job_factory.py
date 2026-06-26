@@ -7,6 +7,7 @@ from Blueprints.services.convertions_services.conversion_limits import get_file_
 from Blueprints.services.convertions_services.file_security import remove_file_quietly, validate_saved_file, validate_upload_header, validate_upload_mime
 from Blueprints.services.privacy.conversion_options import get_persistable_conversion_options, get_runtime_conversion_options
 from Blueprints.services.privacy.file_retention import is_inside_root
+from Blueprints.services.subscription.access_service import UpgradeRequiredError, is_pro_user
 
 def create_single_conversion_job(file, usuario, session_id, allowed_extensions, output_extension, tool_name, options):
     filename = get_secure_filename(file)
@@ -65,7 +66,7 @@ def split_filename(filename):
 
 def validate_single_file_upload(file, usuario, input_extension, output_extension):
     size_valid, size_message = validate_upload_size(file, usuario, input_extension, output_extension)
-    if not size_valid: raise ValueError(size_message)
+    if not size_valid: raise_plan_limit_error(size_message, usuario)
 
     mime_valid, mime_message = validate_upload_mime(file, input_extension)
     if not mime_valid: raise ValueError(mime_message)
@@ -75,7 +76,7 @@ def validate_single_file_upload(file, usuario, input_extension, output_extension
 
 def validate_pdf_collection_size(files, usuario, output_extension):
     limit_mb, category, plan_name = get_upload_limit_mb(usuario, "pdf", output_extension)
-    if sum(get_file_size(file) for file in files) > limit_mb * 1024 * 1024: raise ValueError(f"Arquivos muito grandes para o plano {plan_name}. Limite para {category}: {limit_mb} MB.")
+    if sum(get_file_size(file) for file in files) > limit_mb * 1024 * 1024: raise_plan_limit_error(f"Arquivos muito grandes para o plano {plan_name}. Limite para {category}: {limit_mb} MB.", usuario)
 
 def validate_file_collection_size(files, usuario, allowed_extensions, output_extension):
     total_size_by_category = {}
@@ -90,7 +91,15 @@ def validate_file_collection_size(files, usuario, allowed_extensions, output_ext
         total_size_by_category[(category, plan_name, limit_mb)] += get_file_size(file)
 
     for (category, plan_name, limit_mb), total_size in total_size_by_category.items(): 
-        if total_size > limit_mb * 1024 * 1024: raise ValueError(f"Arquivos muito grandes para o plano {plan_name}. Limite para {category}: {limit_mb} MB.")
+        if total_size > limit_mb * 1024 * 1024: raise_plan_limit_error(f"Arquivos muito grandes para o plano {plan_name}. Limite para {category}: {limit_mb} MB.", usuario)
+
+def raise_plan_limit_error(message, usuario):
+    """Raise the correct error for free and paid plan limits.
+
+    Example: raise_plan_limit_error("Arquivo muito grande para o plano free.", usuario)
+    """
+    if not is_pro_user(usuario): raise UpgradeRequiredError(message)
+    raise ValueError(message)
 
 def create_job_directory(job_id):
     conversions_root = os.path.abspath(os.path.join(current_app.instance_path, "conversions"))

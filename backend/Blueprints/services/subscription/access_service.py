@@ -8,6 +8,11 @@ from Blueprints.services.subscription.subscription_service import has_active_pro
 FREE_DAILY_LIMIT = 10
 FREE_USAGE_WINDOW = timedelta(hours=24)
 
+class UpgradeRequiredError(PermissionError):
+    """Raised when the user must choose a paid plan to continue."""
+
+    pass
+
 @dataclass(frozen=True)
 class UsageStatus:
     used: int
@@ -113,7 +118,7 @@ def reserve_tool_usage(usuario=None, session_id=None, amount=1):
     lock_usage_identity(usuario=usuario, session_id=session_id)
     usage = get_or_create_usage_record(usuario=usuario, session_id=session_id, now=now, for_update=True)
     ensure_active_window(usage, now)
-    if usage.usage_count + amount > FREE_DAILY_LIMIT: raise PermissionError(get_limit_message(usage, amount, now))
+    if usage.usage_count + amount > FREE_DAILY_LIMIT: raise UpgradeRequiredError(get_limit_message(usage, amount, now))
     usage.usage_count += amount
     db.session.flush()
     return usage
