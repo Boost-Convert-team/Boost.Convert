@@ -5,8 +5,7 @@ import json
 from flask import Blueprint, Response, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
-
-KIWIFY_EVENT_FIELDS = ("webhook_event_type", "event", "type")
+from Blueprints.services.subscription.kiwify_subscription_service import sync_kiwify_user_plan
 
 kiwify_webhook_bp = Blueprint("kiwify_webhook", __name__)
 
@@ -24,7 +23,7 @@ def receive_kiwify_webhook() -> tuple[Response, int]:
         return jsonify({"success": False}), 400
 
     # TODO: reativar validação oficial da assinatura Kiwify antes da produção final.
-    _stage_kiwify_event(payload)
+    sync_kiwify_user_plan(payload, current_app.logger)
     return jsonify({"success": True}), 200
 
 
@@ -47,33 +46,3 @@ def _log_kiwify_request(payload: dict[str, object] | None) -> None:
     }
     current_app.logger.debug(json.dumps(log_data, ensure_ascii=False))
 
-
-def _extract_kiwify_event(payload: dict[str, object]) -> str:
-    for field_name in KIWIFY_EVENT_FIELDS:
-        event = payload.get(field_name)
-        if isinstance(event, str):
-            return event
-    return ""
-
-
-def _stage_kiwify_event(payload: dict[str, object]) -> None:
-    event = _extract_kiwify_event(payload)
-    # TODO: localizar usuario pelo e-mail recebido da Kiwify antes de aplicar regras de plano.
-    if event == "compra_aprovada":
-        # TODO: liberar Premium.
-        return
-    if event == "subscription_renewed":
-        # TODO: manter/renovar Premium.
-        return
-    if event == "subscription_canceled":
-        # TODO: cancelar Premium.
-        return
-    if event == "compra_reembolsada":
-        # TODO: remover Premium por reembolso.
-        return
-    if event == "chargeback":
-        # TODO: remover Premium por chargeback.
-        return
-    if event == "subscription_late":
-        # TODO: marcar assinatura atrasada.
-        return
