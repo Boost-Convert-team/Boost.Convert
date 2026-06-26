@@ -106,35 +106,13 @@
 </main>
 
 <script>
+    const KIWIFY_CHECKOUT_URL = "https://kiwify.app/TxFlsQv";
     const form = document.getElementById("checkout-form");
 
     if (form) {
-        form.addEventListener("submit", async function(e) {
+        form.addEventListener("submit", function(e) {
             e.preventDefault();
-            const csrfInput = form.querySelector('input[name="{{ csrf_field_name }}"]');
-
-            const response = await fetch("/checkout/pro", {
-                method: "POST",
-                headers: csrfInput ? { "X-CSRF-Token": csrfInput.value } : {}
-            });
-
-            if (response.redirected) {
-                window.location.href = response.url;
-                return;
-            }
-
-            if (!response.ok) {
-                alert("Erro ao iniciar pagamento");
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data.checkout_url) {
-                window.location.href = data.checkout_url;
-            } else {
-                alert("Erro ao iniciar pagamento");
-            }
+            window.open(KIWIFY_CHECKOUT_URL, "_self");
         });
     }
 </script>
