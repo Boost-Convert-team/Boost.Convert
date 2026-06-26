@@ -71,10 +71,7 @@
                     <li><i data-lucide="check" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
                 </ul>
 
-                <form id="checkout-form" class="plan-action" data-loading-form>
-                    {% include "partials/csrf_field.html" %}
-                    <button class="button button-primary plan-button" type="submit">Assinar agora</button>
-                </form>
+                <a class="button button-primary plan-button" href="https://kiwify.app/TxFlsQv">Assinar agora</a>
                 <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Converta sem limites e ganhe tempo todos os dias.</p>
             </article>
         </div>
@@ -104,16 +101,4 @@
         </aside>
     </section>
 </main>
-
-<script>
-    const KIWIFY_CHECKOUT_URL = "https://kiwify.app/TxFlsQv";
-    const form = document.getElementById("checkout-form");
-
-    if (form) {
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-            window.open(KIWIFY_CHECKOUT_URL, "_self");
-        });
-    }
-</script>
 {% endblock %}
