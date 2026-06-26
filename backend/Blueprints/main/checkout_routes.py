@@ -1,13 +1,25 @@
-from flask import Blueprint, jsonify, redirect, url_for
-from flask_login import current_user, login_required
+from flask import Blueprint, Response, redirect
+from flask_login import login_required
 
 checkout_bp = Blueprint("checkout", __name__)
+KIWIFY_CHECKOUT_URL = "https://pay.kiwify.com.br/pOcJvQr"
+
+
 @checkout_bp.route("/checkout")
 @login_required
-def checkout(): return redirect(url_for("main.planos"))
+def checkout() -> Response:
+    """Redirect logged-in users to the Kiwify checkout.
+
+    Example: GET /checkout
+    """
+    return redirect(KIWIFY_CHECKOUT_URL)
+
 
 @checkout_bp.route("/checkout/pro", methods=["POST"])
 @login_required
-def checkout_pro():
-    if current_user.plano == "pro" and current_user.status_assinatura == "active": return jsonify({"checkout_url": url_for("main.planos")})
-    return jsonify({"checkout_url": url_for("main.planos")})
+def checkout_pro() -> Response:
+    """Redirect logged-in users to the Kiwify PRO checkout.
+
+    Example: POST /checkout/pro
+    """
+    return redirect(KIWIFY_CHECKOUT_URL)

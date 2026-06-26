@@ -7,8 +7,14 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
-from Blueprints.handlers.conversion_handlers import handle_conversion_error, validate_uploaded_file_count
-from Blueprints.services.convertions_services.upload_flow.job_factory import validate_single_file_upload
+from Blueprints.main.checkout_routes import KIWIFY_CHECKOUT_URL, checkout, checkout_pro
+from Blueprints.handlers.conversion_handlers import (
+    handle_conversion_error,
+    validate_uploaded_file_count,
+)
+from Blueprints.services.convertions_services.upload_flow.job_factory import (
+    validate_single_file_upload,
+)
 from Blueprints.services.subscription.access_service import UpgradeRequiredError
 from security import CSRF_FIELD_NAME, CSRF_SESSION_KEY, clear_rate_limit_state
 
@@ -25,6 +31,24 @@ class SubscriptionRedirectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
+
+    def test_checkout_uses_new_kiwify_checkout_url(self) -> None:
+        self.assertEqual(KIWIFY_CHECKOUT_URL, "https://pay.kiwify.com.br/pOcJvQr")
+
+    def test_checkout_routes_redirect_to_new_kiwify_checkout(self) -> None:
+        with self.app.test_request_context("/checkout"):
+            checkout_response = checkout.__wrapped__()
+        with self.app.test_request_context("/checkout/pro", method="POST"):
+            checkout_pro_response = checkout_pro.__wrapped__()
+
+        self.assertEqual(checkout_response.location, KIWIFY_CHECKOUT_URL)
+        self.assertEqual(checkout_pro_response.location, KIWIFY_CHECKOUT_URL)
+
+    def test_planos_pro_button_points_to_new_kiwify_checkout(self) -> None:
+        template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text()
+
+        self.assertIn(f'href="{KIWIFY_CHECKOUT_URL}"', template)
+        self.assertNotIn("checkout-form", template)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:
         with self.app.test_request_context("/convert/pdf-to-docx", method="POST"):
