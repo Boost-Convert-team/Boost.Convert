@@ -22,6 +22,26 @@
             <a href="{{ url_for('auth.registrar') }}">Cadastro</a>
             <a href="{{ url_for('home.conta') }}">Configura&ccedil;&otilde;es</a>
         </nav>
+
+        <nav class="footer-links footer-social-links" aria-label="Redes sociais">
+            <h2>Redes sociais</h2>
+            <a class="footer-social-link" href="https://www.instagram.com/boost.convert/" target="_blank" rel="noopener noreferrer">
+                <span><img src="{{ url_for('static', filename='img/icon-instagram-orange.jpg') }}" alt="" aria-hidden="true"></span>
+                Instagram
+            </a>
+            <button class="footer-social-link" type="button">
+                <span><img src="{{ url_for('static', filename='img/icon-twitter-orange.jpg') }}" alt="" aria-hidden="true"></span>
+                Twitter
+            </button>
+            <button class="footer-social-link" type="button">
+                <span><img src="{{ url_for('static', filename='img/icon-youtube-orange.jpg') }}" alt="" aria-hidden="true"></span>
+                YouTube
+            </button>
+            <button class="footer-social-link" type="button">
+                <span><i data-lucide="mail" aria-hidden="true"></i></span>
+                E-mail
+            </button>
+        </nav>
     </div>
 
     <div class="footer-benefits" aria-label="Benef&iacute;cios do Boost.Convert">
