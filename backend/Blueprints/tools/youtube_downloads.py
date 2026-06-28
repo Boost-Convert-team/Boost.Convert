@@ -2,19 +2,28 @@ import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 from urllib.parse import urlparse
 
-from flask import Blueprint, current_app, render_template, request, send_file
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
+from flask_login import current_user
 from pytubefix import YouTube
 from werkzeug.utils import secure_filename
 
+from Blueprints.handlers.conversion_handlers import save_and_submit_jobs
 from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.services.convertions_services.ffmpeg_runner import get_ffmpeg_command
+from Blueprints.services.convertions_services.upload_flow.job_factory import (
+    build_conversion_job,
+    create_job_directory,
+    get_storage_filename,
+)
+from Blueprints.services.subscription.session_service import get_anonymous_session_id
 
 
 yt_download_bp = Blueprint("youtube_downloads", __name__)
 ALLOWED_YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
-ALLOWED_QUALITIES = {"720p", "480p", "360p"}
+ALLOWED_QUALITIES = {"1080p", "720p", "480p", "360p"}
 
 
 @yt_download_bp.route("/tools/youtube-download", methods=["GET"])
@@ -36,21 +45,53 @@ def download_youtube():
     except ValueError as exc:
         return render_conversion_error_response(exc, 400)
 
-    temp_dir = None
     try:
-        caminho_arquivo, filename, temp_dir = processar_download(url, qualidade)
-        response = send_file(caminho_arquivo, as_attachment=True, download_name=filename)
-        response.call_on_close(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
-        return response
+        job = create_youtube_download_job(url, qualidade)
+        save_and_submit_jobs([job], convert_youtube_video)
+        return redirect(url_for("home.conversion_status", job_id=job.id))
     except ValueError as exc:
-        if temp_dir:
-            shutil.rmtree(temp_dir, ignore_errors=True)
         return render_conversion_error_response(exc, 400)
     except Exception as exc:
-        if temp_dir:
-            shutil.rmtree(temp_dir, ignore_errors=True)
         current_app.logger.error("Erro ao processar video do YouTube: %s", type(exc).__name__, exc_info=False)
         return render_conversion_error_response(RuntimeError("Nao foi possivel processar o video do YouTube."), 500)
+
+
+def create_youtube_download_job(url: str, qualidade: str):
+    job_id = str(uuid.uuid4())
+    job_dir = create_job_directory(job_id)
+    output_path = os.path.join(job_dir, get_storage_filename("output", "mp4"))
+    output_filename = f"youtube_{qualidade}.mp4"
+    usuario = current_user if current_user.is_authenticated else None
+    session_id = None if usuario is not None else get_anonymous_session_id()
+    job = build_conversion_job(
+        job_id,
+        usuario,
+        session_id,
+        "youtube_download",
+        f"Video do YouTube ({qualidade})",
+        output_filename,
+        "youtube_url",
+        output_path,
+        {"qualidade": qualidade},
+    )
+    job.runtime_options = {"url": url, "qualidade": qualidade}
+    return job
+
+
+def convert_youtube_video(input_path, output_path, options=None):
+    options = options or {}
+    url = (options.get("url") or input_path or "").strip()
+    qualidade = (options.get("qualidade") or "").strip()
+    validate_youtube_request(url, qualidade)
+
+    temp_dir = None
+    try:
+        caminho_arquivo, _filename, temp_dir = processar_download(url, qualidade)
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        shutil.move(caminho_arquivo, output_path)
+    finally:
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def processar_download(url, qualidade):
@@ -71,7 +112,8 @@ def processar_download(url, qualidade):
             raise ValueError("Audio indisponivel para este video")
 
         video_path = video.download(output_path=temp_dir, filename="video.mp4")
-        audio_path = audio.download(output_path=temp_dir, filename="audio.m4a")
+        audio_extension = getattr(audio, "subtype", None) or getattr(audio, "file_extension", None) or "m4a"
+        audio_path = audio.download(output_path=temp_dir, filename=f"audio.{audio_extension}")
         caminho_arquivo = os.path.join(temp_dir, filename)
         juntar_video_audio(video_path, audio_path, caminho_arquivo)
 
@@ -86,7 +128,7 @@ def buscar_video(yt, qualidade):
         progressive=True,
         file_extension="mp4",
         res=qualidade,
-    ).first()
+    ).order_by("fps").desc().first()
 
     if video is not None:
         return video
@@ -95,10 +137,13 @@ def buscar_video(yt, qualidade):
         adaptive=True,
         file_extension="mp4",
         res=qualidade,
-    ).first()
+    ).order_by("fps").desc().first()
 
 
 def buscar_audio(yt):
+    audio = yt.streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc().first()
+    if audio is not None:
+        return audio
     return yt.streams.get_audio_only()
 
 
@@ -114,6 +159,8 @@ def juntar_video_audio(video_path, audio_path, output_path):
         "copy",
         "-c:a",
         "aac",
+        "-movflags",
+        "+faststart",
         output_path,
     ]
     subprocess.run(

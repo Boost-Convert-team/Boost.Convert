@@ -178,8 +178,48 @@ class LibreOfficeServiceTests(unittest.TestCase):
                     "pdf",
                 )
 
+    def test_run_libreoffice_conversion_falls_back_for_docx_without_office(self) -> None:
+        fallback = Mock(return_value=True)
+
+        with (
+            patch.object(
+                libreoffice_service,
+                "find_office_converter",
+                side_effect=RuntimeError("LibreOffice nao encontrado."),
+            ),
+            patch.object(libreoffice_service, "run_python_office_pdf_fallback", fallback),
+        ):
+            libreoffice_service.run_libreoffice_conversion(
+                "document.docx",
+                "document.pdf",
+                "pdf",
+            )
+
+        fallback.assert_called_once_with("document.docx", "document.pdf", "pdf")
+
+    def test_run_libreoffice_conversion_falls_back_for_xlsx_without_office(self) -> None:
+        fallback = Mock(return_value=True)
+
+        with (
+            patch.object(
+                libreoffice_service,
+                "find_office_converter",
+                side_effect=RuntimeError("LibreOffice nao encontrado."),
+            ),
+            patch.object(libreoffice_service, "run_python_office_pdf_fallback", fallback),
+        ):
+            libreoffice_service.run_libreoffice_conversion(
+                "spreadsheet.xlsx",
+                "spreadsheet.pdf",
+                "pdf",
+            )
+
+        fallback.assert_called_once_with("spreadsheet.xlsx", "spreadsheet.pdf", "pdf")
+
     def test_converter_entry_points_delegate_to_shared_service(self) -> None:
         for module_name, function_name, extension in CONVERTERS:
+            if module_name == "xlsx_to_pdf_service":
+                continue
             with self.subTest(module=module_name):
                 module = import_converter(module_name)
                 runner = Mock()
@@ -216,17 +256,48 @@ class LibreOfficeServiceTests(unittest.TestCase):
     def test_docx_converter_keeps_libreoffice_fallback(self) -> None:
         module = import_converter("docx_to_pdf_service")
         runner = Mock()
-        docx2pdf = types.SimpleNamespace(
-            convert=Mock(side_effect=RuntimeError("conversion failed"))
-        )
 
         with (
-            patch.dict(sys.modules, {"docx2pdf": docx2pdf}),
+            patch.object(
+                module,
+                "convert_docx_to_pdf_fallback",
+                side_effect=RuntimeError("fallback failed"),
+            ),
             patch.object(module, "run_libreoffice_conversion", runner),
+            patch.object(module, "_has_pdf_output", return_value=True),
         ):
             module.convert_docx_pdf("input.docx", "output.pdf")
 
         runner.assert_called_once_with("input.docx", "output.pdf", "pdf")
+
+    def test_docx_converter_uses_python_fallback_without_office(self) -> None:
+        module = import_converter("docx_to_pdf_service")
+        fallback = Mock()
+        runner = Mock(side_effect=RuntimeError("LibreOffice nao encontrado."))
+
+        with (
+            patch.object(module, "run_libreoffice_conversion", runner),
+            patch.object(module, "convert_docx_to_pdf_fallback", fallback),
+            patch.object(module, "_has_pdf_output", return_value=True),
+        ):
+            module.convert_docx_pdf("input.docx", "output.pdf")
+
+        fallback.assert_called_once_with("input.docx", "output.pdf")
+        runner.assert_not_called()
+
+    def test_xlsx_converter_uses_python_fallback_without_office(self) -> None:
+        module = import_converter("xlsx_to_pdf_service")
+        fallback = Mock()
+        runner = Mock(side_effect=RuntimeError("LibreOffice nao encontrado."))
+
+        with (
+            patch.object(module, "run_libreoffice_conversion", runner),
+            patch.object(module, "convert_xlsx_to_pdf_fallback", fallback),
+        ):
+            module.convert_excel_pdf("input.xlsx", "output.pdf")
+
+        fallback.assert_called_once_with("input.xlsx", "output.pdf")
+        runner.assert_not_called()
 
 
 if __name__ == "__main__":

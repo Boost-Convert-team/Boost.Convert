@@ -13,7 +13,12 @@ def run_libreoffice_conversion(
     output_path: PathLike,
     output_extension: str,
 ) -> None:
-    converter = find_office_converter()
+    try:
+        converter = find_office_converter()
+    except Exception:
+        if run_python_office_pdf_fallback(input_path, output_path, output_extension):
+            return
+        raise
 
     with tempfile.TemporaryDirectory() as temp_dir:
         command = [
@@ -35,16 +40,35 @@ def run_libreoffice_conversion(
                 timeout=get_conversion_timeout_seconds(),
             )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            if run_python_office_pdf_fallback(input_path, output_path, output_extension):
+                return
             raise RuntimeError(
                 "Nao foi possivel converter este arquivo com LibreOffice. "
                 "Verifique se o arquivo abre normalmente e tente novamente."
             ) from exc
 
-        converted_path = find_converted_file(temp_dir, input_path, output_extension)
+        try:
+            converted_path = find_converted_file(temp_dir, input_path, output_extension)
+        except Exception:
+            if run_python_office_pdf_fallback(input_path, output_path, output_extension):
+                return
+            raise
         shutil.move(converted_path, output_path)
 
 
 def find_office_converter() -> str:
+    configured_converter = os.getenv("OFFICE_CONVERTER_PATH", "").strip().strip('"')
+    if configured_converter:
+        configured_converter = os.path.expandvars(os.path.expanduser(configured_converter))
+        converter = shutil.which(configured_converter)
+        if converter:
+            return converter
+        if os.path.isfile(configured_converter):
+            return configured_converter
+        raise RuntimeError(
+            "LibreOffice nao encontrado. OFFICE_CONVERTER_PATH aponta para um executavel inexistente."
+        )
+
     for command in ("soffice", "libreoffice"):
         converter = shutil.which(command)
         if converter:
@@ -78,6 +102,30 @@ def find_converted_file(
             return os.path.join(temp_dir, filename)
 
     raise RuntimeError("Arquivo final nao foi criado.")
+
+
+def run_python_office_pdf_fallback(
+    input_path: PathLike,
+    output_path: PathLike,
+    output_extension: str,
+) -> bool:
+    if output_extension.lower().lstrip(".") != "pdf":
+        return False
+
+    input_extension = os.path.splitext(os.fspath(input_path))[1].lower()
+    if input_extension == ".docx":
+        from .office_pdf_fallback import convert_docx_to_pdf_fallback
+
+        convert_docx_to_pdf_fallback(input_path, output_path)
+        return True
+
+    if input_extension == ".xlsx":
+        from .office_pdf_fallback import convert_xlsx_to_pdf_fallback
+
+        convert_xlsx_to_pdf_fallback(input_path, output_path)
+        return True
+
+    return False
 
 
 def get_conversion_timeout_seconds() -> int:
