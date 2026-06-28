@@ -193,7 +193,7 @@
     }
 
     .price-editorial,
-    .suite-heading,
+    .faq-layout,
     .home-plans,
     .toolscape,
     .pricing-account,
@@ -445,37 +445,30 @@
         padding: 88px 64px 96px;
     }
 
-    .suite-heading {
-        gap: 28px;
-        text-align: center;
-        margin-bottom: 56px;
+    .faq-layout {
+        gap: 42px;
+        max-width: 760px;
     }
 
-    .suite-heading h2,
-    .suite-heading p {
+    .faq-copy {
+        position: relative;
+        top: auto;
+        padding-top: 0;
+        text-align: center;
+    }
+
+    .faq-copy h2,
+    .faq-copy p {
         margin-left: auto;
         margin-right: auto;
     }
 
-    .suite-panels {
-        grid-template-columns: 1fr;
-        max-width: 760px;
-        gap: 18px;
+    .faq-copy h2 {
+        max-width: 720px;
     }
 
-    .suite-card {
-        --card-lift: 0px;
-        min-height: 480px;
-    }
-
-    .suite-card-flow,
-    .suite-card-batch,
-    .suite-card-organize {
-        min-height: 480px;
-    }
-
-    .suite-visual {
-        min-height: 316px;
+    .faq-question {
+        min-height: 82px;
     }
 
     .account-workspace {
@@ -1941,115 +1934,44 @@
         padding: 64px 22px 72px;
     }
 
-    .suite-heading {
-        text-align: left;
-        margin-bottom: 34px;
+    .faq-layout {
+        gap: 30px;
     }
 
-    .suite-heading h2 {
+    .faq-copy {
+        text-align: left;
+    }
+
+    .faq-copy h2 {
+        margin-bottom: 18px;
         font-size: 42px;
     }
 
-    .suite-heading p {
+    .faq-copy p {
         margin-left: 0;
+        font-size: 16px;
+        line-height: 1.62;
     }
 
-    .suite-panels {
-        gap: 14px;
+    .faq-accordion {
+        gap: 12px;
     }
 
-    .suite-card,
-    .suite-card-flow,
-    .suite-card-batch,
-    .suite-card-organize {
-        --card-lift: 0px;
-        min-height: 390px;
-        border-radius: 24px;
+    .faq-item {
+        border-radius: 20px;
     }
 
-    .suite-visual {
-        min-height: 250px;
+    .faq-question {
+        min-height: 74px;
+        grid-template-columns: 24px 1fr;
+        gap: 16px;
+        padding: 20px;
+        font-size: 17px;
     }
 
-    .suite-card h3 {
-        padding: 0 22px 8px;
-        font-size: 21px;
-    }
-
-    .suite-card p {
-        padding: 0 22px 28px;
-    }
-
-    .preview-sheet {
-        top: 34px;
-        width: 146px;
-        min-height: 176px;
-        padding: 16px;
-        border-radius: 22px;
-    }
-
-    .preview-sheet svg {
-        width: 36px;
-        height: 36px;
-    }
-
-    .chip-docx {
-        right: 8%;
-        top: 44px;
-    }
-
-    .chip-webp {
-        left: 8%;
-        bottom: 42px;
-    }
-
-    .chip-mp4 {
-        right: 8%;
-        bottom: 88px;
-    }
-
-    .chip-docs {
-        left: 8%;
-        top: 92px;
-    }
-
-    .chip-merge {
-        left: 7%;
-        top: 62px;
-    }
-
-    .chip-split {
-        right: 7%;
-        top: 82px;
-    }
-
-    .chip-compress {
-        right: 0;
-        bottom: 54px;
-    }
-
-    .chip-protect {
-        left: 7%;
-        bottom: 78px;
-    }
-
-    .scan-sheet {
-        top: 38px;
-        width: 176px;
-        min-height: 184px;
-        padding: 22px;
-    }
-
-    .extract-pill {
-        bottom: 38px;
-    }
-
-    .format-orbit {
-        inset: 30px 18px 58px;
-    }
-
-    .output-capsule {
-        min-height: 50px;
+    .faq-answer p {
+        padding: 0 20px 22px 60px;
+        font-size: 15px;
     }
 
     .dark-cta {

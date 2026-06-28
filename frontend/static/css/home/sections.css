@@ -20,12 +20,6 @@ body:has(.home-page) {
     background: transparent;
 }
 
-.home-page .suite-visual {
-    background:
-        radial-gradient(ellipse at 50% 40%, rgba(240, 138, 36, .09), transparent 38%),
-        linear-gradient(180deg, rgba(255, 255, 255, .56), rgba(255, 244, 232, .18));
-}
-
 .home-page .ab-hero::before,
 .home-page .ab-hero::after,
 .home-page .toolscape::before,

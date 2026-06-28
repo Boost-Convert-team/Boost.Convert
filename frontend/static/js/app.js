@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.BoostForms?.initHeroUpload();
     window.BoostForms?.initLoadingForms();
     window.BoostForms?.initAuthToggle();
+    initFaqAccordion();
     initConversionStatusPage();
     window.BoostNavigation?.initPageTransitions();
     window.BoostNavigation?.initToolsSidebar();
@@ -85,6 +86,116 @@ function activateHeroHeadlinePhrase(copy) {
         copy.classList.remove("is-entering");
         copy.classList.add("is-active");
     });
+}
+
+function initFaqAccordion() {
+    const root = document.querySelector("[data-faq-accordion]");
+    if (!root) return;
+
+    const items = Array.from(root.querySelectorAll(".faq-item"));
+    const buttons = items
+        .map((item) => item.querySelector(".faq-question"))
+        .filter(Boolean);
+
+    items.forEach((item) => {
+        const button = item.querySelector(".faq-question");
+        const answer = getFaqAnswer(item);
+        if (!button || !answer) return;
+
+        if (item.classList.contains("is-open")) {
+            openFaqItem(item, false);
+        } else {
+            closeFaqItem(item, false);
+        }
+
+        button.addEventListener("click", () => {
+            if (item.classList.contains("is-open")) {
+                closeFaqItem(item);
+                return;
+            }
+
+            items.forEach((otherItem) => {
+                if (otherItem !== item) closeFaqItem(otherItem);
+            });
+            openFaqItem(item);
+        });
+
+        button.addEventListener("keydown", (event) => {
+            handleFaqKeyboard(event, buttons);
+        });
+    });
+}
+
+function getFaqAnswer(item) {
+    const button = item.querySelector(".faq-question");
+    if (!button) return null;
+
+    return document.getElementById(button.getAttribute("aria-controls"));
+}
+
+function openFaqItem(item, animate = true) {
+    const button = item.querySelector(".faq-question");
+    const answer = getFaqAnswer(item);
+    if (!button || !answer) return;
+
+    item.classList.add("is-open");
+    button.setAttribute("aria-expanded", "true");
+    answer.hidden = false;
+
+    const targetHeight = answer.scrollHeight;
+    if (!animate) {
+        answer.style.height = `${targetHeight}px`;
+        return;
+    }
+
+    answer.style.height = "0px";
+    requestAnimationFrame(() => {
+        answer.style.height = `${targetHeight}px`;
+    });
+}
+
+function closeFaqItem(item, animate = true) {
+    const button = item.querySelector(".faq-question");
+    const answer = getFaqAnswer(item);
+    if (!button || !answer) return;
+
+    item.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+
+    if (!animate) {
+        answer.style.height = "0px";
+        answer.hidden = true;
+        return;
+    }
+
+    answer.style.height = `${answer.scrollHeight}px`;
+    requestAnimationFrame(() => {
+        answer.style.height = "0px";
+    });
+
+    answer.addEventListener("transitionend", function handleTransitionEnd(event) {
+        if (event.propertyName !== "height") return;
+        answer.hidden = !item.classList.contains("is-open");
+        answer.removeEventListener("transitionend", handleTransitionEnd);
+    });
+}
+
+function handleFaqKeyboard(event, buttons) {
+    const currentIndex = buttons.indexOf(event.currentTarget);
+    if (currentIndex < 0) return;
+
+    const keyActions = {
+        ArrowDown: () => buttons[(currentIndex + 1) % buttons.length].focus(),
+        ArrowUp: () => buttons[(currentIndex - 1 + buttons.length) % buttons.length].focus(),
+        Home: () => buttons[0].focus(),
+        End: () => buttons[buttons.length - 1].focus()
+    };
+
+    const action = keyActions[event.key];
+    if (!action) return;
+
+    event.preventDefault();
+    action();
 }
 
 function initConversionStatusPage() {
