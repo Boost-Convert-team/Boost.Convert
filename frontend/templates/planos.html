@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Planos do Boost.Convert para converter sem limites{% endblock %}
-{% block meta_description %}Compare os planos do Boost.Convert e escolha entre uso gratuito ou conversoes ilimitadas. Tenha mais volume, prioridade e praticidade para seus arquivos online.{% endblock %}
+{% block title %}Planos Boost.Convert | Free e PRO para converter arquivos{% endblock %}
+{% block meta_description %}Compare Free e PRO no Boost.Convert: conversoes a cada 24h, arquivos por envio e uploads maiores para quem converte todos os dias.{% endblock %}
 
 {% block content %}
 <main class="pricing-page">
@@ -9,20 +9,21 @@
         <div class="pricing-copy reveal">
             <div class="eyebrow pricing-eyebrow">
                 <i data-lucide="star" aria-hidden="true"></i>
-                Planos que se adaptam a voc&ecirc;
+                Planos com limites claros
             </div>
-            <h1 id="pricing-title">Escolha o <span>plano ideal</span> para converter sem limites</h1>
-            <p>Comece gratuitamente e fa&ccedil;a upgrade quando precisar de mais recursos, volume e prioridade para os seus arquivos.</p>
+            <h1 id="pricing-title">Converta no <span>ritmo do seu trabalho</span></h1>
+            <p>Use o Free para demandas pontuais. Assine PRO para tirar a trava di&aacute;ria e enviar arquivos maiores.</p>
             <strong class="pricing-save">Economize 60%</strong>
         </div>
 
         <div class="pricing-stage reveal" aria-label="Planos dispon&iacute;veis">
+            {# // TODO: Implementar prioridade por plano, formatos exclusivos, processamento paralelo dedicado e historico completo antes de divulgar esses beneficios nos cards. #}
             <article class="plan-free pricing-card">
                 <span class="plan-icon plan-icon-soft"><i data-lucide="send" aria-hidden="true"></i></span>
 
                 <div class="plan-head">
                     <h2>Free</h2>
-                    <p>Ideal para come&ccedil;ar</p>
+                    <p>Para convers&otilde;es r&aacute;pidas e pontuais</p>
                 </div>
 
                 <div class="plan-price" aria-label="R$ 0 por m&ecirc;s">
@@ -32,15 +33,16 @@
                 </div>
 
                 <ul class="plan-list" aria-label="Recursos do plano Free">
-                    <li><i data-lucide="check" aria-hidden="true"></i> 10 usos por dia</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Recursos b&aacute;sicos</li>
-                    <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
-                    <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Uploads maiores</li>
-                    <li class="is-disabled"><i data-lucide="x" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es em 24h</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> 2 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 50 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 25 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 100 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 250 MB</li>
                 </ul>
 
-                <a class="button button-secondary plan-button" href="{{ url_for('home.tools') }}">Come&ccedil;ar gr&aacute;tis</a>
-                <p class="plan-note">Precisa converter mais? Evolua para o PRO.</p>
+                <a class="button button-secondary plan-button" href="{{ url_for('home.tools') }}">Converter gr&aacute;tis</a>
+                <p class="plan-note">Uso pontual.</p>
             </article>
 
             <article class="plan-pro pricing-card" aria-label="Plano PRO, mais escolhido">
@@ -49,7 +51,7 @@
 
                 <div class="plan-head">
                     <h2>PRO</h2>
-                    <p>Mais recursos para voc&ecirc;</p>
+                    <p>Para quem converte arquivos todos os dias</p>
                 </div>
 
                 <div class="plan-price plan-price-promo" aria-label="De R$ 49,90 por R$ 19,90 por m&ecirc;s">
@@ -67,15 +69,17 @@
 
                 <ul class="plan-list" aria-label="Recursos do plano PRO">
                     <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Recursos avan&ccedil;ados</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Uploads maiores</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Processamento priorit&aacute;rio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> 15 arquivos por envio</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 300 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 150 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 500 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 2 GB</li>
                 </ul>
 
                 <a class="button button-primary plan-button" href="https://pay.kiwify.com.br/pOcJvQr">
-                    Assinar agora
+                    Assinar PRO
                 </a>
-                <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Converta sem limites e ganhe tempo todos os dias.</p>
+                <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Volume alto. Convers&otilde;es ilimitadas.</p>
             </article>
         </div>
 
@@ -97,8 +101,8 @@
             <article>
                 <span><i data-lucide="headphones" aria-hidden="true"></i></span>
                 <div>
-                    <h2>Convers&otilde;es ilimitadas</h2>
-                    <p>Mais liberdade para produzir</p>
+                    <h2>Convers&otilde;es ilimitadas no PRO</h2>
+                    <p>Mais volume para produzir</p>
                 </div>
             </article>
         </aside>

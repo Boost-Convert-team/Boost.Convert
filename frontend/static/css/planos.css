@@ -71,7 +71,7 @@
     display: grid;
     grid-template-columns: minmax(0, .98fr) minmax(0, 1.02fr);
     gap: 32px;
-    align-items: stretch;
+    align-items: start;
     max-width: 940px;
     width: 100%;
     margin: 0 auto;
@@ -82,7 +82,7 @@
     display: flex;
     flex-direction: column;
     min-height: 480px;
-    padding: 34px 34px 26px;
+    padding: 34px 34px 28px;
     border: 1px solid rgba(234, 223, 211, .88);
     border-radius: 24px;
     background: rgba(255, 255, 255, .74);
@@ -290,20 +290,20 @@
 
 .plan-list {
     display: grid;
-    gap: 12px;
-    margin: 16px 0 0;
+    gap: 11px;
+    margin: 18px 0 0;
     padding: 0;
     list-style: none;
 }
 
 .plan-list li {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 11px;
     color: #262626;
     font-family: var(--font-ui);
     font-size: 15px;
-    line-height: 1.35;
+    line-height: 1.28;
     font-weight: 700;
 }
 
@@ -311,6 +311,7 @@
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
+    margin-top: 1px;
     padding: 3px;
     border-radius: 50%;
     background: var(--orange);
@@ -330,7 +331,7 @@
 .plan-button,
 .plan-action {
     width: 100%;
-    margin-top: auto;
+    margin-top: 26px;
 }
 
 .plan-action {
@@ -342,10 +343,11 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 30px;
-    margin-top: 12px;
+    min-height: 26px;
+    margin-top: 14px;
     text-align: center;
     font-size: 14px;
+    line-height: 1.35;
 }
 
 .plan-note svg {
