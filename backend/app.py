@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import Flask, send_from_directory
 from dotenv import load_dotenv
 
@@ -50,7 +52,9 @@ def create_app():
 
     @app.context_processor
     def inject_global_template_data():
+        favicon_path = Path(app.static_folder) / "img" / "logo boost.png"
         return {
+            "favicon_version": int(favicon_path.stat().st_mtime) if favicon_path.exists() else 0,
             "tool_search_index": build_tool_search_index(),
             "tool_counts": build_tool_counts(),
         }
@@ -60,11 +64,15 @@ def create_app():
 
     @app.get("/favicon.ico")
     def favicon():
-        return send_from_directory(
+        response = send_from_directory(
             app.static_folder,
-            "img/logo boost.svg",
-            mimetype="image/svg+xml",
+            "img/logo boost.png",
+            mimetype="image/png",
+            max_age=0,
         )
+        response.cache_control.no_cache = True
+        response.cache_control.no_store = True
+        return response
 
     registrando_blueprints(app)
     register_error_handlers(app)

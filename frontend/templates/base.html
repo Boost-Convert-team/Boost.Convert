@@ -17,9 +17,9 @@
     <meta name="twitter:title" content="{% block twitter_title %}{{ self.title()|striptags|trim }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ self.meta_description()|striptags|trim }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ default_og_image }}{% endblock %}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo boost.svg') }}">
-    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo boost.svg') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo boost.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo boost.png') }}?v={{ favicon_version }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/logo boost.png') }}?v={{ favicon_version }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo boost.png') }}?v={{ favicon_version }}">
     <link rel="preconnect" href="https://api.fontshare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
