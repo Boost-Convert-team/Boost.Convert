@@ -62,8 +62,8 @@ def create_app():
     def favicon():
         return send_from_directory(
             app.static_folder,
-            "img/logo boost.png",
-            mimetype="image/png",
+            "img/logo boost.svg",
+            mimetype="image/svg+xml",
         )
 
     registrando_blueprints(app)

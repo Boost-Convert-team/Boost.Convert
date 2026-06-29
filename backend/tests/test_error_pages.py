@@ -34,8 +34,8 @@ class ErrorPagesTests(unittest.TestCase):
         response = self.client.get("/favicon.ico", buffered=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, "image/png")
-        self.assertIn("logo boost.png", response.headers["Content-Disposition"])
+        self.assertEqual(response.mimetype, "image/svg+xml")
+        self.assertIn("logo boost.svg", response.headers["Content-Disposition"])
 
     def test_upload_without_file_uses_boost_error_page(self) -> None:
         response = self.client.post("/convert/pdf-to-docx", data=self.csrf_data())
