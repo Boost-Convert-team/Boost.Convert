@@ -3,7 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Boost.Convert{% endblock %}</title>
+    <title>{% block title %}Boost.Convert | Conversor de arquivos online{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Converta PDF, documentos, imagens, videos e audios online no Boost.Convert. Use no navegador, sem instalacao, com rapidez, seguranca e arquivos protegidos.{% endblock %}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.base_url }}{% endblock %}">
+    {% set default_og_image = url_for('static', filename='img/boost-convert-logo-clean.png', _external=True) %}
+    <meta property="og:title" content="{% block og_title %}{{ self.title()|striptags|trim }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description()|striptags|trim }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ default_og_image }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ self.canonical_url()|striptags|trim }}{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.title()|striptags|trim }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.meta_description()|striptags|trim }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ default_og_image }}{% endblock %}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
     <link rel="preconnect" href="https://api.fontshare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

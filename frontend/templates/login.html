@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Boost.Convert{% endblock %}
+{% block title %}Entrar no Boost.Convert{% endblock %}
+{% block meta_description %}Entre na sua conta Boost.Convert para acompanhar conversoes, acessar seu historico e continuar convertendo arquivos online com praticidade e seguranca.{% endblock %}
 
 {% block content %}
 <main class="auth-page">
@@ -19,7 +20,7 @@
             <form class="auth-form" action="{{ url_for('auth.registrar') }}" method="post" data-loading-form>
                 {% include "partials/csrf_field.html" %}
                 <img class="auth-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
-                <h1>Criar conta</h1>
+                <h2>Criar conta</h2>
                 <a class="google-button" href="{{ url_for('auth.google_login') }}">
                     <img class="google-mark" src="{{ url_for('static', filename='img/google-logo.jpg') }}" alt="" aria-hidden="true">
                     Continuar com Google
@@ -50,12 +51,12 @@
         <div class="toggle-container">
             <div class="toggle">
                 <div class="toggle-panel toggle-left">
-                    <h1>Bem-vindo de volta!</h1>
+                    <h2>Bem-vindo de volta!</h2>
                     <p>Entre para continuar suas convers&otilde;es e acompanhar seus arquivos recentes.</p>
                     <button class="hidden" type="button" id="login">Entrar</button>
                 </div>
                 <div class="toggle-panel toggle-right">
-                    <h1>Novo por aqui?</h1>
+                    <h2>Novo por aqui?</h2>
                     <p>Crie uma conta para organizar hist&oacute;rico, plano e convers&otilde;es em um s&oacute; lugar.</p>
                     <button class="hidden" type="button" id="register">Criar conta</button>
                 </div>

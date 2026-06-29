@@ -1,5 +1,7 @@
 import os
-from flask import abort, jsonify, render_template, Blueprint, request, url_for
+from xml.sax.saxutils import escape
+
+from flask import Blueprint, Response, abort, jsonify, render_template, request, url_for
 
 from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.main.account_workspace import get_account_workspace
@@ -75,6 +77,45 @@ def get_conversion_output_label(name, slug):
 @home_bp.route("/")
 def home():
     return render_template("home.html")
+
+
+@home_bp.route("/robots.txt")
+def robots_txt():
+    content = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            f"Sitemap: {url_for('home.sitemap_xml', _external=True)}",
+            "",
+        ]
+    )
+    return Response(content, mimetype="text/plain")
+
+
+@home_bp.route("/sitemap.xml")
+def sitemap_xml():
+    urls = [
+        url_for("home.home", _external=True),
+        url_for("home.tools", _external=True),
+        url_for("main.planos", _external=True),
+        url_for("home.sobre", _external=True),
+        url_for("auth.login", _external=True),
+        url_for("auth.registrar", _external=True),
+        url_for("youtube_downloads.youtube_download", _external=True),
+    ]
+
+    for category_tools in TOOLS.values():
+        for tool in category_tools:
+            route = str(tool.get("route", ""))
+            if route.startswith("/convert/"):
+                urls.append(url_for("home.converter_tool", slug=route.removeprefix("/convert/"), _external=True))
+
+    unique_urls = list(dict.fromkeys(urls))
+    sitemap = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for page_url in unique_urls:
+        sitemap.append(f"    <url><loc>{escape(page_url)}</loc></url>")
+    sitemap.append("</urlset>")
+    return Response("\n".join(sitemap), mimetype="application/xml")
 
 
 @home_bp.route("/api/conversion-options")

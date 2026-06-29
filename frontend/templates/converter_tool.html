@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}{{ tool.name }} - Boost.Convert{% endblock %}
+{% block title %}{{ tool.name|replace(" -> ", " para ") }} online - Boost.Convert{% endblock %}
+{% block meta_description %}Converta {{ tool.name|replace(" -> ", " para ") }} online pelo navegador, sem instalacao. O Boost.Convert processa seus arquivos com rapidez, seguranca e alta qualidade.{% endblock %}
 
 {% block content %}
 <main class="page-section">
