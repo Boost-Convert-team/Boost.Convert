@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -57,6 +57,14 @@ def create_app():
 
     @app.before_request
     def cleanup_conversion_files(): run_conversion_file_cleanup(app)
+
+    @app.get("/favicon.ico")
+    def favicon():
+        return send_from_directory(
+            app.static_folder,
+            "img/logo boost.png",
+            mimetype="image/png",
+        )
 
     registrando_blueprints(app)
     register_error_handlers(app)
