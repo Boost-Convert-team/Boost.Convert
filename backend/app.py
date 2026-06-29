@@ -74,6 +74,11 @@ def create_app():
         response.cache_control.no_store = True
         return response
 
+    @app.get("/google8d88adeac885fa39.html")
+    def google_search_console_verification():
+        project_root = Path(__file__).resolve().parent.parent
+        return send_from_directory(project_root, "google8d88adeac885fa39.html")
+
     registrando_blueprints(app)
     register_error_handlers(app)
     return app
