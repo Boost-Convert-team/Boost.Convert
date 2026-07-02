@@ -128,7 +128,6 @@
         const dropzone = form.querySelector(".hero-upload-dropzone");
         const selectedFile = form.querySelector("[data-hero-selected-file]");
         const uploadTitle = form.querySelector("[data-hero-upload-title]");
-        const uploadButtonLabel = form.querySelector("[data-hero-upload-button-label]");
         const panel = form.querySelector("[data-hero-conversion-panel]");
         const optionsList = form.querySelector("[data-hero-conversion-options]");
         const message = form.querySelector("[data-hero-upload-message]");
@@ -148,16 +147,14 @@
                 selectedFile.hidden = true;
                 selectedFile.textContent = "";
                 selectedFile.removeAttribute("title");
-                if (uploadTitle) uploadTitle.textContent = "Arraste seu arquivo aqui";
-                if (uploadButtonLabel) uploadButtonLabel.textContent = "Selecionar arquivo";
+                if (uploadTitle) uploadTitle.textContent = "Solte seus arquivos aqui";
                 return;
             }
 
             selectedFile.hidden = false;
             selectedFile.textContent = `${file.name} - ${window.BoostUtils.formatBytes(file.size)}`;
             selectedFile.title = file.name;
-            if (uploadTitle) uploadTitle.textContent = "Arquivo pronto para converter";
-            if (uploadButtonLabel) uploadButtonLabel.textContent = "Trocar arquivo";
+            if (uploadTitle) uploadTitle.textContent = "Solte seus arquivos aqui";
         };
 
         const resetOptions = () => {
