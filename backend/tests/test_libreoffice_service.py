@@ -17,8 +17,6 @@ from Blueprints.services.convertions_services.documents import libreoffice_servi
 CONVERTERS = (
     ("doc_to_docx_service", "convert_doc_docx", "docx"),
     ("doc_to_pdf_service", "convert_doc_pdf", "pdf"),
-    ("html_to_docx_service", "convert_html_docx", "docx"),
-    ("html_to_pdf_service", "convert_html_pdf", "pdf"),
     ("odp_to_pdf_service", "convert_odp_pdf", "pdf"),
     ("odp_to_pptx_service", "convert_odp_pptx", "pptx"),
     ("ods_to_pdf_service", "convert_ods_pdf", "pdf"),

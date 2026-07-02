@@ -1,10 +1,5 @@
-from .libreoffice_service import (
-    PathLike,
-    find_converted_file,
-    find_office_converter,
-    run_libreoffice_conversion,
-)
+from .html_conversion import PathLike, convert_html_to_docx
 
 
 def convert_html_docx(input_path: PathLike, output_path: PathLike) -> None:
-    run_libreoffice_conversion(input_path, output_path, "docx")
+    convert_html_to_docx(input_path, output_path)
