@@ -85,7 +85,6 @@ from Blueprints.main.checkout_routes import checkout_bp
 from Blueprints.main.home import home_bp
 from Blueprints.main.planos import planos_bp
 from Blueprints.main.webhook_routes import webhook_bp
-from Blueprints.tools.youtube_downloads import yt_download_bp
 from routes.kiwify_webhook import kiwify_webhook_bp
 
 
@@ -190,9 +189,7 @@ AUDIO_BLUEPRINTS = (
     wma_mp3_bp,
 )
 
-TOOLS_BLUEPRINTS = (
-    yt_download_bp,
-)
+TOOLS_BLUEPRINTS = ()
 
 ALL_BLUEPRINTS = (
     *MAIN_BLUEPRINTS,

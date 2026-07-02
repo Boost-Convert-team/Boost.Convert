@@ -132,15 +132,6 @@ VALIDATION_MESSAGE_ERRORS: dict[str, FriendlyConversionError] = {
     "Arquivo ZIP invalido.": FriendlyConversionError("ZIP inv\u00e1lido", "O arquivo ZIP n\u00e3o p\u00f4de ser aberto com seguran\u00e7a.", "Crie um novo ZIP e tente enviar novamente."),
 }
 
-YOUTUBE_MESSAGE_ERRORS: dict[str, FriendlyConversionError] = {
-    "Envie uma URL do YouTube": FriendlyConversionError("URL ausente", "Informe a URL do v\u00eddeo do YouTube antes de baixar.", "Cole o link completo do v\u00eddeo e tente novamente."),
-    "Escolha uma qualidade": FriendlyConversionError("Qualidade ausente", "Escolha uma qualidade de v\u00eddeo antes de iniciar o download.", "Selecione uma op\u00e7\u00e3o dispon\u00edvel e tente novamente."),
-    "Qualidade indisponivel": FriendlyConversionError("Qualidade indispon\u00edvel", "O v\u00eddeo n\u00e3o oferece a qualidade escolhida.", "Escolha outra qualidade e tente baixar novamente."),
-    "Audio indisponivel para este video": FriendlyConversionError("Audio indispon\u00edvel", "N\u00e3o encontrei uma faixa de \u00e1udio compat\u00edvel para este v\u00eddeo.", "Tente outra qualidade ou outro v\u00eddeo."),
-    "Nao foi possivel processar o video do YouTube.": FriendlyConversionError("V\u00eddeo n\u00e3o processado", "N\u00e3o foi poss\u00edvel processar este v\u00eddeo do YouTube no momento.", "Confira o link, tente outra qualidade ou tente novamente mais tarde."),
-}
-
-
 def build_friendly_conversion_error(error: BaseException) -> FriendlyConversionError:
     """Builds a safe error message for Boost conversion screens.
 
@@ -183,7 +174,7 @@ def build_friendly_message_from_text(raw_message: str) -> FriendlyConversionErro
 
 
 def get_mapped_message(message: str) -> FriendlyConversionError | None:
-    exact_message = EXACT_MESSAGE_ERRORS.get(message) or VALIDATION_MESSAGE_ERRORS.get(message) or YOUTUBE_MESSAGE_ERRORS.get(message)
+    exact_message = EXACT_MESSAGE_ERRORS.get(message) or VALIDATION_MESSAGE_ERRORS.get(message)
     if exact_message is not None:
         return exact_message
     return get_prefix_message(message)

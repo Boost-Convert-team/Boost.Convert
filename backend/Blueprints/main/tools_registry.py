@@ -80,7 +80,6 @@ TOOLS: ToolRegistry = {
         {"name": "WEBP -> PNG", "route": "/convert/webp-to-png", "accept": ".webp"},
     ],
     "Videos": [
-        {"name": "Baixar video do YouTube", "route": "/tools/youtube-download", "page_route": "/tools/youtube-download", "accept": "URL do YouTube", "badge": "Novo", "icon": "video", "aliases": "youtube baixar video download mp4 link url"},
         {"name": "AVI -> MP4", "route": "/convert/avi-to-mp4", "accept": ".avi"},
         {"name": "MKV -> MP4", "route": "/convert/mkv-to-mp4", "accept": ".mkv"},
         {"name": "MOV -> MP4", "route": "/convert/mov-to-mp4", "accept": ".mov"},
@@ -165,7 +164,6 @@ TOOL_DESCRIPTIONS: dict[str, str] = {
     "/convert/svg-to-png": "Converta SVG para PNG mantendo boa definicao em telas e redes.",
     "/convert/webp-to-jpg": "Transforme WEBP em JPG para abrir em programas que nao aceitam WEBP.",
     "/convert/webp-to-png": "Converta WEBP em PNG para usar a imagem com melhor compatibilidade.",
-    "/tools/youtube-download": "Cole o link do YouTube e baixe o video em MP4 para assistir offline.",
     "/convert/avi-to-mp4": "Converta AVI para MP4, formato mais aceito em celulares, TVs e redes.",
     "/convert/mkv-to-mp4": "Transforme MKV em MP4 para tocar com mais facilidade em aparelhos comuns.",
     "/convert/mov-to-mp4": "Passe videos MOV, comuns no iPhone, para MP4 mais compativel.",

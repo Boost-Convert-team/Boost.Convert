@@ -35,7 +35,6 @@ ENDPOINT_RATE_LIMITS = {
     "checkout.checkout_pro": RateLimitRule(10, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
-    "youtube_downloads.download_youtube": RateLimitRule(10, 600),
 }
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
 

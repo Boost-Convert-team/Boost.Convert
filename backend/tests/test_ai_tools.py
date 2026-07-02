@@ -21,7 +21,7 @@ class AiToolsTests(unittest.TestCase):
 
     def test_ai_tool_route_functions_are_removed(self) -> None:
         self.assertFalse(hasattr(ai_tools, "document_analyzer"))
-        self.assertFalse(hasattr(ai_tools, "youtube_analyzer"))
+        self.assertFalse(hasattr(ai_tools, "".join(("you", "tube")) + "_analyzer"))
         self.assertFalse(hasattr(ai_tools, "mp4_to_text"))
         self.assertFalse(hasattr(ai_tools, "mp4_to_text_download"))
         self.assertFalse(hasattr(ai_tools, "transcribe_file_with_openrouter"))

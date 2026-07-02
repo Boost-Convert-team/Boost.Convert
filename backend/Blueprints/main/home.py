@@ -101,7 +101,6 @@ def sitemap_xml():
         url_for("home.sobre", _external=True),
         url_for("auth.login", _external=True),
         url_for("auth.registrar", _external=True),
-        url_for("youtube_downloads.youtube_download", _external=True),
     ]
 
     for category_tools in TOOLS.values():

@@ -71,7 +71,7 @@ def call_openrouter_chat_completion(
 ) -> str:
     """Call OpenRouter chat with free-model fallback.
 
-    Example: call_openrouter_chat_completion("Resuma este texto", "youtube_analyzer")
+    Example: call_openrouter_chat_completion("Resuma este texto", "document_analyzer_ai")
     """
     return call_openrouter_chat_completion_with_settings(
         user_content,
@@ -255,7 +255,7 @@ def post_openrouter_json(
 ) -> Response:
     """Post one JSON payload to OpenRouter with safe logging.
 
-    Example: post_openrouter_json(key, url, payload, "youtube_analyzer", model, False, 120, post)
+    Example: post_openrouter_json(key, url, payload, "document_analyzer_ai", model, False, 120, post)
     """
     try:
         response = request_post(
@@ -368,7 +368,7 @@ def log_openrouter_attempt(
 ) -> None:
     """Log only safe OpenRouter attempt metadata.
 
-    Example: log_openrouter_attempt("youtube_analyzer", "qwen/qwen3-coder:free", 200, False)
+    Example: log_openrouter_attempt("document_analyzer_ai", "qwen/qwen3-coder:free", 200, False)
     """
     logger.info(
         json.dumps(

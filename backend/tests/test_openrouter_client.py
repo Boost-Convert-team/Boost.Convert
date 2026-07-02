@@ -67,7 +67,7 @@ class OpenRouterClientTests(unittest.TestCase):
 
         result = openrouter_client.call_openrouter_chat_completion(
             "Conteudo",
-            "youtube_analyzer",
+            "document_analyzer_ai",
             fake_post,
         )
 

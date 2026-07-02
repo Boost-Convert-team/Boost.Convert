@@ -20,7 +20,6 @@ from Blueprints.services.convertions_services.runtime import ffmpeg_runner
 from Blueprints.services.convertions_services.upload_flow.job_factory import create_single_conversion_job
 from Blueprints.services.convertions_services.validation.file_security import validate_zip_file
 from Blueprints.services.privacy.file_retention import get_conversions_root
-from Blueprints.tools.youtube_downloads import validate_youtube_url
 
 
 class FileSecurityTests(unittest.TestCase):
@@ -89,13 +88,6 @@ class FileSecurityTests(unittest.TestCase):
         self.assertEqual(run.call_args.args[0], ["ffmpeg", "-y", "-i", "input.mp4", "output.mp3"])
         self.assertEqual(call_kwargs["timeout"], 300)
         self.assertNotIn("shell", call_kwargs)
-
-    def test_youtube_url_rejects_private_or_non_youtube_host(self) -> None:
-        with self.assertRaisesRegex(ValueError, "URL do YouTube invalida"):
-            validate_youtube_url("http://127.0.0.1/video")
-
-        validate_youtube_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-
 
 class FakeUploadFile:
     def __init__(self, size: int) -> None:

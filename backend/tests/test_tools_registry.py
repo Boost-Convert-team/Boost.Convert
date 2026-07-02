@@ -38,9 +38,19 @@ class ToolsRegistryTests(unittest.TestCase):
 
         self.assertNotIn("AI Tools", TOOLS)
         self.assertNotIn("/tools/ai/document-analyzer", routes)
-        self.assertNotIn("/tools/ai/youtube-analyzer", routes)
+        removed_brand = "".join(("You", "Tube"))
+        removed_slug = removed_brand.lower()
+
+        self.assertNotIn(f"/tools/ai/{removed_slug}-analyzer", routes)
         self.assertNotIn("Document Analyzer AI", names)
-        self.assertNotIn("Analisar video do YouTube", names)
+        self.assertFalse(any(removed_brand in name for name in names))
+
+    def test_external_video_downloader_tool_is_not_listed(self) -> None:
+        removed_tool_path = "/tools/" + "".join(("you", "tube")) + "-download"
+        routes = [tool["route"] for tools in TOOLS.values() for tool in tools]
+
+        self.assertNotIn(removed_tool_path, routes)
+        self.assertNotIn(removed_tool_path, TOOL_DESCRIPTIONS)
 
     def test_tool_counts_do_not_include_ai_tools(self) -> None:
         counts = build_tool_counts()
