@@ -115,9 +115,10 @@
 
 .about-team-list {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: clamp(56px, 9vw, 128px);
-    width: min(980px, 100%);
+    width: min(1180px, 100%);
     margin: 0 auto;
 }
 
@@ -173,6 +174,30 @@
 }
 
 .about-member:nth-child(2) .member-photo img {
+    object-position: center 32%;
+}
+
+.about-member:nth-child(3) .member-photo img {
+    object-position: center 28%;
+}
+
+.about-collaborators-title {
+    margin: 72px auto 34px;
+    text-align: center;
+}
+
+.about-collaborators-title h3 {
+    margin: 0;
+    color: #2f3240;
+    font-size: clamp(32px, 3vw, 42px);
+    line-height: 1;
+}
+
+.about-collaborators-list {
+    gap: 0;
+}
+
+.about-collaborator .member-photo img {
     object-position: center 32%;
 }
 
@@ -292,6 +317,10 @@
         flex-direction: column;
         align-items: center;
         gap: 58px;
+    }
+
+    .about-collaborators-title {
+        margin-top: 64px;
     }
 
     .member-photo {

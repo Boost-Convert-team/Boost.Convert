@@ -61,7 +61,7 @@
         <div class="about-team-title reveal">
             <h2>A Equipe</h2>
             <p>
-                Somos apenas duas pessoas, mas muito apaixonadas por criar solu&ccedil;&otilde;es reais
+                Somos uma equipe pequena, mas muito apaixonada por criar solu&ccedil;&otilde;es reais
                 para quem precisa trabalhar melhor com documentos, imagens e arquivos.
             </p>
         </div>
@@ -85,13 +85,45 @@
                 <div class="member-photo">
                     <img
                         src="{{ url_for('static', filename='img/team/profile-icon.jpg') }}?v=2"
-                        alt="Lucas, Full Stack Developer e s&oacute;cio do Boost"
+                        alt="Lucas, Full Stack Developer e CTO do Boost"
                     >
                     <span class="member-badge"><i data-lucide="code-2" aria-hidden="true"></i></span>
                 </div>
                 <h3>Lucas</h3>
                 <p>Full Stack Developer</p>
-                <small>S&oacute;cio do Boost</small>
+                <small>CTO do Boost</small>
+            </article>
+
+            <article class="about-member reveal">
+                <div class="member-photo">
+                    <img
+                        src="{{ url_for('static', filename='img/team/nerih team equipe.jpeg') }}"
+                        alt="Nerih, CMO de marketing e crescimento do Boost"
+                    >
+                    <span class="member-badge"><i data-lucide="trending-up" aria-hidden="true"></i></span>
+                </div>
+                <h3>Nerih</h3>
+                <p>CMO</p>
+                <small>Marketing e Crescimento</small>
+            </article>
+        </div>
+
+        <div class="about-collaborators-title reveal">
+            <h3>Colaboradores</h3>
+        </div>
+
+        <div class="about-team-list about-collaborators-list">
+            <article class="about-member about-collaborator reveal">
+                <div class="member-photo">
+                    <img
+                        src="{{ url_for('static', filename='img/team/vitor team colaborador.jpeg') }}"
+                        alt="Vitor, colaborador do Boost"
+                    >
+                    <span class="member-badge"><i data-lucide="handshake" aria-hidden="true"></i></span>
+                </div>
+                <h3>Vitor</h3>
+                <p>Back-end Developer</p>
+                <small>Colaborador do Boost</small>
             </article>
         </div>
     </section>
