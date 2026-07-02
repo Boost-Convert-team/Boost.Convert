@@ -13,3 +13,305 @@
 @import url("./responsivo.css");
 @import url("./home/ecosystem.css");
 @import url("./commerce-interactions.css");
+
+.home-page .hero-upload-actions {
+    display: flex;
+    justify-content: center;
+    width: min(100%, 554px);
+    max-width: 100%;
+    margin-top: 22px;
+}
+
+.home-page .hero-upload-actions .button.button-primary {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--orange);
+    color: #fff;
+    box-shadow: 0 12px 26px rgba(240, 138, 36, .16);
+    cursor: pointer;
+    font-weight: var(--weight-ui-medium);
+    overflow: hidden;
+    transform: translateY(0);
+    transition:
+        transform 620ms var(--ease-air),
+        box-shadow 620ms var(--ease-air),
+        background-color 620ms var(--ease-air),
+        border-color 620ms var(--ease-air),
+        color 620ms var(--ease-air);
+    will-change: transform;
+}
+
+.home-page .hero-upload-actions .button.button-primary::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 70%);
+    opacity: 0;
+    transition: opacity 720ms var(--ease-air);
+}
+
+.home-page .hero-upload-actions .button.button-primary svg {
+    width: 17px;
+    height: 17px;
+    color: currentColor;
+    transition: transform 620ms var(--ease-air), opacity 620ms var(--ease-air);
+}
+
+.home-page .hero-upload-actions .button.button-primary:hover {
+    background: #e9821d;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 38px rgba(240, 138, 36, .18);
+}
+
+.home-page .hero-upload-actions .button.button-primary:hover::before {
+    opacity: 1;
+}
+
+.home-page .hero-upload-actions .button.button-primary:hover svg {
+    transform: translateX(2px);
+}
+
+.home-page .hero-upload-actions .button.button-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 9px 20px rgba(88, 58, 24, .10);
+    transition-duration: 180ms;
+}
+
+.home-page .hero-upload-add-file {
+    position: relative;
+    z-index: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    max-width: 100%;
+    margin: 28px auto 0;
+    padding: 0 16px;
+    border: 1px solid rgba(217, 107, 4, .22);
+    border-radius: 999px;
+    background: #fff;
+    color: #263f3b;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: var(--weight-ui-medium);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(88, 58, 24, .035);
+    transition:
+        transform 520ms var(--ease-air),
+        border-color 520ms var(--ease-air),
+        box-shadow 520ms var(--ease-air),
+        color 520ms var(--ease-air);
+}
+
+.home-page .hero-upload-add-file:not([hidden]) {
+    display: inline-flex;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-limit,
+.home-page .hero-upload-limit[hidden],
+.home-page .hero-upload-add-file[hidden] {
+    display: none !important;
+}
+
+.home-page .hero-upload-card,
+.home-page .hero-upload-dropzone,
+.home-page .hero-upload-dropzone > *,
+.home-page .hero-upload-output-panel,
+.home-page .hero-upload-output-options {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.home-page .ab-hero {
+    overflow: visible;
+}
+
+.home-page .boost-hero-visual {
+    height: auto;
+    min-height: 650px;
+}
+
+.home-page .boost-hero-visual:has(.hero-upload-card.has-file) {
+    align-content: start;
+    min-height: auto;
+    transform: none;
+}
+
+.home-page .hero-upload-output-options {
+    max-height: 124px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-dropzone {
+    min-height: 0;
+    padding-block: clamp(24px, 3.5vw, 34px);
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-icon {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 20px;
+    border-radius: 18px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-dropzone > small {
+    margin-top: 12px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-file-types {
+    gap: 7px 8px;
+    margin-top: 16px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-file-types span {
+    min-height: 28px;
+    padding-inline: 10px;
+    font-size: 12px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-actions {
+    margin-top: 20px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-add-file {
+    margin-top: 22px;
+}
+
+.home-page .hero-upload-selected {
+    width: min(100%, 460px);
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-selected {
+    margin-top: 14px;
+    padding-block: 9px;
+}
+
+.home-page .hero-upload-card.has-file .hero-upload-file-types,
+.home-page .hero-upload-card.has-file .hero-upload-actions,
+.home-page .hero-upload-card.has-file .hero-upload-add-file,
+.home-page .hero-upload-card.has-file .hero-upload-selected {
+    flex-shrink: 1;
+}
+
+.home-page .hero-upload-add-file svg {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+}
+
+.home-page .hero-upload-add-file:hover,
+.home-page .hero-upload-add-file:focus-visible {
+    border-color: rgba(217, 107, 4, .42);
+    color: #171717;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(88, 58, 24, .075);
+}
+
+.home-page .hero-upload-add-file:focus-visible {
+    outline: 0;
+    box-shadow: var(--focus-ring);
+}
+
+.home-page .hero-upload-add-file:active {
+    transform: translateY(0);
+}
+
+.home-page .hero-upload-limit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: min(100%, 430px);
+    margin-top: 28px;
+    padding: 12px 16px;
+    border: 1px solid rgba(232, 218, 203, .78);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .78);
+    color: #667079;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: left;
+    box-shadow:
+        0 12px 30px rgba(88, 58, 24, .06),
+        inset 0 1px 0 rgba(255, 255, 255, .78);
+    backdrop-filter: blur(12px);
+}
+
+.home-page .hero-upload-limit > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.home-page .hero-upload-limit svg {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+    color: var(--orange-deep);
+    stroke-width: 2.2;
+}
+
+.home-page .hero-upload-limit strong {
+    color: #1f2933;
+    font-size: 1.08em;
+    font-weight: 800;
+}
+
+@media (max-width: 420px) {
+    .home-page .hero-upload-card.has-file .hero-upload-dropzone {
+        padding-inline: 14px;
+        padding-block: 22px;
+    }
+
+    .home-page .hero-upload-actions {
+        width: 100% !important;
+    }
+
+    .home-page .hero-upload-add-file {
+        width: min(100%, 230px);
+        min-height: 36px;
+        padding-inline: 12px;
+        font-size: 12px;
+    }
+
+    .home-page .hero-upload-file-types {
+        width: 100%;
+    }
+
+    .home-page .hero-upload-selected {
+        width: 100%;
+        max-width: 100%;
+        font-size: 12px;
+    }
+
+    .home-page .hero-upload-output-options {
+        max-height: 178px;
+    }
+}

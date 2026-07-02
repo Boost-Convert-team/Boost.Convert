@@ -53,8 +53,18 @@ def create_app():
     @app.context_processor
     def inject_global_template_data():
         favicon_path = Path(app.static_folder) / "img" / "logo boost.png"
+        css_path = Path(app.static_folder) / "css"
+        js_path = Path(app.static_folder) / "js"
+        css_version = 0
+        js_version = 0
+        if css_path.exists():
+            css_version = int(max(path.stat().st_mtime for path in css_path.rglob("*.css")))
+        if js_path.exists():
+            js_version = int(max(path.stat().st_mtime for path in js_path.rglob("*.js")))
         return {
             "favicon_version": int(favicon_path.stat().st_mtime) if favicon_path.exists() else 0,
+            "css_version": css_version,
+            "js_version": js_version,
             "tool_search_index": build_tool_search_index(),
             "tool_counts": build_tool_counts(),
         }

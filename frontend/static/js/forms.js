@@ -128,9 +128,14 @@
         const dropzone = form.querySelector(".hero-upload-dropzone");
         const selectedFile = form.querySelector("[data-hero-selected-file]");
         const uploadTitle = form.querySelector("[data-hero-upload-title]");
+        const uploadButtonLabel = form.querySelector("[data-hero-upload-button-label]");
+        const addFilesButton = form.querySelector("[data-hero-add-files]");
+        const uploadLimit = form.querySelector("[data-hero-upload-limit]");
         const panel = form.querySelector("[data-hero-conversion-panel]");
         const optionsList = form.querySelector("[data-hero-conversion-options]");
         const message = form.querySelector("[data-hero-upload-message]");
+        let heroFiles = Array.from(input.files || []);
+        let shouldAppendHeroFiles = false;
         let selectedRoute = "";
 
         if (!input || !dropzone || !panel || !optionsList) return;
@@ -140,21 +145,50 @@
             message.textContent = text || "";
         };
 
-        const setSelectedFile = (file) => {
+        const setSelectedFiles = (files) => {
             if (!selectedFile) return;
-            form.classList.toggle("has-file", Boolean(file));
-            if (!file) {
+            const fileList = Array.from(files || []);
+            const hasFiles = fileList.length > 0;
+            form.classList.toggle("has-file", hasFiles);
+            if (addFilesButton) addFilesButton.hidden = !hasFiles;
+            if (uploadLimit) uploadLimit.hidden = hasFiles;
+            if (!fileList.length) {
                 selectedFile.hidden = true;
                 selectedFile.textContent = "";
                 selectedFile.removeAttribute("title");
-                if (uploadTitle) uploadTitle.textContent = "Solte seus arquivos aqui";
+                if (uploadTitle) uploadTitle.textContent = "Arraste seu arquivo aqui";
+                if (uploadButtonLabel) uploadButtonLabel.textContent = "Selecionar arquivo";
                 return;
             }
 
+            const totalSize = fileList.reduce((sum, currentFile) => sum + currentFile.size, 0);
+            const firstFile = fileList[0];
             selectedFile.hidden = false;
-            selectedFile.textContent = `${file.name} - ${window.BoostUtils.formatBytes(file.size)}`;
-            selectedFile.title = file.name;
-            if (uploadTitle) uploadTitle.textContent = "Solte seus arquivos aqui";
+            selectedFile.textContent = fileList.length === 1
+                ? `${firstFile.name} - ${window.BoostUtils.formatBytes(firstFile.size)}`
+                : `${fileList.length} arquivos selecionados - ${window.BoostUtils.formatBytes(totalSize)}`;
+            selectedFile.title = fileList.map((currentFile) => currentFile.name).join(", ");
+            if (uploadTitle) uploadTitle.textContent = "Arquivo pronto para converter";
+            if (uploadButtonLabel) uploadButtonLabel.textContent = "Trocar arquivo";
+        };
+
+        const syncHeroInput = (files) => {
+            if (typeof DataTransfer === "undefined") return false;
+
+            try {
+                const transfer = new DataTransfer();
+                files.forEach((file) => transfer.items.add(file));
+                input.files = transfer.files;
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
+        const setHeroFiles = (files, shouldAppend = false) => {
+            const incomingFiles = Array.from(files || []);
+            heroFiles = shouldAppend ? heroFiles.concat(incomingFiles) : incomingFiles;
+            if (!syncHeroInput(heroFiles)) heroFiles = Array.from(input.files || []);
         };
 
         const resetOptions = () => {
@@ -205,9 +239,9 @@
         };
 
         const loadConversions = async () => {
-            const file = input.files?.[0];
+            const file = heroFiles[0];
             resetOptions();
-            setSelectedFile(file);
+            setSelectedFiles(heroFiles);
 
             if (!file) {
                 setMessage("");
@@ -248,16 +282,37 @@
         });
 
         dropzone.addEventListener("drop", (event) => {
-            const file = event.dataTransfer.files?.[0];
-            if (!file) return;
+            const files = event.dataTransfer.files;
+            if (!files?.length) return;
 
-            const transfer = new DataTransfer();
-            transfer.items.add(file);
-            input.files = transfer.files;
+            setHeroFiles(files, true);
             loadConversions();
         });
 
-        input.addEventListener("change", loadConversions);
+        input.addEventListener("change", () => {
+            setHeroFiles(input.files, shouldAppendHeroFiles);
+            shouldAppendHeroFiles = false;
+            loadConversions();
+        });
+        input.addEventListener("cancel", () => {
+            shouldAppendHeroFiles = false;
+        });
+
+        if (addFilesButton) {
+            addFilesButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                shouldAppendHeroFiles = true;
+                input.click();
+            });
+            addFilesButton.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                shouldAppendHeroFiles = true;
+                input.click();
+            });
+        }
 
         form.addEventListener("submit", (event) => {
             if (!input.files?.length) {

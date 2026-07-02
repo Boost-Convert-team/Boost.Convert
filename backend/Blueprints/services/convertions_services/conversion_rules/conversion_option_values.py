@@ -19,6 +19,11 @@ def get_gif_width(options):
     if gif_width == "original": return None
     return int(gif_width)
 
+def get_gif_duration(options):
+    gif_duration = options.get("gif_duration", "original")
+    if gif_duration == "original": return None
+    return int(gif_duration)
+
 def get_h264_crf(options):
     values = {"smaller": 30, "balanced": 20, "high": 16}
     return values.get(options.get("video_quality", "high"), 16)

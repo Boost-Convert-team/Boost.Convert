@@ -1390,6 +1390,10 @@
     font-weight: var(--weight-hero);
 }
 
+.faq-title-accent {
+    color: var(--orange);
+}
+
 .faq-copy p {
     max-width: 560px;
     margin: 0;

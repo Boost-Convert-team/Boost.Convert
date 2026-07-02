@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ css_version }}">
 </head>
 <body>
     <div class="site-shell">
@@ -38,11 +38,11 @@
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script id="tool-search-data" type="application/json">{{ tool_search_index|default([], true)|tojson }}</script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/tool_search.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/forms.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/reveal.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v={{ js_version }}"></script>
+    <script src="{{ url_for('static', filename='js/navigation.js') }}?v={{ js_version }}"></script>
+    <script src="{{ url_for('static', filename='js/tool_search.js') }}?v={{ js_version }}"></script>
+    <script src="{{ url_for('static', filename='js/forms.js') }}?v={{ js_version }}"></script>
+    <script src="{{ url_for('static', filename='js/reveal.js') }}?v={{ js_version }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ js_version }}"></script>
 </body>
 </html>
