@@ -303,6 +303,33 @@ label,
         transform 1200ms var(--ease-air);
 }
 
+@media (max-width: 780px) {
+    body {
+        transition:
+            opacity 360ms ease,
+            transform 360ms ease;
+    }
+
+    .reveal {
+        filter: none;
+        transform: translateY(10px);
+        transition:
+            opacity 360ms ease,
+            transform 360ms ease;
+        will-change: opacity, transform;
+    }
+
+    .reveal.is-visible {
+        filter: none;
+    }
+
+    .reveal > * {
+        transition:
+            opacity 360ms ease,
+            transform 360ms ease;
+    }
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);

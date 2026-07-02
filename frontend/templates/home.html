@@ -101,18 +101,10 @@
                 <label class="hero-upload-dropzone" for="hero-upload-file">
                     <input id="hero-upload-file" class="hero-upload-input" type="file" name="files" required>
                     <span class="hero-upload-icon" aria-hidden="true">
-                        <svg viewBox="0 0 64 64" focusable="false">
-                            <g class="hero-upload-convert-symbol">
-                                <path d="M46 24A16 16 0 0 0 19.8 17.8L16 22" />
-                                <path d="M16 13v9h9" />
-                                <path d="M18 40a16 16 0 0 0 26.2 6.2L48 42" />
-                                <path d="M48 51v-9h-9" />
-                            </g>
-                        </svg>
-                        <span class="hero-upload-orbit"></span>
+                        <i data-lucide="cloud-upload" aria-hidden="true"></i>
                     </span>
-                    <strong data-hero-upload-title>Arraste seu arquivo aqui</strong>
-                    <small>Envie seu arquivo e escolha o formato que deseja baixar.</small>
+                    <strong data-hero-upload-title>Solte seus arquivos aqui</strong>
+                    <small>ou clique para selecionar</small>
                     <span class="hero-upload-file-types" aria-label="Tipos de arquivos aceitos">
                         <span><i data-lucide="file-text" aria-hidden="true"></i> PDF</span>
                         <span><i data-lucide="image" aria-hidden="true"></i> Imagem</span>
@@ -120,14 +112,6 @@
                         <span><i data-lucide="video" aria-hidden="true"></i> V&iacute;deo</span>
                         <span><i data-lucide="table" aria-hidden="true"></i> Planilha</span>
                         <span><i data-lucide="file-type" aria-hidden="true"></i> Documento</span>
-                    </span>
-                    <span class="hero-upload-button">
-                        <span class="hero-upload-button-label" data-hero-upload-button-label>Selecionar arquivo</span>
-                        <i data-lucide="arrow-right" aria-hidden="true"></i>
-                    </span>
-                    <span class="hero-upload-limit">
-                        <i data-lucide="lock-keyhole" aria-hidden="true"></i>
-                        <span>Seus arquivos s&atilde;o seguros e <strong>nunca</strong> armazenados em nossos servidores.</span>
                     </span>
                     <span class="hero-upload-selected file-name-safe" data-hero-selected-file hidden></span>
                 </label>

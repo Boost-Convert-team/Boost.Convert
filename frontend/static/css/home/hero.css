@@ -624,22 +624,15 @@
 }
 
 .hero-upload-card {
-    width: min(100%, 700px);
+    width: min(100%, 760px);
     min-width: 0;
     max-width: 100%;
-    padding: 20px;
-    border: 1px solid rgba(232, 218, 203, .78);
+    padding: 0;
+    border: 0;
     border-radius: 28px;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(255, 252, 248, .88));
-    box-shadow:
-        0 34px 86px rgba(88, 58, 24, .095),
-        0 14px 38px rgba(240, 138, 36, .045),
-        inset 0 1px 0 rgba(255, 255, 255, .96);
-    transition:
-        transform 320ms var(--ease-air),
-        border-color 320ms var(--ease-air),
-        box-shadow 320ms var(--ease-air);
+    background: transparent;
+    box-shadow: none;
+    transition: opacity 200ms ease;
 }
 
 .hero-upload-card.is-submitting {
@@ -648,12 +641,9 @@
 }
 
 .hero-upload-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(240, 138, 36, .24);
-    box-shadow:
-        0 42px 106px rgba(88, 58, 24, .115),
-        0 18px 46px rgba(240, 138, 36, .075),
-        inset 0 1px 0 rgba(255, 255, 255, .98);
+    transform: none;
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .hero-upload-dropzone {
@@ -661,22 +651,24 @@
     display: grid;
     justify-items: center;
     align-content: center;
+    gap: 8px;
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    min-height: 430px;
-    padding: 56px 40px;
+    min-height: 320px;
+    padding: 40px 56px;
     overflow: hidden;
-    border: 1.5px dashed rgba(240, 138, 36, .28);
-    border-radius: 20px;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, .88), rgba(255, 251, 247, .74));
+    border: 1.5px dashed rgba(255, 122, 0, .54);
+    border-radius: 28px;
+    background: #fff;
     color: var(--text);
     text-align: center;
+    cursor: pointer;
+    box-shadow: 0 18px 44px rgba(88, 58, 24, .035);
     transition:
-        background-color 320ms var(--ease-air),
-        border-color 320ms var(--ease-air),
-        box-shadow 320ms var(--ease-air);
+        background-color 200ms ease,
+        border-color 200ms ease,
+        box-shadow 200ms ease;
 }
 
 .hero-upload-input {
@@ -688,122 +680,57 @@
 }
 
 .hero-upload-dropzone::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background:
-        linear-gradient(90deg, transparent, rgba(240, 138, 36, .06), transparent);
-    opacity: 0;
-    transform: translateX(-46%);
-    transition:
-        opacity 320ms var(--ease-air),
-        transform 350ms var(--ease-air);
-    pointer-events: none;
-}
-
-.hero-upload-card:hover .hero-upload-dropzone {
-    border-color: rgba(240, 138, 36, .42);
-    background-color: rgba(255, 250, 245, .92);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .84);
-}
-
-.hero-upload-dropzone.is-dragging {
-    border-color: rgba(240, 138, 36, .58);
-    background-color: rgba(255, 250, 245, .96);
-}
-
-.hero-upload-dropzone:focus-within {
-    border-color: rgba(240, 138, 36, .62);
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, .90),
-        0 0 0 4px rgba(240, 138, 36, .10);
-}
-
-.hero-upload-card.has-conversions .hero-upload-dropzone {
-    min-height: 250px;
-    padding-block: 34px;
-}
-
-.hero-upload-card.has-file .hero-upload-dropzone {
-    min-height: 0;
-    padding-block: 24px;
-}
-
-.hero-upload-card.has-file .hero-upload-icon {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 14px;
-    border-radius: 20px;
-}
-
-.hero-upload-card.has-file .hero-upload-icon::before {
-    inset: 6px;
-    border-radius: 15px;
-}
-
-.hero-upload-card.has-file .hero-upload-icon::after {
-    inset: -5px;
-    border-radius: 25px;
-}
-
-.hero-upload-card.has-file .hero-upload-icon svg {
-    width: 34px;
-    height: 34px;
-}
-
-.hero-upload-card.has-file .hero-upload-orbit {
-    top: 8px;
-    right: 9px;
-    width: 6px;
-    height: 6px;
-}
-
-.hero-upload-card.has-file .hero-upload-dropzone small,
-.hero-upload-card.has-file .hero-upload-file-types,
-.hero-upload-card.has-file .hero-upload-limit {
     display: none;
 }
 
-.hero-upload-card.has-file .hero-upload-button {
-    margin-top: 18px;
+.hero-upload-card:hover .hero-upload-dropzone {
+    border-color: rgba(255, 122, 0, .82);
+    background-color: rgba(255, 122, 0, .03);
+    box-shadow: 0 20px 48px rgba(88, 58, 24, .045);
+}
+
+.hero-upload-dropzone.is-dragging {
+    border-style: solid;
+    border-color: #ff7a00;
+    background-color: rgba(255, 122, 0, .065);
+    box-shadow:
+        0 22px 54px rgba(255, 122, 0, .10),
+        0 0 0 4px rgba(255, 122, 0, .08);
+}
+
+.hero-upload-dropzone:focus-within {
+    border-color: #ff7a00;
+    box-shadow:
+        0 18px 44px rgba(88, 58, 24, .035),
+        0 0 0 4px rgba(255, 122, 0, .10);
+}
+
+.hero-upload-card.has-conversions .hero-upload-dropzone {
+    min-height: 320px;
+    padding-block: 40px;
+}
+
+.hero-upload-card.has-file .hero-upload-dropzone {
+    min-height: 320px;
+    padding-block: 40px;
 }
 
 .hero-upload-card:hover .hero-upload-dropzone::before {
-    opacity: 1;
-    transform: translateX(46%);
+    display: none;
 }
 
 .hero-upload-icon {
-    position: relative;
     display: grid;
     place-items: center;
-    isolation: isolate;
-    width: 82px;
-    height: 82px;
-    margin-bottom: 28px;
-    border: 1px solid rgba(234, 223, 211, .88);
-    border-radius: 22px;
-    color: #ee8017;
-    background: #fff;
-    box-shadow:
-        0 18px 42px rgba(88, 58, 24, .08),
-        0 8px 22px rgba(240, 138, 36, .055),
-        inset 0 1px 0 rgba(255, 255, 255, .96);
-    transition:
-        transform 320ms var(--ease-air),
-        border-color 320ms var(--ease-air),
-        box-shadow 320ms var(--ease-air);
+    width: 64px;
+    height: 64px;
+    margin-bottom: 4px;
+    color: #ff7a00;
+    transition: transform 200ms ease;
 }
 
 .hero-upload-icon::before {
-    content: "";
-    position: absolute;
-    inset: 10px;
-    z-index: -1;
-    border: 1px solid rgba(240, 138, 36, .10);
-    border-radius: 17px;
-    background: rgba(255, 247, 239, .36);
+    display: none;
 }
 
 .hero-upload-icon::after {
@@ -811,32 +738,15 @@
 }
 
 .hero-upload-icon svg {
-    position: relative;
-    z-index: 2;
-    width: 42px;
-    height: 42px;
+    width: 64px;
+    height: 64px;
     overflow: visible;
+    stroke-width: 2;
     transform: translateZ(0);
 }
 
 .hero-upload-convert-symbol {
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-}
-
-.hero-upload-convert-symbol {
-    transform-box: fill-box;
-    transform-origin: center;
-}
-
-.hero-upload-convert-symbol {
-    stroke-width: 3.2;
-    opacity: 1;
-    animation: heroUploadConvertSpin 4.2s var(--ease-air) infinite;
-    will-change: transform;
+    animation: none;
 }
 
 .hero-upload-orbit {
@@ -846,36 +756,33 @@
 .hero-upload-card:hover .hero-upload-icon,
 .hero-upload-dropzone:focus-within .hero-upload-icon,
 .hero-upload-dropzone.is-dragging .hero-upload-icon {
-    border-color: rgba(240, 138, 36, .32);
-    box-shadow:
-        0 22px 50px rgba(88, 58, 24, .095),
-        0 10px 24px rgba(240, 138, 36, .09),
-        inset 0 1px 0 rgba(255, 255, 255, .98);
+    transform: scale(1.06);
 }
 
 .hero-upload-dropzone strong {
     color: var(--text);
     font-family: var(--font-ui);
-    font-size: clamp(20px, 1.65vw, 24px);
-    line-height: 1.22;
+    font-size: clamp(28px, 2.35vw, 32px);
+    line-height: 1.08;
     font-weight: 800;
 }
 
 .hero-upload-dropzone small {
-    margin-top: 16px;
-    color: #7c858b;
+    margin-top: 0;
+    color: #7a7a7a;
     font-family: var(--font-ui);
-    font-size: 15px;
-    line-height: 1.45;
+    font-size: clamp(22px, 1.8vw, 24px);
+    line-height: 1.25;
+    font-weight: 400;
 }
 
 .hero-upload-file-types {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
-    width: min(100%, 390px);
-    margin-top: 18px;
+    gap: 8px 10px;
+    width: min(100%, 380px);
+    margin-top: 12px;
 }
 
 .hero-upload-file-types span {
@@ -883,21 +790,41 @@
     align-items: center;
     gap: 6px;
     min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid rgba(232, 218, 203, .76);
+    padding: 0 12px;
+    border: 1px solid rgba(232, 218, 203, .92);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .72);
-    color: #4d5a57;
+    background: #fff;
+    color: #5e6268;
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: var(--weight-ui-medium);
     line-height: 1;
+    box-shadow: 0 8px 20px rgba(88, 58, 24, .035);
+    transition:
+        border-color 200ms ease,
+        background-color 200ms ease,
+        color 200ms ease,
+        transform 200ms ease;
+}
+
+.hero-upload-card:hover .hero-upload-file-types span,
+.hero-upload-dropzone:focus-within .hero-upload-file-types span,
+.hero-upload-dropzone.is-dragging .hero-upload-file-types span {
+    border-color: rgba(255, 122, 0, .24);
+    background-color: rgba(255, 122, 0, .025);
+}
+
+.hero-upload-file-types span:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 122, 0, .34);
+    color: #33373d;
 }
 
 .hero-upload-file-types svg {
     width: 14px;
     height: 14px;
-    color: var(--orange-deep);
+    color: #ff7a00;
+    stroke-width: 2;
 }
 
 .hero-upload-button {
@@ -1039,26 +966,24 @@
 }
 
 .hero-upload-selected {
-    display: -webkit-box;
-    width: min(100%, 360px);
+    display: block;
+    width: min(100%, 460px);
     min-width: 0;
-    max-width: min(100%, 360px);
+    max-width: min(100%, 460px);
     margin-top: 14px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     overflow: hidden;
-    border: 1px solid rgba(232, 218, 203, .72);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, .70);
-    color: #59636a;
+    border: 1px solid rgba(255, 122, 0, .18);
+    border-radius: 999px;
+    background: rgba(255, 122, 0, .045);
+    color: #5f6267;
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.35;
     text-align: center;
-    text-overflow: clip;
+    text-overflow: ellipsis;
     overflow-wrap: anywhere;
     word-break: break-word;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
 }
 
 .hero-upload-selected[hidden] {
@@ -1208,13 +1133,13 @@
     }
 
     .hero-upload-card {
-        width: min(100%, 780px);
-        padding: 22px;
+        width: min(100%, 820px);
+        padding: 0;
     }
 
     .hero-upload-dropzone {
-        min-height: 470px;
-        padding: 62px 48px;
+        min-height: 320px;
+        padding: 40px 56px;
     }
 }
 

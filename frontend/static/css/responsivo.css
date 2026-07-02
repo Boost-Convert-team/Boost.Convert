@@ -3221,6 +3221,13 @@ body:has(.home-page) .site-shell {
     .home-page .hero-upload-card {
         width: min(100%, 700px);
     }
+
+    .home-page .hero-upload-dropzone,
+    .home-page .hero-upload-card.has-conversions .hero-upload-dropzone,
+    .home-page .hero-upload-card.has-file .hero-upload-dropzone {
+        min-height: 260px;
+        padding: 40px 44px;
+    }
 }
 
 @media (max-width: 720px) {
@@ -3234,78 +3241,66 @@ body:has(.home-page) .site-shell {
 
     .home-page .hero-upload-card {
         width: 100%;
-        padding: 12px;
-        border-radius: 24px;
+        padding: 0;
+        border-radius: 26px;
     }
 
-    .home-page .hero-upload-dropzone {
-        min-height: 356px;
-        padding: 38px 18px;
-        border-radius: 18px;
-    }
-
-    .home-page .hero-upload-card.has-conversions .hero-upload-dropzone {
-        min-height: 280px;
-        padding-block: 30px;
-    }
-
+    .home-page .hero-upload-dropzone,
+    .home-page .hero-upload-card.has-conversions .hero-upload-dropzone,
     .home-page .hero-upload-card.has-file .hero-upload-dropzone {
-        min-height: 0;
-        padding: 22px 14px;
+        min-height: 220px;
+        padding: 30px 22px;
+        border-radius: 24px;
     }
 
     .home-page .hero-upload-icon {
-        width: 76px;
-        height: 76px;
-        margin-bottom: 22px;
-        border-radius: 24px;
+        width: 52px;
+        height: 52px;
+        margin-bottom: 2px;
     }
 
     .home-page .hero-upload-icon svg {
-        width: 40px;
-        height: 40px;
+        width: 52px;
+        height: 52px;
     }
 
     .home-page .hero-upload-dropzone strong {
-        max-width: 280px;
-        font-size: 22px;
-    }
-
-    .home-page .hero-upload-limit strong {
-        font-size: 1.08em;
-        line-height: inherit;
+        max-width: 100%;
+        font-size: clamp(22px, 6vw, 28px);
+        line-height: 1.12;
     }
 
     .home-page .hero-upload-dropzone small {
-        font-size: 15px;
+        font-size: clamp(17px, 5vw, 21px);
     }
 
     .home-page .hero-upload-file-types {
-        gap: 7px;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 8px;
         width: 100%;
-        margin-top: 16px;
+        max-width: 100%;
+        margin-top: 10px;
+        padding: 2px 2px 4px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .home-page .hero-upload-file-types::-webkit-scrollbar {
+        display: none;
     }
 
     .home-page .hero-upload-file-types span {
+        flex: 0 0 auto;
         min-height: 28px;
-        padding-inline: 9px;
-        font-size: 11px;
+        padding-inline: 10px;
+        font-size: 12px;
     }
 
-    .home-page .hero-upload-button {
-        width: min(100%, 252px);
-        max-width: 100%;
-        min-width: 0;
-        min-height: 44px;
-        font-size: 16px;
-    }
-
-    .home-page .hero-upload-limit {
-        width: 100%;
-        align-items: flex-start;
-        justify-content: flex-start;
-        padding: 11px 13px;
-        font-size: 13px;
+    .home-page .hero-upload-file-types svg {
+        width: 13px;
+        height: 13px;
     }
 
     .home-page .hero-upload-security {
@@ -3326,6 +3321,8 @@ body:has(.home-page) .site-shell {
     .home-page .hero-upload-selected {
         width: 100%;
         max-width: 100%;
+        margin-top: 8px;
+        font-size: 12px;
     }
 }
 
@@ -3339,11 +3336,7 @@ body:has(.home-page) .site-shell {
     }
 
     .home-page .hero-upload-dropzone {
-        min-height: 324px;
-        padding-inline: 14px;
-    }
-
-    .home-page .hero-upload-button {
+        min-height: 220px;
         padding-inline: 18px;
     }
 }

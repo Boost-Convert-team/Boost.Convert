@@ -102,11 +102,7 @@ function initFaqAccordion() {
         const answer = getFaqAnswer(item);
         if (!button || !answer) return;
 
-        if (item.classList.contains("is-open")) {
-            openFaqItem(item, false);
-        } else {
-            closeFaqItem(item, false);
-        }
+        setFaqItemOpen(item, item.classList.contains("is-open"));
 
         button.addEventListener("click", () => {
             if (item.classList.contains("is-open")) {
@@ -133,51 +129,23 @@ function getFaqAnswer(item) {
     return document.getElementById(button.getAttribute("aria-controls"));
 }
 
-function openFaqItem(item, animate = true) {
+function setFaqItemOpen(item, isOpen) {
     const button = item.querySelector(".faq-question");
     const answer = getFaqAnswer(item);
     if (!button || !answer) return;
 
-    item.classList.add("is-open");
-    button.setAttribute("aria-expanded", "true");
+    item.classList.toggle("is-open", isOpen);
+    button.setAttribute("aria-expanded", String(isOpen));
     answer.hidden = false;
-
-    const targetHeight = answer.scrollHeight;
-    if (!animate) {
-        answer.style.height = `${targetHeight}px`;
-        return;
-    }
-
-    answer.style.height = "0px";
-    requestAnimationFrame(() => {
-        answer.style.height = `${targetHeight}px`;
-    });
+    answer.setAttribute("aria-hidden", String(!isOpen));
 }
 
-function closeFaqItem(item, animate = true) {
-    const button = item.querySelector(".faq-question");
-    const answer = getFaqAnswer(item);
-    if (!button || !answer) return;
+function openFaqItem(item) {
+    setFaqItemOpen(item, true);
+}
 
-    item.classList.remove("is-open");
-    button.setAttribute("aria-expanded", "false");
-
-    if (!animate) {
-        answer.style.height = "0px";
-        answer.hidden = true;
-        return;
-    }
-
-    answer.style.height = `${answer.scrollHeight}px`;
-    requestAnimationFrame(() => {
-        answer.style.height = "0px";
-    });
-
-    answer.addEventListener("transitionend", function handleTransitionEnd(event) {
-        if (event.propertyName !== "height") return;
-        answer.hidden = !item.classList.contains("is-open");
-        answer.removeEventListener("transitionend", handleTransitionEnd);
-    });
+function closeFaqItem(item) {
+    setFaqItemOpen(item, false);
 }
 
 function handleFaqKeyboard(event, buttons) {
