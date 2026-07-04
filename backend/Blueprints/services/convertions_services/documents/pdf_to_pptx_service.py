@@ -40,14 +40,14 @@ def _fit_size(width, height, max_width, max_height):
 
 def _render_page(page):
     matrix = fitz.Matrix(RENDER_ZOOM, RENDER_ZOOM)
-    pixmap = page.get_pixmap(matrix=matrix, alpha=True)
+    pixmap = page.get_pixmap(matrix=matrix, alpha=False)
     return pixmap.tobytes("png")
 
 def _write_pptx(output_path, slide_cx, slide_cy, pages):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as package:
+    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as package:
         package.writestr("[Content_Types].xml", _content_types(len(pages)))
         package.writestr("_rels/.rels", _root_rels())
         package.writestr("ppt/presentation.xml", _presentation_xml(slide_cx, slide_cy, len(pages)))
@@ -64,7 +64,7 @@ def _write_pptx(output_path, slide_cx, slide_cy, pages):
             number = page["number"]
             package.writestr(f"ppt/slides/slide{number}.xml", _slide_xml(page))
             package.writestr(f"ppt/slides/_rels/slide{number}.xml.rels", _slide_rels(number))
-            package.writestr(f"ppt/media/page{number}.png", page["image"])
+            package.writestr(f"ppt/media/page{number}.png", page["image"], compress_type=zipfile.ZIP_STORED)
 
 def _content_types(slide_count):
     slide_overrides = "\n".join(

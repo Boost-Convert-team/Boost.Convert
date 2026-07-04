@@ -23,7 +23,7 @@ def convert_pdf_split(input_path, output_path, options=None):
 
                 finally: split_pdf.close()
 
-            with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as archive:
                 for path in split_paths:
                     archive.write(path, os.path.basename(path))
 

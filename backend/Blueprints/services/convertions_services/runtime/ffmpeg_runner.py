@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from functools import lru_cache
 from os import PathLike
 from typing import Sequence, Union
 
@@ -8,6 +9,7 @@ from typing import Sequence, Union
 FFmpegArgument = Union[str, PathLike[str]]
 
 
+@lru_cache(maxsize=1)
 def get_ffmpeg_command() -> str:
     try:
         import imageio_ffmpeg
@@ -26,8 +28,8 @@ def get_ffmpeg_command() -> str:
 def run_ffmpeg(arguments: Sequence[FFmpegArgument]) -> None:
     subprocess.run(
         [get_ffmpeg_command(), "-y", *arguments],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         check=True,
         timeout=get_conversion_timeout_seconds(),
     )
