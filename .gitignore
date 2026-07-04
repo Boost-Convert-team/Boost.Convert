@@ -1,47 +1,24 @@
+# Environment and secrets
 .env
 .env.*
 !.env.example
+!.env.*.example
 
-venv/
+# Python environments and caches
 .venv/
+venv/
 env/
 __pycache__/
-**/__pycache__/
-.pytest_cache/
-.mypy_cache/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
+# Flask/local runtime data
 instance/
-output/
-outputs/
-uploads/
-downloads/
-temp/
-tmp/
-converted/
-converted_files/
-
-*.log
-server.log
-server.err.log
-
-# Local/editor and agent artifacts
-.vscode/
-.agents/
-.sixth/
-.playwright-cli/
-skills-lock.json
-
-# Local QA screenshots generated during frontend iteration
-/*.png
-
-# Root-level frontend leftovers. The active frontend lives in /frontend.
-/static/
-/templates/
-/_legacy_duplicate_frontend/
-
-# Local databases and secrets
 *.db
 *.sqlite
 *.sqlite3
@@ -49,6 +26,54 @@ skills-lock.json
 *.key
 *.p12
 *.pfx
-AGENTS.md
-.env.example
-DEPLOY_SECURITY.md
+
+# Temporary uploads, conversions, and generated outputs
+uploads/
+downloads/
+output/
+outputs/
+converted/
+converted_files/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Temporary migration artifacts only; real Flask-Migrate files stay tracked
+backend/migrations/**/tmp/
+backend/migrations/**/temp/
+backend/migrations/**/*.tmp
+backend/migrations/**/*.bak
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Frontend dependencies, builds, and caches
+node_modules/
+dist/
+build/
+.vite/
+.next/
+.nuxt/
+.svelte-kit/
+.parcel-cache/
+.turbo/
+.cache/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor local files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local automation artifacts
+.playwright-cli/
+skills-lock.json
