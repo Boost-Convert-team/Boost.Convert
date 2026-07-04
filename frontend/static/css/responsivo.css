@@ -3336,3 +3336,186 @@ body:has(.home-page) .site-shell {
     }
 
 }
+
+/* Header switches to the clean mobile menu as soon as the desktop layout gets tight. */
+@media (max-width: 1024px) {
+    .topbar {
+        position: sticky;
+        top: 0;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 72px;
+        row-gap: 0;
+        column-gap: 12px;
+        padding: 0 clamp(16px, 3.4vw, 28px);
+    }
+
+    .topbar.is-scrolled {
+        min-height: 68px;
+    }
+
+    .topbar > .topnav,
+    .topbar > .header-utilities {
+        display: none;
+    }
+
+    .topbar > .mobile-menu-toggle {
+        display: inline-grid;
+    }
+
+    .brand {
+        min-width: 0;
+    }
+
+    .brand-logo {
+        width: min(176px, 44vw);
+        height: auto;
+        max-height: 43px;
+    }
+
+    .mobile-menu-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: clamp(12px, 3vw, 24px);
+        right: clamp(12px, 3vw, 24px);
+        z-index: 95;
+        display: block;
+        max-height: calc(100vh - 96px);
+        padding: 14px;
+        border: 1px solid rgba(234, 223, 211, .78);
+        border-radius: 22px;
+        background: #fffdf9;
+        box-shadow:
+            0 30px 90px rgba(88, 58, 24, .14),
+            0 12px 30px rgba(240, 138, 36, .055);
+        overflow-y: auto;
+        backdrop-filter: blur(22px);
+    }
+
+    .mobile-menu-panel[hidden] {
+        display: none;
+    }
+
+    .mobile-menu-content {
+        display: grid;
+        gap: 12px;
+    }
+
+    .mobile-header-search {
+        display: block;
+        flex: none;
+        width: 100%;
+    }
+
+    .mobile-header-search input {
+        min-height: 42px;
+        background: rgba(255, 255, 255, .78);
+        font-size: 13px;
+    }
+
+    .mobile-header-search .tool-search-results {
+        left: 0;
+        right: 0;
+        width: 100%;
+        background: #fffdf9;
+        transform: translate3d(0, -8px, 0) scale(.985);
+    }
+
+    .mobile-header-search.is-open .tool-search-results {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .mobile-menu-list {
+        display: grid;
+        gap: 4px;
+        padding: 6px 0;
+        border-top: 1px solid rgba(234, 223, 211, .72);
+        border-bottom: 1px solid rgba(234, 223, 211, .72);
+    }
+
+    .mobile-menu-link,
+    .mobile-menu-primary,
+    .mobile-menu-secondary {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        min-height: 44px;
+        border-radius: 14px;
+        color: #203f3a;
+        font-family: var(--font-ui);
+        font-size: 14px;
+        font-weight: 600;
+        transition:
+            color 260ms var(--ease-air),
+            background-color 260ms var(--ease-air),
+            transform 260ms var(--ease-air);
+    }
+
+    .mobile-menu-link {
+        padding: 9px 8px;
+    }
+
+    .mobile-menu-link svg,
+    .mobile-menu-primary svg,
+    .mobile-menu-secondary svg {
+        width: 18px;
+        height: 18px;
+        color: var(--orange-deep);
+    }
+
+    .mobile-menu-link:hover,
+    .mobile-menu-link:focus-visible,
+    .mobile-menu-primary:hover,
+    .mobile-menu-primary:focus-visible,
+    .mobile-menu-secondary:hover,
+    .mobile-menu-secondary:focus-visible {
+        outline: 0;
+        color: #162f2b;
+        background: rgba(255, 244, 232, .68);
+        transform: translateX(2px);
+    }
+
+    .mobile-menu-actions {
+        display: grid;
+        gap: 8px;
+    }
+
+    .mobile-menu-primary,
+    .mobile-menu-secondary {
+        justify-content: center;
+        padding: 0 14px;
+        border: 1px solid rgba(234, 223, 211, .86);
+        background: rgba(255, 255, 255, .82);
+        box-shadow: 0 10px 24px rgba(88, 58, 24, .035);
+    }
+
+    .mobile-menu-primary {
+        border-color: rgba(240, 138, 36, .24);
+        background: rgba(255, 250, 244, .92);
+    }
+}
+
+@media (max-width: 520px) {
+    .topbar {
+        min-height: 70px;
+        padding-inline: 16px;
+    }
+
+    .brand-logo {
+        width: min(150px, 48vw);
+    }
+
+    .mobile-menu-toggle {
+        width: 42px;
+        height: 42px;
+    }
+
+    .mobile-menu-panel {
+        top: calc(100% + 6px);
+        left: 10px;
+        right: 10px;
+        max-height: calc(100vh - 88px);
+        padding: 12px;
+        border-radius: 20px;
+    }
+}

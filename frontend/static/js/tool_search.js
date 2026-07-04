@@ -1,14 +1,21 @@
 (function () {
     function initToolSearch() {
-        const searchForm = document.querySelector("[data-tool-search]");
-        const searchInput = searchForm?.querySelector("[data-tool-search-input]");
-        const searchResults = searchForm?.querySelector("[data-tool-search-results]");
         const searchDataElement = document.getElementById("tool-search-data");
         const utils = window.BoostUtils;
 
-        if (!searchForm || !searchInput || !searchResults || !searchDataElement || !utils) return;
+        if (!searchDataElement || !utils) return;
 
         const toolSearchIndex = utils.parseToolSearchIndex(searchDataElement);
+        document.querySelectorAll("[data-tool-search]").forEach((searchForm) => {
+            initSingleToolSearch(searchForm, toolSearchIndex, utils);
+        });
+    }
+
+    function initSingleToolSearch(searchForm, toolSearchIndex, utils) {
+        const searchInput = searchForm.querySelector("[data-tool-search-input]");
+        const searchResults = searchForm.querySelector("[data-tool-search-results]");
+        if (!searchInput || !searchResults) return;
+
         let activeSearchIndex = 0;
         let currentSearchResults = [];
 

@@ -185,4 +185,57 @@
             {% endif %}
         </div>
     </div>
+
+    <button class="mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-menu-panel" data-mobile-menu-toggle>
+        <i class="mobile-menu-icon mobile-menu-icon-open" data-lucide="menu" aria-hidden="true"></i>
+        <i class="mobile-menu-icon mobile-menu-icon-close" data-lucide="x" aria-hidden="true"></i>
+    </button>
+
+    <div class="mobile-menu-panel" id="mobile-menu-panel" data-mobile-menu hidden>
+        <div class="mobile-menu-content">
+            <form class="header-search mobile-header-search" role="search" data-tool-search autocomplete="off">
+                <label class="sr-only" for="mobile-tool-search-input">Pesquisar ferramentas</label>
+                <i data-lucide="search" aria-hidden="true"></i>
+                <input id="mobile-tool-search-input" type="search" placeholder="Buscar ferramenta" aria-label="Pesquisar ferramentas" data-tool-search-input>
+                <div class="tool-search-results" data-tool-search-results role="listbox" aria-label="Resultados de ferramentas"></div>
+            </form>
+
+            <nav class="mobile-menu-list" aria-label="Menu principal">
+                <a class="mobile-menu-link" href="{{ url_for('home.tools') }}">
+                    <i data-lucide="wrench" aria-hidden="true"></i>
+                    <span>Ferramentas</span>
+                </a>
+                <a class="mobile-menu-link" href="{{ url_for('home.conta') }}">
+                    <i data-lucide="user-round" aria-hidden="true"></i>
+                    <span>Conta</span>
+                </a>
+                <a class="mobile-menu-link" href="{{ url_for('main.planos') }}">
+                    <i data-lucide="star" aria-hidden="true"></i>
+                    <span>Planos</span>
+                </a>
+                <a class="mobile-menu-link" href="{{ url_for('home.sobre') }}">
+                    <i data-lucide="info" aria-hidden="true"></i>
+                    <span>Sobre n&oacute;s</span>
+                </a>
+            </nav>
+
+            <div class="mobile-menu-actions">
+                {% if current_user.is_authenticated %}
+                    <a class="mobile-menu-primary" href="{{ url_for('home.conta') }}">
+                        <i data-lucide="settings" aria-hidden="true"></i>
+                        <span>Acessar conta</span>
+                    </a>
+                    <a class="mobile-menu-secondary" href="{{ url_for('auth.logout') }}">
+                        <i data-lucide="log-out" aria-hidden="true"></i>
+                        <span>Sair</span>
+                    </a>
+                {% else %}
+                    <a class="mobile-menu-primary" href="{{ url_for('auth.login') }}">
+                        <i data-lucide="log-in" aria-hidden="true"></i>
+                        <span>Entrar</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </header>

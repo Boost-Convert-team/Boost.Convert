@@ -60,6 +60,57 @@
         });
     }
 
+    function initMobileMenu() {
+        const topbar = document.querySelector(".topbar");
+        const toggle = document.querySelector("[data-mobile-menu-toggle]");
+        const panel = document.querySelector("[data-mobile-menu]");
+        if (!topbar || !toggle || !panel) return;
+
+        const mobileQuery = window.matchMedia("(max-width: 1024px)");
+
+        const setMobileMenuOpen = (isOpen) => {
+            topbar.classList.toggle("is-mobile-menu-open", isOpen);
+            panel.hidden = !isOpen;
+            toggle.setAttribute("aria-expanded", String(isOpen));
+            toggle.setAttribute("aria-label", isOpen ? "Fechar menu" : "Abrir menu");
+        };
+
+        const closeMobileMenu = () => setMobileMenuOpen(false);
+
+        closeMobileMenu();
+
+        toggle.addEventListener("click", () => {
+            setMobileMenuOpen(!topbar.classList.contains("is-mobile-menu-open"));
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!topbar.classList.contains("is-mobile-menu-open")) return;
+            if (topbar.contains(event.target)) return;
+            closeMobileMenu();
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape" || !topbar.classList.contains("is-mobile-menu-open")) return;
+            closeMobileMenu();
+            toggle.focus();
+        });
+
+        panel.addEventListener("click", (event) => {
+            const link = event.target.closest("a[href]");
+            if (link) closeMobileMenu();
+        });
+
+        const handleViewportChange = () => {
+            if (!mobileQuery.matches) closeMobileMenu();
+        };
+
+        if (mobileQuery.addEventListener) {
+            mobileQuery.addEventListener("change", handleViewportChange);
+        } else {
+            mobileQuery.addListener(handleViewportChange);
+        }
+    }
+
     function initPageTransitions() {
         resetPageTransitionState();
         window.addEventListener("pageshow", resetPageTransitionState);
@@ -115,6 +166,7 @@
 
     window.BoostNavigation = {
         initMegaMenu,
+        initMobileMenu,
         initPageTransitions,
         initProfileMenu,
         initToolsSidebar,

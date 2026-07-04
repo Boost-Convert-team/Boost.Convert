@@ -500,6 +500,58 @@
     transform: translateY(-1px);
 }
 
+.mobile-menu-toggle,
+.mobile-menu-panel {
+    display: none;
+}
+
+.mobile-menu-toggle {
+    align-items: center;
+    justify-content: center;
+    justify-self: end;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid rgba(214, 220, 225, .96);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .86);
+    color: #203f3a;
+    box-shadow: 0 10px 24px rgba(88, 58, 24, .035);
+    cursor: pointer;
+    transition:
+        color 360ms var(--ease-air),
+        background-color 360ms var(--ease-air),
+        border-color 360ms var(--ease-air),
+        box-shadow 360ms var(--ease-air),
+        transform 360ms var(--ease-air);
+}
+
+.mobile-menu-toggle:hover,
+.mobile-menu-toggle:focus-visible,
+.topbar.is-mobile-menu-open .mobile-menu-toggle {
+    outline: 0;
+    border-color: rgba(240, 138, 36, .28);
+    background: rgba(255, 253, 249, .98);
+    color: #162f2b;
+    box-shadow: 0 14px 30px rgba(88, 58, 24, .06);
+    transform: translateY(-1px);
+}
+
+.mobile-menu-toggle svg {
+    width: 19px;
+    height: 19px;
+    stroke-width: 2;
+}
+
+.mobile-menu-icon-close,
+.topbar.is-mobile-menu-open .mobile-menu-icon-open {
+    display: none;
+}
+
+.topbar.is-mobile-menu-open .mobile-menu-icon-close {
+    display: block;
+}
+
 .profile-menu {
     position: relative;
     z-index: 90;
