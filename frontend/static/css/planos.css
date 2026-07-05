@@ -329,17 +329,31 @@
 }
 
 .plan-button,
-.plan-action {
+.plan-payment-methods {
     width: 100%;
     margin-top: 26px;
 }
 
+.plan-payment-methods {
+    display: grid;
+    gap: 10px;
+}
+
 .plan-action {
     display: grid;
+    gap: 6px;
 }
 
 .plan-action .plan-button {
     margin-top: 0;
+}
+
+.plan-action small {
+    color: #747474;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
 }
 
 .plan-checkout-message {
@@ -351,6 +365,52 @@
     line-height: 1.35;
     font-weight: 700;
     text-align: center;
+}
+
+.plan-checkout-message[data-state="success"] {
+    color: #25704d;
+}
+
+.plan-pix-result,
+.plan-debit-panel {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid rgba(234, 223, 211, .88);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .78);
+    color: #2f2f2f;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.plan-pix-result[hidden],
+.plan-debit-panel[hidden] {
+    display: none;
+}
+
+.plan-pix-result img {
+    width: min(220px, 100%);
+    margin: 0 auto;
+}
+
+.plan-pix-code {
+    min-height: 44px;
+    max-height: 112px;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(246, 241, 235, .92);
+    color: #2f2f2f;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.plan-pix-actions {
+    display: grid;
+    gap: 8px;
 }
 
 .plan-note {

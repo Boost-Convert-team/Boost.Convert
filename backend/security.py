@@ -31,7 +31,9 @@ AUTH_RATE_LIMITS = {
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
-    "checkout.checkout_pro": RateLimitRule(10, 60),
+    "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
+    "checkout.checkout_pix": RateLimitRule(10, 60),
+    "checkout.checkout_debit": RateLimitRule(10, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
@@ -167,11 +169,12 @@ def apply_security_headers(response: Response) -> Response:
 def build_content_security_policy() -> str:
     directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://unpkg.com",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
         "img-src 'self' data:",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self'",
+        "connect-src 'self' https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br",
+        "frame-src https://*.mercadopago.com https://*.mercadopago.com.br",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

@@ -19,6 +19,7 @@ from models import PaymentWebhookEvent, Subscription, Usuario
 MERCADO_PAGO_API_BASE_URL = "https://api.mercadopago.com"
 PROVIDER = "mercado_pago"
 EXTERNAL_REFERENCE_PREFIX = "boost:user:"
+PRO_PLAN_NAME = "BoostConvert PRO"
 ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
 INACTIVE_SUBSCRIPTION_STATUSES = {
     "cancelled",
@@ -40,7 +41,7 @@ FAILED_PAYMENT_STATUSES = {
 
 
 class MercadoPagoError(RuntimeError):
-    """Raised when Mercado Pago cannot create or confirm a subscription."""
+    """Raised when Mercado Pago cannot create or confirm a payment."""
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,7 @@ def create_monthly_subscription(usuario: Usuario) -> dict[str, str]:
     price = get_plan_price()
     base_url = get_base_url()
     payload = {
-        "reason": "Boost Premium",
+        "reason": PRO_PLAN_NAME,
         "external_reference": build_external_reference(usuario.id),
         "payer_email": usuario.email,
         "auto_recurring": {
@@ -91,6 +92,7 @@ def create_monthly_subscription(usuario: Usuario) -> dict[str, str]:
         "checkout_url": checkout_url,
         "subscription_id": subscription_id,
         "status": get_string(data, "status") or "pending",
+        "plan_name": PRO_PLAN_NAME,
     }
 
 
@@ -136,6 +138,14 @@ def dispatch_mercado_pago_webhook(
             subscription = upsert_subscription_from_provider_data(subscription_data, payment_id)
             apply_payment_status(subscription, payment_status)
             return MercadoPagoWebhookResult("processed", event_type, resource_id)
+
+    if event_type == "payment":
+        from Blueprints.services.subscription.mercado_pago_payments_service import (
+            process_confirmed_payment,
+        )
+
+        process_confirmed_payment(resource_id)
+        return MercadoPagoWebhookResult("processed", event_type, resource_id)
 
     current_app.logger.debug(
         json.dumps(
@@ -223,6 +233,7 @@ def mercado_pago_request(
     method: str,
     path: str,
     json_payload: dict[str, Any] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
     if not access_token:
@@ -230,13 +241,17 @@ def mercado_pago_request(
 
     url = f"{MERCADO_PAGO_API_BASE_URL}{path}"
     try:
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        if extra_headers:
+            headers.update(extra_headers)
+
         response = requests.request(
             method,
             url,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             json=json_payload,
             timeout=15,
         )

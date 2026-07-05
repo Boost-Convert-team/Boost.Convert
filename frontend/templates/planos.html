@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Planos Boost.Convert | Free e PRO para converter arquivos{% endblock %}
-{% block meta_description %}Compare Free e PRO no Boost.Convert: conversoes a cada 24h, arquivos por envio e uploads maiores para quem converte todos os dias.{% endblock %}
+{% block title %}Planos Boost.Convert | Free e BoostConvert PRO para converter arquivos{% endblock %}
+{% block meta_description %}Compare Free e BoostConvert PRO no Boost.Convert: conversoes a cada 24h, arquivos por envio e uploads maiores para quem converte todos os dias.{% endblock %}
 
 {% block content %}
-<main class="pricing-page">
+<main class="pricing-page" data-mercado-pago-public-key="{{ mercado_pago_public_key }}" data-plan-price="{{ mercado_pago_plan_price }}">
     <section class="pricing-hero" aria-labelledby="pricing-title">
         <div class="pricing-copy reveal">
             <div class="eyebrow pricing-eyebrow">
@@ -12,7 +12,7 @@
                 Planos com limites claros
             </div>
             <h1 id="pricing-title">Converta no <span>ritmo do seu trabalho</span></h1>
-            <p>Use o Free para demandas pontuais. Assine PRO para tirar a trava di&aacute;ria e enviar arquivos maiores.</p>
+            <p>Use o Free para demandas pontuais. Assine BoostConvert PRO para tirar a trava di&aacute;ria e enviar arquivos maiores.</p>
             <strong class="pricing-save">Economize 60%</strong>
         </div>
 
@@ -45,12 +45,12 @@
                 <p class="plan-note">Uso pontual.</p>
             </article>
 
-            <article class="plan-pro pricing-card" aria-label="Plano PRO, mais escolhido">
+            <article class="plan-pro pricing-card" aria-label="BoostConvert PRO, mais escolhido">
                 <span class="plan-badge"><i data-lucide="star" aria-hidden="true"></i> Mais escolhido</span>
                 <span class="plan-icon plan-icon-strong"><i data-lucide="rocket" aria-hidden="true"></i></span>
 
                 <div class="plan-head">
-                    <h2>PRO</h2>
+                    <h2>BoostConvert PRO</h2>
                     <p>Para quem converte arquivos todos os dias</p>
                 </div>
 
@@ -67,7 +67,7 @@
                     </div>
                 </div>
 
-                <ul class="plan-list" aria-label="Recursos do plano PRO">
+                <ul class="plan-list" aria-label="Recursos do BoostConvert PRO">
                     <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
                     <li><i data-lucide="check" aria-hidden="true"></i> 15 arquivos por envio</li>
                     <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 300 MB</li>
@@ -76,13 +76,37 @@
                     <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 2 GB</li>
                 </ul>
 
-                <form class="plan-action" action="{{ url_for('checkout.checkout_pro') }}" method="post" data-premium-checkout-form>
-                    {% include "partials/csrf_field.html" %}
-                    <button class="button button-primary plan-button" type="submit">
-                        Assinar Premium
-                    </button>
-                    <p class="plan-checkout-message" data-premium-checkout-message aria-live="polite"></p>
-                </form>
+                <div class="plan-payment-methods" aria-label="M&eacute;todos de pagamento do BoostConvert PRO">
+                    <form class="plan-action" action="{{ url_for('checkout.checkout_credit_subscription') }}" method="post" data-pro-checkout-form data-pro-checkout-kind="credit">
+                        {% include "partials/csrf_field.html" %}
+                        <button class="button button-primary plan-button" type="submit">
+                            Assinar com Cart&atilde;o de Cr&eacute;dito
+                        </button>
+                        <small>Recorrente mensal</small>
+                    </form>
+
+                    <form class="plan-action" action="{{ url_for('checkout.checkout_pix') }}" method="post" data-pro-checkout-form data-pro-checkout-kind="pix">
+                        {% include "partials/csrf_field.html" %}
+                        <button class="button button-secondary plan-button" type="submit">
+                            Pagar com PIX
+                        </button>
+                        <small>30 dias de acesso</small>
+                    </form>
+
+                    <form class="plan-action" action="{{ url_for('checkout.checkout_debit') }}" method="post" data-pro-debit-form>
+                        {% include "partials/csrf_field.html" %}
+                        <button class="button button-secondary plan-button" type="button" data-pro-debit-trigger>
+                            Pagar com Cart&atilde;o de D&eacute;bito
+                        </button>
+                        <small>30 dias de acesso</small>
+                    </form>
+                </div>
+
+                <div class="plan-checkout-message" data-pro-checkout-message aria-live="polite"></div>
+                <div class="plan-pix-result" data-pro-pix-result hidden></div>
+                <div class="plan-debit-panel" data-pro-debit-panel hidden>
+                    <div id="cardPaymentBrick_container"></div>
+                </div>
                 <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Volume alto. Convers&otilde;es ilimitadas.</p>
             </article>
         </div>
@@ -105,11 +129,15 @@
             <article>
                 <span><i data-lucide="headphones" aria-hidden="true"></i></span>
                 <div>
-                    <h2>Convers&otilde;es ilimitadas no PRO</h2>
+                    <h2>Convers&otilde;es ilimitadas no BoostConvert PRO</h2>
                     <p>Mais volume para produzir</p>
                 </div>
             </article>
         </aside>
     </section>
 </main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 {% endblock %}

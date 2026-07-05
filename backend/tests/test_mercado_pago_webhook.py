@@ -15,7 +15,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from Blueprints.main.webhook_routes import webhook_bp
 from Blueprints.services.subscription.mercado_pago_service import build_webhook_manifest
 from extensions import db
-from models import PaymentWebhookEvent, Subscription, Usuario
+from models import Payment, PaymentWebhookEvent, Subscription, Usuario
 
 
 WEBHOOK_SECRET = "test-mercado-pago-webhook-secret"
@@ -100,6 +100,59 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self.assertEqual(get_subscription.call_count, 1)
         self.assertEqual(self.webhook_event_count(), 1)
 
+    def test_approved_pix_payment_sets_user_plan_to_pro_for_30_days(self) -> None:
+        user_id = self.create_user("pix@example.com", "free", "inactive")
+        provider_data = self.provider_payment_data(user_id, "pay_pix", "approved", "pix", "bank_transfer")
+
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_mercado_pago_payload(
+                {"id": 2001, "type": "payment", "data": {"id": "pay_pix"}},
+                "pay_pix",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.user_plan_state(user_id), ("pro", "active"))
+        self.assertEqual(self.payment_state("pay_pix")[0], "pix")
+        self.assertIsNotNone(self.payment_state("pay_pix")[2])
+
+    def test_approved_debit_payment_sets_user_plan_to_pro_for_30_days(self) -> None:
+        user_id = self.create_user("debito@example.com", "free", "inactive")
+        provider_data = self.provider_payment_data(user_id, "pay_debit", "approved", "debvisa", "debit_card")
+
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_mercado_pago_payload(
+                {"id": 2002, "type": "payment", "data": {"id": "pay_debit"}},
+                "pay_debit",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.user_plan_state(user_id), ("pro", "active"))
+        self.assertEqual(self.payment_state("pay_debit")[0], "debit_card")
+        self.assertIsNotNone(self.payment_state("pay_debit")[2])
+
+    def test_rejected_payment_does_not_set_user_plan_to_pro(self) -> None:
+        user_id = self.create_user("recusado@example.com", "free", "inactive")
+        provider_data = self.provider_payment_data(user_id, "pay_rejected", "rejected", "pix", "bank_transfer")
+
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_mercado_pago_payload(
+                {"id": 2003, "type": "payment", "data": {"id": "pay_rejected"}},
+                "pay_rejected",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.user_plan_state(user_id), ("free", "inactive"))
+        self.assertIsNone(self.payment_state("pay_rejected")[2])
+
     def test_invalid_signature_is_rejected(self) -> None:
         response = self.client.post(
             "/webhooks/mercado-pago?data.id=sub_123",
@@ -146,6 +199,11 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         with self.app.app_context():
             return PaymentWebhookEvent.query.count()
 
+    def payment_state(self, provider_payment_id: str) -> tuple[str, str, object]:
+        with self.app.app_context():
+            payment = Payment.query.filter_by(provider_payment_id=provider_payment_id).one()
+            return payment.payment_method, payment.status, payment.premium_expires_at
+
     def provider_subscription_data(
         self,
         user_id: int,
@@ -161,6 +219,24 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 "currency_id": "BRL",
             },
             "next_payment_date": "2026-08-05T00:00:00Z",
+        }
+
+    def provider_payment_data(
+        self,
+        user_id: int,
+        provider_payment_id: str,
+        status: str,
+        payment_method_id: str,
+        payment_type_id: str,
+    ) -> dict[str, object]:
+        return {
+            "id": provider_payment_id,
+            "external_reference": f"boost:user:{user_id}",
+            "status": status,
+            "payment_method_id": payment_method_id,
+            "payment_type_id": payment_type_id,
+            "transaction_amount": "19.90",
+            "currency_id": "BRL",
         }
 
     def post_mercado_pago_payload(

@@ -30,6 +30,7 @@ def receive_mercado_pago_webhook():
     return jsonify(
         {
             "ok": True,
+            "plan_name": "BoostConvert PRO",
             "status": result.status,
             "event_type": result.event_type,
             "resource_id": result.resource_id,

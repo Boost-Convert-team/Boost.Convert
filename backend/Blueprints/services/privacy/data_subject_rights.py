@@ -1,5 +1,5 @@
 from extensions import db
-from models import ConversionAuditLog, ConversionJob, DailyUsage, Subscription, ToolUsage, Usuario
+from models import ConversionAuditLog, ConversionJob, DailyUsage, Payment, Subscription, ToolUsage, Usuario
 from Blueprints.services.privacy.file_retention import (
     expire_conversion_job_files,
     get_conversions_root,
@@ -60,6 +60,21 @@ def export_user_data(usuario):
             }
             for subscription in Subscription.query.filter_by(user_id=usuario.id).all()
         ],
+        "payments": [
+            {
+                "provider": payment.provider,
+                "provider_subscription_id": payment.provider_subscription_id,
+                "provider_payment_id": payment.provider_payment_id,
+                "payment_method": payment.payment_method,
+                "status": payment.status,
+                "amount": str(payment.amount) if payment.amount is not None else None,
+                "currency": payment.currency,
+                "premium_expires_at": payment.premium_expires_at.isoformat()
+                if payment.premium_expires_at
+                else None,
+            }
+            for payment in Payment.query.filter_by(user_id=usuario.id).all()
+        ],
         "processing_activities": get_processing_activities(),
     }
 
@@ -87,6 +102,7 @@ def delete_user_data(app, usuario):
         ToolUsage.query.filter_by(user_id=usuario.id).delete()
         DailyUsage.query.filter_by(user_id=usuario.id).delete()
         ConversionAuditLog.query.filter_by(user_id=usuario.id).delete()
+        Payment.query.filter_by(user_id=usuario.id).delete()
         Subscription.query.filter_by(user_id=usuario.id).delete()
         db.session.delete(usuario)
         db.session.commit()

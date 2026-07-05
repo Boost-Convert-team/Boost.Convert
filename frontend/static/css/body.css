@@ -18,7 +18,7 @@
     --weight-ui: 400;
     --weight-ui-medium: 500;
     --ease-standard: cubic-bezier(.32, .72, .24, 1);
-    --ease-premium: cubic-bezier(.18, .86, .26, 1);
+    --ease-pro: cubic-bezier(.18, .86, .26, 1);
     --ease-out: cubic-bezier(.2, .9, .22, 1);
     --ease-soft: cubic-bezier(.28, .74, .24, 1);
     --ease-press: cubic-bezier(.24, .76, .26, 1);

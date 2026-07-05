@@ -42,6 +42,31 @@ class Subscription(db.Model):
 
     user = db.relationship("Usuario", backref=db.backref("subscriptions", lazy=True))
 
+class Payment(db.Model):
+    __tablename__ = "payments"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "provider",
+            "provider_payment_id",
+            name="uq_payments_provider_payment_id",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
+    provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
+    provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
+    provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
+    payment_method = db.Column(db.String(50), nullable=False, index=True)
+    status = db.Column(db.String(50), nullable=False, default="pending", index=True)
+    amount = db.Column(db.Numeric(10, 2), nullable=True)
+    currency = db.Column(db.String(10), nullable=True)
+    premium_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    user = db.relationship("Usuario", backref=db.backref("payments", lazy=True))
+
 class PaymentWebhookEvent(db.Model):
     __tablename__ = "payment_webhook_events"
     __table_args__ = (

@@ -6,7 +6,7 @@ from flask import session
 from flask_login import current_user
 
 from models import ConversionJob
-from Blueprints.services.subscription.access_service import FREE_DAILY_LIMIT, as_utc, get_usage_status, utc_now
+from Blueprints.services.subscription.access_service import FREE_DAILY_LIMIT, as_utc, get_usage_status, is_pro_user, utc_now
 
 
 STATUS_LABELS = {
@@ -32,17 +32,18 @@ def get_account_workspace():
 
 def get_authenticated_workspace_identity():
     usage_status = get_usage_status(usuario=current_user)
-    plan = (current_user.plano or "free").upper()
+    is_pro = is_pro_user(current_user)
+    plan = "BoostConvert PRO" if is_pro else "FREE"
     return {
         "jobs_query": ConversionJob.query.filter_by(user_id=current_user.id),
         "profile": {
             "display_name": current_user.nome or current_user.email.split("@")[0],
             "email": current_user.email,
             "plan": plan,
-            "is_pro": plan == "PRO",
+            "is_pro": is_pro,
             "daily_used": usage_status.used,
-            "daily_limit": None if plan == "PRO" else FREE_DAILY_LIMIT,
-            "daily_remaining": usage_status.remaining if plan != "PRO" else "Ilimitado",
+            "daily_limit": None if is_pro else FREE_DAILY_LIMIT,
+            "daily_remaining": usage_status.remaining if not is_pro else "Ilimitado",
             "daily_percent": usage_status.percent,
             "daily_reset_in": usage_status.reset_in,
             "google_connected": bool(current_user.google_id),

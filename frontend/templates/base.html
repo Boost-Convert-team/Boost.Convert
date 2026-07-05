@@ -44,5 +44,6 @@
     <script src="{{ url_for('static', filename='js/forms.js') }}?v={{ js_version }}"></script>
     <script src="{{ url_for('static', filename='js/reveal.js') }}?v={{ js_version }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}?v={{ js_version }}"></script>
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>
