@@ -11,8 +11,7 @@ from app import create_app
 from Blueprints.main.checkout_routes import (
     checkout,
     checkout_credit_subscription,
-    checkout_debit,
-    checkout_pix,
+    checkout_pro,
 )
 from Blueprints.handlers.conversion_handlers import (
     handle_conversion_error,
@@ -77,59 +76,57 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertEqual(status_code, 502)
         self.assertFalse(response.json["ok"])
 
-    def test_pix_checkout_returns_qr_code_payload(self) -> None:
+    def test_pro_checkout_returns_hosted_mercado_pago_checkout_url(self) -> None:
         mercado_pago_response = {
             "ok": True,
             "provider": "mercado_pago",
             "plan_name": "BoostConvert PRO",
-            "payment_id": "pay_123",
-            "status": "pending",
-            "qr_code": "000201",
-            "qr_code_base64": "abc",
-            "ticket_url": "https://www.mercadopago.com.br/payments/123/ticket",
+            "checkout_url": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
+            "preference_id": "pref_123",
+            "status": "created",
         }
-        with self.app.test_request_context("/checkout/pix", method="POST"):
+        with self.app.test_request_context("/checkout/pro", method="POST"):
             with patch(
-                "Blueprints.main.checkout_routes.create_pix_payment",
+                "Blueprints.main.checkout_routes.create_one_time_checkout_preference",
                 return_value=mercado_pago_response,
             ):
-                response, status_code = checkout_pix.__wrapped__()
+                response, status_code = checkout_pro.__wrapped__()
 
         self.assertEqual(status_code, 200)
         self.assertEqual(response.json["plan_name"], "BoostConvert PRO")
-        self.assertEqual(response.json["qr_code"], "000201")
+        self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
 
-    def test_debit_checkout_returns_payment_confirmation_payload(self) -> None:
+    def test_legacy_pix_and_debit_routes_use_same_hosted_checkout(self) -> None:
         mercado_pago_response = {
             "ok": True,
             "provider": "mercado_pago",
             "plan_name": "BoostConvert PRO",
-            "payment_id": "pay_456",
-            "status": "approved",
+            "checkout_url": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
+            "preference_id": "pref_123",
+            "status": "created",
         }
-        with self.app.test_request_context(
-            "/checkout/debit",
-            method="POST",
-            json={"token": "card-token", "payment_method_id": "debvisa", "installments": 1},
-        ):
-            with patch(
-                "Blueprints.main.checkout_routes.create_debit_card_payment",
-                return_value=mercado_pago_response,
-            ):
-                response, status_code = checkout_debit.__wrapped__()
+        for path in ("/checkout/pix", "/checkout/debit"):
+            with self.subTest(path=path):
+                with self.app.test_request_context(path, method="POST"):
+                    with patch(
+                        "Blueprints.main.checkout_routes.create_one_time_checkout_preference",
+                        return_value=mercado_pago_response,
+                    ):
+                        response, status_code = checkout_pro.__wrapped__()
 
-        self.assertEqual(status_code, 200)
-        self.assertEqual(response.json["plan_name"], "BoostConvert PRO")
-        self.assertEqual(response.json["payment_id"], "pay_456")
+                self.assertEqual(status_code, 200)
+                self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
 
-    def test_planos_pro_button_uses_internal_checkout_forms(self) -> None:
+    def test_planos_pro_button_uses_single_internal_checkout_form(self) -> None:
         template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text()
 
         self.assertIn('data-pro-checkout-form', template)
-        self.assertIn("url_for('checkout.checkout_credit_subscription')", template)
-        self.assertIn("url_for('checkout.checkout_pix')", template)
-        self.assertIn("url_for('checkout.checkout_debit')", template)
+        self.assertIn("url_for('checkout.checkout_pro')", template)
         self.assertIn("BoostConvert PRO", template)
+        self.assertNotIn("Assinar com Cart", template)
+        self.assertNotIn("Pagar com PIX", template)
+        self.assertNotIn("Pagar com Cart", template)
+        self.assertNotIn("30 dias de acesso", template)
         self.assertNotIn('href="https://pay.', template)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:

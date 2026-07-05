@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, current_app, jsonify, redirect, request, url_for
+from flask import Blueprint, Response, current_app, jsonify, redirect, url_for
 from flask_login import current_user, login_required
 
 from Blueprints.services.subscription.mercado_pago_service import (
@@ -6,8 +6,7 @@ from Blueprints.services.subscription.mercado_pago_service import (
     create_monthly_subscription,
 )
 from Blueprints.services.subscription.mercado_pago_payments_service import (
-    create_debit_card_payment,
-    create_pix_payment,
+    create_one_time_checkout_preference,
 )
 
 checkout_bp = Blueprint("checkout", __name__)
@@ -24,7 +23,6 @@ def checkout() -> Response:
 
 
 @checkout_bp.route("/checkout/credit-subscription", methods=["POST"])
-@checkout_bp.route("/checkout/pro", methods=["POST"])
 @login_required
 def checkout_credit_subscription() -> tuple[Response, int]:
     """Create a Mercado Pago monthly subscription for the logged-in user.
@@ -53,39 +51,20 @@ def checkout_credit_subscription() -> tuple[Response, int]:
     ), 200
 
 
+@checkout_bp.route("/checkout/pro", methods=["POST"])
 @checkout_bp.route("/checkout/pix", methods=["POST"])
-@login_required
-def checkout_pix() -> tuple[Response, int]:
-    """Create a one-time Pix payment for 30 days of BoostConvert PRO."""
-    try:
-        payment = create_pix_payment(current_user)
-    except MercadoPagoError as exc:
-        current_app.logger.warning(
-            "mercado_pago_pix_create_failed user_id=%s error=%s",
-            getattr(current_user, "id", None),
-            exc,
-        )
-        return jsonify({"ok": False, "error": str(exc)}), 502
-
-    return jsonify(payment), 200
-
-
 @checkout_bp.route("/checkout/debit", methods=["POST"])
 @login_required
-def checkout_debit() -> tuple[Response, int]:
-    """Create a one-time debit card payment for 30 days of BoostConvert PRO."""
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict):
-        return jsonify({"ok": False, "error": "invalid_json"}), 400
-
+def checkout_pro() -> tuple[Response, int]:
+    """Create a Checkout Pro preference for 30 days of BoostConvert PRO."""
     try:
-        payment = create_debit_card_payment(current_user, payload)
+        checkout = create_one_time_checkout_preference(current_user)
     except MercadoPagoError as exc:
         current_app.logger.warning(
-            "mercado_pago_debit_create_failed user_id=%s error=%s",
+            "mercado_pago_checkout_preference_create_failed user_id=%s error=%s",
             getattr(current_user, "id", None),
             exc,
         )
         return jsonify({"ok": False, "error": str(exc)}), 502
 
-    return jsonify(payment), 200
+    return jsonify(checkout), 200

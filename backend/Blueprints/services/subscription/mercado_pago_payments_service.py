@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import timedelta
 from typing import Any
-from uuid import uuid4
+from urllib.parse import urljoin
 
 from flask import current_app
 
@@ -14,6 +14,7 @@ from Blueprints.services.subscription.mercado_pago_service import (
     PROVIDER,
     build_external_reference,
     extract_user_id_from_external_reference,
+    get_base_url,
     get_plan_price,
     get_string,
     mercado_pago_request,
@@ -26,6 +27,8 @@ PRO_PLAN_NAME = "BoostConvert PRO"
 ONE_TIME_ACCESS_DAYS = 30
 PIX_PAYMENT_METHOD = "pix"
 DEBIT_PAYMENT_METHOD = "debit_card"
+CREDIT_PAYMENT_METHOD = "credit_card"
+ONE_TIME_PAYMENT_METHODS = {PIX_PAYMENT_METHOD, DEBIT_PAYMENT_METHOD, CREDIT_PAYMENT_METHOD}
 APPROVED_PAYMENT_STATUSES = {"approved", "processed"}
 FAILED_PAYMENT_STATUSES = {
     "cancelled",
@@ -37,54 +40,49 @@ FAILED_PAYMENT_STATUSES = {
 }
 
 
-def create_pix_payment(usuario: Usuario) -> dict[str, Any]:
+def create_one_time_checkout_preference(usuario: Usuario) -> dict[str, Any]:
+    """Create a Checkout Pro preference where Mercado Pago renders payment methods."""
     price = get_plan_price()
+    base_url = get_base_url()
     payload = {
-        "transaction_amount": float(price),
-        "description": f"{PRO_PLAN_NAME} - 30 dias",
-        "payment_method_id": PIX_PAYMENT_METHOD,
-        "external_reference": build_external_reference(usuario.id),
+        "items": [
+            {
+                "id": "boostconvert-pro-30-days",
+                "title": PRO_PLAN_NAME,
+                "description": f"{PRO_PLAN_NAME} - 30 dias",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": float(price),
+            }
+        ],
         "payer": {"email": usuario.email},
+        "external_reference": build_external_reference(usuario.id),
+        "notification_url": urljoin(f"{base_url}/", "webhooks/mercado-pago"),
+        "back_urls": {
+            "success": urljoin(f"{base_url}/", "conta"),
+            "pending": urljoin(f"{base_url}/", "conta"),
+            "failure": urljoin(f"{base_url}/", "planos"),
+        },
+        "auto_return": "approved",
+        "binary_mode": False,
+        "payment_methods": {
+            "excluded_payment_types": [{"id": "ticket"}, {"id": "atm"}],
+            "installments": 1,
+        },
+        "statement_descriptor": "BOOSTCONVERT",
     }
-    data = create_payment(payload)
-    payment = upsert_payment_from_provider_data(
-        data,
-        user=usuario,
-        requested_payment_method=PIX_PAYMENT_METHOD,
-        activate_access=False,
-    )
-    db.session.commit()
+    data = mercado_pago_request("POST", "/checkout/preferences", json_payload=payload)
+    checkout_url = select_preference_checkout_url(data)
+    preference_id = get_string(data, "id")
+    if not checkout_url or not preference_id:
+        raise MercadoPagoError("Mercado Pago nao retornou a URL do checkout.")
+
     current_app.logger.info(
         json.dumps(
             {
-                "event": "mercado_pago_pix_payment_created",
+                "event": "mercado_pago_checkout_preference_created",
                 "user_id": usuario.id,
-                "provider_payment_id": payment.provider_payment_id,
-            },
-            ensure_ascii=False,
-        )
-    )
-    return build_pix_checkout_response(data)
-
-
-def create_debit_card_payment(usuario: Usuario, form_data: dict[str, Any]) -> dict[str, Any]:
-    price = get_plan_price()
-    payload = build_debit_payment_payload(usuario, form_data, price)
-    data = create_payment(payload)
-    payment = upsert_payment_from_provider_data(
-        data,
-        user=usuario,
-        requested_payment_method=DEBIT_PAYMENT_METHOD,
-        activate_access=False,
-    )
-    db.session.commit()
-    current_app.logger.info(
-        json.dumps(
-            {
-                "event": "mercado_pago_debit_payment_created",
-                "user_id": usuario.id,
-                "provider_payment_id": payment.provider_payment_id,
-                "status": payment.status,
+                "preference_id": preference_id,
             },
             ensure_ascii=False,
         )
@@ -93,19 +91,19 @@ def create_debit_card_payment(usuario: Usuario, form_data: dict[str, Any]) -> di
         "ok": True,
         "provider": PROVIDER,
         "plan_name": PRO_PLAN_NAME,
-        "payment_id": payment.provider_payment_id,
-        "status": payment.status,
-        "message": "Pagamento recebido. O BoostConvert PRO sera liberado apos confirmacao do webhook.",
+        "checkout_url": checkout_url,
+        "preference_id": preference_id,
+        "status": "created",
     }
 
 
-def create_payment(payload: dict[str, Any]) -> dict[str, Any]:
-    return mercado_pago_request(
-        "POST",
-        "/v1/payments",
-        json_payload=payload,
-        extra_headers={"X-Idempotency-Key": str(uuid4())},
-    )
+def select_preference_checkout_url(provider_data: dict[str, Any]) -> str:
+    access_token = str(current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "")
+    init_point = get_string(provider_data, "init_point")
+    sandbox_init_point = get_string(provider_data, "sandbox_init_point")
+    if access_token.startswith("TEST-"):
+        return sandbox_init_point or init_point
+    return init_point or sandbox_init_point
 
 
 def get_payment(payment_id: str) -> dict[str, Any]:
@@ -115,42 +113,6 @@ def get_payment(payment_id: str) -> dict[str, Any]:
 def process_confirmed_payment(payment_id: str) -> Payment:
     data = get_payment(payment_id)
     return upsert_payment_from_provider_data(data, activate_access=True)
-
-
-def build_debit_payment_payload(
-    usuario: Usuario,
-    form_data: dict[str, Any],
-    price: object,
-) -> dict[str, Any]:
-    token = get_string(form_data, "token")
-    payment_method_id = get_string(form_data, "payment_method_id")
-    issuer_id = get_string(form_data, "issuer_id")
-    installments = int(form_data.get("installments") or 1)
-    payer = form_data.get("payer") if isinstance(form_data.get("payer"), dict) else {}
-    identification = payer.get("identification") if isinstance(payer.get("identification"), dict) else {}
-
-    if not token or not payment_method_id:
-        raise MercadoPagoError("Dados do cartao de debito incompletos.")
-
-    payload: dict[str, Any] = {
-        "transaction_amount": float(price),
-        "token": token,
-        "installments": installments,
-        "payment_method_id": payment_method_id,
-        "description": f"{PRO_PLAN_NAME} - 30 dias",
-        "external_reference": build_external_reference(usuario.id),
-        "payer": {
-            "email": usuario.email,
-        },
-    }
-    if issuer_id:
-        payload["issuer_id"] = issuer_id
-    if identification:
-        payload["payer"]["identification"] = {
-            "type": get_string(identification, "type"),
-            "number": get_string(identification, "number"),
-        }
-    return payload
 
 
 def upsert_payment_from_provider_data(
@@ -199,7 +161,7 @@ def apply_confirmed_payment_status(payment: Payment, provider_data: dict[str, An
     provider_payment_type = get_string(provider_data, "payment_type_id")
     detected_method = detect_payment_method(provider_data)
 
-    if status in APPROVED_PAYMENT_STATUSES and detected_method in {PIX_PAYMENT_METHOD, DEBIT_PAYMENT_METHOD}:
+    if status in APPROVED_PAYMENT_STATUSES and detected_method in ONE_TIME_PAYMENT_METHODS:
         payment.payment_method = detected_method
         if payment.premium_expires_at is None:
             payment.premium_expires_at = utc_now() + timedelta(days=ONE_TIME_ACCESS_DAYS)
@@ -241,24 +203,3 @@ def detect_payment_method(provider_data: dict[str, Any]) -> str:
     if payment_type_id == DEBIT_PAYMENT_METHOD:
         return DEBIT_PAYMENT_METHOD
     return payment_type_id or payment_method_id or "unknown"
-
-
-def build_pix_checkout_response(provider_data: dict[str, Any]) -> dict[str, Any]:
-    payment_id = get_string(provider_data, "id")
-    point_of_interaction = provider_data.get("point_of_interaction")
-    if not isinstance(point_of_interaction, dict):
-        point_of_interaction = {}
-    transaction_data = point_of_interaction.get("transaction_data")
-    if not isinstance(transaction_data, dict):
-        transaction_data = {}
-    return {
-        "ok": True,
-        "provider": PROVIDER,
-        "plan_name": PRO_PLAN_NAME,
-        "payment_id": payment_id,
-        "status": get_string(provider_data, "status") or "pending",
-        "qr_code": get_string(transaction_data, "qr_code"),
-        "qr_code_base64": get_string(transaction_data, "qr_code_base64"),
-        "ticket_url": get_string(transaction_data, "ticket_url"),
-        "message": "Pague o PIX e aguarde a confirmacao do webhook para liberar o BoostConvert PRO.",
-    }

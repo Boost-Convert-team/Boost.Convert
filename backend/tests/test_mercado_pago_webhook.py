@@ -136,6 +136,24 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self.assertEqual(self.payment_state("pay_debit")[0], "debit_card")
         self.assertIsNotNone(self.payment_state("pay_debit")[2])
 
+    def test_approved_checkout_credit_payment_sets_user_plan_to_pro_for_30_days(self) -> None:
+        user_id = self.create_user("credito-avulso@example.com", "free", "inactive")
+        provider_data = self.provider_payment_data(user_id, "pay_credit", "approved", "visa", "credit_card")
+
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_mercado_pago_payload(
+                {"id": 2004, "type": "payment", "data": {"id": "pay_credit"}},
+                "pay_credit",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.user_plan_state(user_id), ("pro", "active"))
+        self.assertEqual(self.payment_state("pay_credit")[0], "credit_card")
+        self.assertIsNotNone(self.payment_state("pay_credit")[2])
+
     def test_rejected_payment_does_not_set_user_plan_to_pro(self) -> None:
         user_id = self.create_user("recusado@example.com", "free", "inactive")
         provider_data = self.provider_payment_data(user_id, "pay_rejected", "rejected", "pix", "bank_transfer")

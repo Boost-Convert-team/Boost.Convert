@@ -124,7 +124,6 @@
         document.querySelectorAll("[data-pro-checkout-form]").forEach((form) => {
             form.addEventListener("submit", handleProCheckoutSubmit);
         });
-        initProDebitCheckout();
     }
 
     async function handleProCheckoutSubmit(event) {
@@ -132,8 +131,7 @@
 
         const form = event.currentTarget;
         const button = form.querySelector('button[type="submit"]');
-        const message = document.querySelector("[data-pro-checkout-message]");
-        const kind = form.dataset.proCheckoutKind || "";
+        const message = form.querySelector("[data-pro-checkout-message]");
 
         setProCheckoutMessage(message, "");
         setProCheckoutLoading(button, true);
@@ -161,13 +159,7 @@
                 return;
             }
 
-            if (kind === "pix") {
-                renderPixPayment(payload);
-                setProCheckoutMessage(message, "PIX gerado. O BoostConvert PRO sera liberado apos confirmacao do webhook.", "success");
-                return;
-            }
-
-            setProCheckoutMessage(message, payload.message || "Pagamento iniciado. Aguarde a confirmacao do webhook.", "success");
+            throw new Error(payload.error || "Mercado Pago nao retornou a URL do checkout.");
         } catch (error) {
             setProCheckoutLoading(button, false);
             setProCheckoutMessage(message, error.message || "Nao foi possivel iniciar o pagamento.");
@@ -193,120 +185,6 @@
         if (!message) return;
         message.textContent = text || "";
         message.dataset.state = state || "";
-    }
-
-    function renderPixPayment(payload) {
-        const result = document.querySelector("[data-pro-pix-result]");
-        if (!result) return;
-
-        result.hidden = false;
-        result.innerHTML = "";
-
-        if (payload.qr_code_base64) {
-            const image = document.createElement("img");
-            image.src = `data:image/png;base64,${payload.qr_code_base64}`;
-            image.alt = "QR Code PIX do BoostConvert PRO";
-            result.appendChild(image);
-        }
-
-        if (payload.qr_code) {
-            const code = document.createElement("div");
-            code.className = "plan-pix-code";
-            code.textContent = payload.qr_code;
-            result.appendChild(code);
-        }
-
-        const actions = document.createElement("div");
-        actions.className = "plan-pix-actions";
-        if (payload.qr_code) {
-            const copyButton = document.createElement("button");
-            copyButton.className = "button button-secondary";
-            copyButton.type = "button";
-            copyButton.textContent = "Copiar codigo PIX";
-            copyButton.addEventListener("click", () => navigator.clipboard?.writeText(payload.qr_code));
-            actions.appendChild(copyButton);
-        }
-        if (payload.ticket_url) {
-            const link = document.createElement("a");
-            link.className = "button button-secondary";
-            link.href = payload.ticket_url;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = "Abrir PIX no Mercado Pago";
-            actions.appendChild(link);
-        }
-        result.appendChild(actions);
-    }
-
-    function initProDebitCheckout() {
-        const form = document.querySelector("[data-pro-debit-form]");
-        const trigger = document.querySelector("[data-pro-debit-trigger]");
-        if (!form || !trigger) return;
-
-        trigger.addEventListener("click", () => renderDebitBrick(form));
-    }
-
-    async function renderDebitBrick(form) {
-        const root = document.querySelector(".pricing-page");
-        const panel = document.querySelector("[data-pro-debit-panel]");
-        const message = document.querySelector("[data-pro-checkout-message]");
-        const publicKey = root?.dataset.mercadoPagoPublicKey || "";
-        const amount = Number(root?.dataset.planPrice || 0);
-
-        setProCheckoutMessage(message, "");
-
-        if (!publicKey || !window.MercadoPago) {
-            setProCheckoutMessage(message, "Checkout de debito indisponivel no momento.");
-            return;
-        }
-
-        if (!panel) return;
-        panel.hidden = false;
-
-        if (window.cardPaymentBrickController) {
-            return;
-        }
-
-        const mercadoPago = new window.MercadoPago(publicKey, { locale: "pt-BR" });
-        const bricksBuilder = mercadoPago.bricks();
-        window.cardPaymentBrickController = await bricksBuilder.create(
-            "cardPayment",
-            "cardPaymentBrick_container",
-            {
-                initialization: { amount },
-                callbacks: {
-                    onSubmit: (formData) => submitDebitPayment(form, formData),
-                    onError: () => setProCheckoutMessage(message, "Nao foi possivel carregar o pagamento por debito.")
-                }
-            }
-        );
-    }
-
-    async function submitDebitPayment(form, formData) {
-        const message = document.querySelector("[data-pro-checkout-message]");
-        const csrfToken = new FormData(form).get("_csrf_token") || "";
-
-        const response = await fetch(form.action, {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-                "X-CSRF-Token": csrfToken
-            },
-            credentials: "same-origin",
-            body: JSON.stringify(formData)
-        });
-        const payload = await readCheckoutResponse(response);
-        if (!response.ok || !payload.ok) {
-            setProCheckoutMessage(message, payload.error || "Nao foi possivel processar o debito.");
-            throw new Error(payload.error || "debit_failed");
-        }
-
-        setProCheckoutMessage(
-            message,
-            payload.message || "Pagamento recebido. O BoostConvert PRO sera liberado apos confirmacao do webhook.",
-            "success"
-        );
     }
 
     function initHeroUpload() {
