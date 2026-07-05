@@ -138,5 +138,5 @@ def handle_conversion_error(exc, refused_log_message, internal_log_message):
         current_app.logger.info(refused_log_message, type(exc).__name__)
         return render_conversion_error_response(exc, 400)
     
-    current_app.logger.error("%s: %s", internal_log_message, type(exc).__name__, exc_info=False)
+    current_app.logger.exception("%s: %s", internal_log_message, type(exc).__name__)
     return render_conversion_error_response(RuntimeError("Erro ao processar os arquivos."), 500)
