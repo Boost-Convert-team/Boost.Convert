@@ -14,9 +14,8 @@ CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_EXEMPT_ENDPOINTS = {
-    "kiwify_webhook.receive_kiwify_webhook",
     "webhook.webhook",
-    "webhook.payment_webhook",
+    "webhook.receive_mercado_pago_webhook",
 }
 
 

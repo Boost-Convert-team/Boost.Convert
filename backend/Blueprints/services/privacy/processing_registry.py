@@ -16,7 +16,7 @@ PROCESSING_ACTIVITIES = {
     },
     "pagamentos": {
         "purpose": "Ativar plano contratado e registrar status de assinatura.",
-        "data": ["user_id", "status_assinatura", "plano"],
+        "data": ["user_id", "provider", "provider_subscription_id", "provider_payment_id", "status_assinatura", "plano"],
         "legal_basis": "execucao_de_contrato",
     },
     "processamento_de_arquivos": {

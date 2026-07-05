@@ -1,39 +1,48 @@
-import hmac
-
 from flask import Blueprint, current_app, jsonify, request
-from extensions import db
-from models import Usuario
+from werkzeug.exceptions import BadRequest, UnsupportedMediaType
+
+from Blueprints.services.subscription.mercado_pago_service import (
+    MercadoPagoError,
+    process_mercado_pago_webhook,
+    validate_mercado_pago_webhook_signature,
+)
 
 webhook_bp = Blueprint("webhook", __name__)
 @webhook_bp.route("/webhook", methods=["POST"])
 def webhook(): return jsonify({"ok": True})
 
-@webhook_bp.route("/webhook/payment", methods=["POST"])
-def payment_webhook():
-    if not is_payment_webhook_authorized():
-        return jsonify({"ok": False}), 403
+@webhook_bp.route("/webhooks/mercado-pago", methods=["POST"])
+def receive_mercado_pago_webhook():
+    payload = read_json_payload()
+    if payload is None:
+        return jsonify({"ok": False, "error": "invalid_json"}), 400
 
-    payload = request.get_json(silent=True) if request.is_json else {}
-    user_id = request.form.get("user_id") or payload.get("user_id")
-    event = request.form.get("event") or payload.get("event")
-    if event != "payment_approved": return jsonify({"ok": True})
+    if not validate_mercado_pago_webhook_signature(payload):
+        current_app.logger.warning("mercado_pago_webhook_invalid_signature")
+        return jsonify({"ok": False, "error": "invalid_signature"}), 401
 
-    user = db.session.get(Usuario, int(user_id)) if user_id else None
-    if user is None: return jsonify({"ok": False}), 404
-    
-    user.plano = "pro"
-    user.status_assinatura = "active"
-    db.session.commit()
-    return jsonify({"ok": True})
+    try:
+        result = process_mercado_pago_webhook(payload)
+    except MercadoPagoError as exc:
+        current_app.logger.warning("mercado_pago_webhook_processing_failed error=%s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 502
+
+    return jsonify(
+        {
+            "ok": True,
+            "status": result.status,
+            "event_type": result.event_type,
+            "resource_id": result.resource_id,
+            "duplicate": result.duplicate,
+        }
+    ), 200
 
 
-def is_payment_webhook_authorized() -> bool:
-    """Validate the payment webhook shared secret when configured.
-
-    Example: allowed = is_payment_webhook_authorized()
-    """
-    expected_secret = current_app.config.get("PAYMENT_WEBHOOK_SECRET")
-    if not expected_secret:
-        return current_app.config.get("APP_ENV") not in {"production", "prod"}
-    submitted_secret = request.headers.get("X-Webhook-Secret", "")
-    return hmac.compare_digest(expected_secret, submitted_secret)
+def read_json_payload() -> dict[str, object] | None:
+    try:
+        payload = request.get_json()
+    except (BadRequest, UnsupportedMediaType):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload

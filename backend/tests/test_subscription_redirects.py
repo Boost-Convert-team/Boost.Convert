@@ -1,13 +1,14 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
-from Blueprints.main.checkout_routes import KIWIFY_CHECKOUT_URL, checkout, checkout_pro
+from Blueprints.main.checkout_routes import checkout, checkout_pro
 from Blueprints.handlers.conversion_handlers import (
     handle_conversion_error,
     validate_uploaded_file_count,
@@ -32,23 +33,49 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
 
-    def test_checkout_uses_new_kiwify_checkout_url(self) -> None:
-        self.assertEqual(KIWIFY_CHECKOUT_URL, "https://pay.kiwify.com.br/pOcJvQr")
-
-    def test_checkout_routes_redirect_to_new_kiwify_checkout(self) -> None:
+    def test_checkout_get_redirects_to_planos(self) -> None:
         with self.app.test_request_context("/checkout"):
             checkout_response = checkout.__wrapped__()
+
+        self.assertEqual(checkout_response.location, "/planos")
+
+    def test_checkout_pro_returns_mercado_pago_checkout_url(self) -> None:
+        mercado_pago_response = {
+            "checkout_url": "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=sub_123",
+            "subscription_id": "sub_123",
+            "status": "pending",
+        }
         with self.app.test_request_context("/checkout/pro", method="POST"):
-            checkout_pro_response = checkout_pro.__wrapped__()
+            with patch(
+                "Blueprints.main.checkout_routes.create_monthly_subscription",
+                return_value=mercado_pago_response,
+            ):
+                checkout_pro_response, status_code = checkout_pro.__wrapped__()
 
-        self.assertEqual(checkout_response.location, KIWIFY_CHECKOUT_URL)
-        self.assertEqual(checkout_pro_response.location, KIWIFY_CHECKOUT_URL)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(checkout_pro_response.json["provider"], "mercado_pago")
+        self.assertEqual(checkout_pro_response.json["checkout_url"], mercado_pago_response["checkout_url"])
 
-    def test_planos_pro_button_points_to_new_kiwify_checkout(self) -> None:
+    def test_checkout_pro_returns_json_error_when_mercado_pago_fails(self) -> None:
+        from Blueprints.services.subscription.mercado_pago_service import MercadoPagoError
+
+        with self.app.test_request_context("/checkout/pro", method="POST"):
+            with patch(
+                "Blueprints.main.checkout_routes.create_monthly_subscription",
+                side_effect=MercadoPagoError("MERCADO_PAGO_ACCESS_TOKEN nao configurado."),
+            ):
+                checkout_pro_response = checkout_pro.__wrapped__()
+
+        response, status_code = checkout_pro_response
+        self.assertEqual(status_code, 502)
+        self.assertFalse(response.json["ok"])
+
+    def test_planos_pro_button_uses_internal_checkout_form(self) -> None:
         template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text()
 
-        self.assertIn(f'href="{KIWIFY_CHECKOUT_URL}"', template)
-        self.assertNotIn("checkout-form", template)
+        self.assertIn('data-premium-checkout-form', template)
+        self.assertIn("url_for('checkout.checkout_pro')", template)
+        self.assertNotIn('href="https://pay.', template)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:
         with self.app.test_request_context("/convert/pdf-to-docx", method="POST"):

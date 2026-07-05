@@ -1,0 +1,463 @@
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
+from typing import Any
+from urllib.parse import urljoin
+
+import requests
+from flask import current_app, request
+
+from extensions import db
+from models import PaymentWebhookEvent, Subscription, Usuario
+
+
+MERCADO_PAGO_API_BASE_URL = "https://api.mercadopago.com"
+PROVIDER = "mercado_pago"
+EXTERNAL_REFERENCE_PREFIX = "boost:user:"
+ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
+INACTIVE_SUBSCRIPTION_STATUSES = {
+    "cancelled",
+    "canceled",
+    "paused",
+    "rejected",
+    "expired",
+    "inactive",
+}
+APPROVED_PAYMENT_STATUSES = {"approved", "processed"}
+FAILED_PAYMENT_STATUSES = {
+    "cancelled",
+    "canceled",
+    "rejected",
+    "expired",
+    "refunded",
+    "charged_back",
+}
+
+
+class MercadoPagoError(RuntimeError):
+    """Raised when Mercado Pago cannot create or confirm a subscription."""
+
+
+@dataclass(frozen=True)
+class MercadoPagoWebhookResult:
+    status: str
+    event_type: str
+    resource_id: str
+    duplicate: bool = False
+
+
+def create_monthly_subscription(usuario: Usuario) -> dict[str, str]:
+    """Create a pending monthly subscription and return Mercado Pago checkout URL."""
+    price = get_plan_price()
+    base_url = get_base_url()
+    payload = {
+        "reason": "Boost Premium",
+        "external_reference": build_external_reference(usuario.id),
+        "payer_email": usuario.email,
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": float(price),
+            "currency_id": "BRL",
+        },
+        "back_url": urljoin(f"{base_url}/", "conta"),
+        "status": "pending",
+    }
+
+    data = mercado_pago_request("POST", "/preapproval", json_payload=payload)
+    checkout_url = get_string(data, "init_point")
+    subscription_id = get_string(data, "id")
+    if not checkout_url or not subscription_id:
+        raise MercadoPagoError("Mercado Pago nao retornou a URL de assinatura.")
+
+    upsert_subscription_from_provider_data(data)
+    db.session.commit()
+    current_app.logger.info(
+        json.dumps(
+            {
+                "event": "mercado_pago_subscription_created",
+                "user_id": usuario.id,
+                "provider_subscription_id": subscription_id,
+            },
+            ensure_ascii=False,
+        )
+    )
+    return {
+        "checkout_url": checkout_url,
+        "subscription_id": subscription_id,
+        "status": get_string(data, "status") or "pending",
+    }
+
+
+def process_mercado_pago_webhook(payload: dict[str, Any]) -> MercadoPagoWebhookResult:
+    event_type = extract_webhook_event_type(payload)
+    resource_id = extract_webhook_resource_id(payload)
+    event_id = extract_webhook_event_id(payload)
+
+    if event_id and is_duplicate_webhook_event(event_id):
+        return MercadoPagoWebhookResult("duplicate", event_type, resource_id, duplicate=True)
+
+    if not event_type or not resource_id:
+        result = MercadoPagoWebhookResult("ignored", event_type, resource_id)
+        record_webhook_event(payload, event_id, result)
+        db.session.commit()
+        return result
+
+    result = dispatch_mercado_pago_webhook(payload, event_type, resource_id)
+    record_webhook_event(payload, event_id, result)
+    db.session.commit()
+    return result
+
+
+def dispatch_mercado_pago_webhook(
+    payload: dict[str, Any],
+    event_type: str,
+    resource_id: str,
+) -> MercadoPagoWebhookResult:
+    if event_type == "subscription_preapproval":
+        subscription_data = get_subscription(resource_id)
+        upsert_subscription_from_provider_data(subscription_data)
+        return MercadoPagoWebhookResult("processed", event_type, resource_id)
+
+    if event_type == "subscription_authorized_payment":
+        invoice_data = get_authorized_payment(resource_id)
+        preapproval_id = get_string(invoice_data, "preapproval_id")
+        payment = invoice_data.get("payment") if isinstance(invoice_data.get("payment"), dict) else {}
+        payment_id = get_string(payment, "id") or get_string(invoice_data, "id")
+        payment_status = get_string(payment, "status") or get_string(invoice_data, "status")
+
+        if preapproval_id:
+            subscription_data = get_subscription(preapproval_id)
+            subscription = upsert_subscription_from_provider_data(subscription_data, payment_id)
+            apply_payment_status(subscription, payment_status)
+            return MercadoPagoWebhookResult("processed", event_type, resource_id)
+
+    current_app.logger.debug(
+        json.dumps(
+            {
+                "event": "mercado_pago_webhook_ignored",
+                "type": event_type,
+                "resource_id": resource_id,
+                "payload_id": payload.get("id"),
+            },
+            ensure_ascii=False,
+        )
+    )
+    return MercadoPagoWebhookResult("ignored", event_type, resource_id)
+
+
+def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
+    secret = current_app.config.get("MERCADO_PAGO_WEBHOOK_SECRET")
+    if not secret:
+        return current_app.config.get("APP_ENV") not in {"production", "prod"}
+
+    x_signature = request.headers.get("x-signature", "")
+    x_request_id = request.headers.get("x-request-id", "")
+    data_id = get_signature_data_id(payload)
+    return validate_signature_parts(x_signature, x_request_id, data_id, secret)
+
+
+def validate_signature_parts(
+    x_signature: str,
+    x_request_id: str,
+    data_id: str,
+    secret: str,
+) -> bool:
+    signature_parts = parse_signature_header(x_signature)
+    ts = signature_parts.get("ts", "")
+    received_hash = signature_parts.get("v1", "")
+    if not ts or not received_hash:
+        return False
+
+    manifest = build_webhook_manifest(data_id, x_request_id, ts)
+    expected_hash = hmac.new(
+        secret.encode("utf-8"),
+        manifest.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected_hash, received_hash)
+
+
+def parse_signature_header(x_signature: str) -> dict[str, str]:
+    parts: dict[str, str] = {}
+    for chunk in x_signature.split(","):
+        key, separator, value = chunk.partition("=")
+        if separator:
+            parts[key.strip()] = value.strip()
+    return parts
+
+
+def build_webhook_manifest(data_id: str, x_request_id: str, ts: str) -> str:
+    manifest = ""
+    if data_id:
+        manifest += f"id:{data_id};"
+    if x_request_id:
+        manifest += f"request-id:{x_request_id};"
+    if ts:
+        manifest += f"ts:{ts};"
+    return manifest
+
+
+def get_signature_data_id(payload: dict[str, Any]) -> str:
+    return (
+        request.args.get("data.id", "")
+        or request.args.get("data_id", "")
+        or extract_webhook_resource_id(payload)
+    )
+
+
+def get_subscription(subscription_id: str) -> dict[str, Any]:
+    return mercado_pago_request("GET", f"/preapproval/{subscription_id}")
+
+
+def get_authorized_payment(authorized_payment_id: str) -> dict[str, Any]:
+    return mercado_pago_request("GET", f"/authorized_payments/{authorized_payment_id}")
+
+
+def mercado_pago_request(
+    method: str,
+    path: str,
+    json_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
+    if not access_token:
+        raise MercadoPagoError("MERCADO_PAGO_ACCESS_TOKEN nao configurado.")
+
+    url = f"{MERCADO_PAGO_API_BASE_URL}{path}"
+    try:
+        response = requests.request(
+            method,
+            url,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json=json_payload,
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        raise MercadoPagoError("Falha ao conectar com Mercado Pago.") from exc
+
+    if response.status_code >= 400:
+        current_app.logger.warning(
+            json.dumps(
+                {
+                    "event": "mercado_pago_api_error",
+                    "method": method,
+                    "path": path,
+                    "status_code": response.status_code,
+                    "response": response.text[:500],
+                },
+                ensure_ascii=False,
+            )
+        )
+        raise MercadoPagoError("Mercado Pago recusou a operacao.")
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise MercadoPagoError("Mercado Pago retornou uma resposta invalida.") from exc
+
+    if not isinstance(data, dict):
+        raise MercadoPagoError("Mercado Pago retornou uma resposta inesperada.")
+    return data
+
+
+def upsert_subscription_from_provider_data(
+    provider_data: dict[str, Any],
+    provider_payment_id: str | None = None,
+) -> Subscription:
+    provider_subscription_id = get_string(provider_data, "id")
+    if not provider_subscription_id:
+        raise MercadoPagoError("Assinatura do Mercado Pago sem ID.")
+
+    subscription = Subscription.query.filter_by(
+        provider=PROVIDER,
+        provider_subscription_id=provider_subscription_id,
+    ).first()
+    user = find_user_for_subscription(provider_data, subscription)
+    if user is None:
+        raise MercadoPagoError("Usuario da assinatura nao encontrado.")
+
+    if subscription is None:
+        subscription = Subscription(
+            user_id=user.id,
+            provider=PROVIDER,
+            provider_subscription_id=provider_subscription_id,
+        )
+        db.session.add(subscription)
+
+    auto_recurring = provider_data.get("auto_recurring")
+    if not isinstance(auto_recurring, dict):
+        auto_recurring = {}
+
+    subscription.user_id = user.id
+    subscription.status = get_string(provider_data, "status") or "pending"
+    subscription.provider_payment_id = provider_payment_id or subscription.provider_payment_id
+    subscription.amount = parse_decimal(auto_recurring.get("transaction_amount"))
+    subscription.currency = get_string(auto_recurring, "currency_id") or "BRL"
+    subscription.next_payment_at = parse_provider_datetime(provider_data.get("next_payment_date"))
+    subscription.updated_at = utc_now()
+
+    apply_subscription_status(user, subscription)
+    return subscription
+
+
+def apply_subscription_status(user: Usuario, subscription: Subscription) -> None:
+    status = subscription.status.lower()
+    if status in ACTIVE_SUBSCRIPTION_STATUSES:
+        user.plano = "pro"
+        user.status_assinatura = "active"
+        subscription.started_at = subscription.started_at or utc_now()
+        subscription.canceled_at = None
+        return
+
+    if status in INACTIVE_SUBSCRIPTION_STATUSES:
+        user.plano = "free"
+        user.status_assinatura = "inactive"
+        subscription.canceled_at = subscription.canceled_at or utc_now()
+
+
+def apply_payment_status(subscription: Subscription, payment_status: str) -> None:
+    status = payment_status.lower()
+    if status in APPROVED_PAYMENT_STATUSES:
+        subscription.user.plano = "pro"
+        subscription.user.status_assinatura = "active"
+        subscription.started_at = subscription.started_at or utc_now()
+        return
+
+    if status in FAILED_PAYMENT_STATUSES:
+        subscription.status = f"payment_{status}"
+        subscription.user.plano = "free"
+        subscription.user.status_assinatura = "inactive"
+        subscription.canceled_at = subscription.canceled_at or utc_now()
+
+
+def find_user_for_subscription(
+    provider_data: dict[str, Any],
+    subscription: Subscription | None,
+) -> Usuario | None:
+    user_id = extract_user_id_from_external_reference(provider_data.get("external_reference"))
+    if user_id is not None:
+        return db.session.get(Usuario, user_id)
+    if subscription is not None:
+        return subscription.user
+    return None
+
+
+def record_webhook_event(
+    payload: dict[str, Any],
+    event_id: str,
+    result: MercadoPagoWebhookResult,
+) -> None:
+    if event_id and is_duplicate_webhook_event(event_id):
+        return
+    db.session.add(
+        PaymentWebhookEvent(
+            provider=PROVIDER,
+            provider_event_id=event_id or None,
+            event_type=result.event_type or "unknown",
+            resource_id=result.resource_id or None,
+            status=result.status,
+            payload=payload,
+        )
+    )
+
+
+def is_duplicate_webhook_event(event_id: str) -> bool:
+    return (
+        PaymentWebhookEvent.query.filter_by(
+            provider=PROVIDER,
+            provider_event_id=event_id,
+        ).first()
+        is not None
+    )
+
+
+def extract_webhook_event_type(payload: dict[str, Any]) -> str:
+    event_type = payload.get("type") or request.args.get("type") or payload.get("topic")
+    return event_type.strip() if isinstance(event_type, str) else ""
+
+
+def extract_webhook_resource_id(payload: dict[str, Any]) -> str:
+    data = payload.get("data")
+    if isinstance(data, dict):
+        data_id = data.get("id")
+        if data_id is not None:
+            return str(data_id).strip()
+    data_id = request.args.get("data.id") or request.args.get("data_id")
+    if data_id:
+        return data_id.strip()
+    return ""
+
+
+def extract_webhook_event_id(payload: dict[str, Any]) -> str:
+    event_id = payload.get("id") or request.headers.get("x-request-id", "")
+    return str(event_id).strip() if event_id else ""
+
+
+def build_external_reference(user_id: int) -> str:
+    return f"{EXTERNAL_REFERENCE_PREFIX}{user_id}"
+
+
+def extract_user_id_from_external_reference(value: object) -> int | None:
+    if not isinstance(value, str) or not value.startswith(EXTERNAL_REFERENCE_PREFIX):
+        return None
+    try:
+        return int(value.removeprefix(EXTERNAL_REFERENCE_PREFIX))
+    except ValueError:
+        return None
+
+
+def get_plan_price() -> Decimal:
+    raw_price = current_app.config.get("MERCADO_PAGO_PLAN_PRICE", "19.90")
+    try:
+        price = Decimal(str(raw_price).replace(",", ".")).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError) as exc:
+        raise MercadoPagoError("MERCADO_PAGO_PLAN_PRICE invalido.") from exc
+    if price <= 0:
+        raise MercadoPagoError("MERCADO_PAGO_PLAN_PRICE precisa ser maior que zero.")
+    return price
+
+
+def get_base_url() -> str:
+    configured_base_url = current_app.config.get("BASE_URL")
+    if configured_base_url:
+        return configured_base_url.rstrip("/")
+    return request.url_root.rstrip("/")
+
+
+def get_string(source: dict[str, Any], key: str) -> str:
+    value = source.get(key)
+    return str(value).strip() if value is not None else ""
+
+
+def parse_decimal(value: object) -> Decimal | None:
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value).replace(",", ".")).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def parse_provider_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized_value = value.strip().replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized_value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)

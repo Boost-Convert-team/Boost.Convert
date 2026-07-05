@@ -338,6 +338,21 @@
     display: grid;
 }
 
+.plan-action .plan-button {
+    margin-top: 0;
+}
+
+.plan-checkout-message {
+    min-height: 18px;
+    margin: 8px 0 0;
+    color: #9d321c;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 700;
+    text-align: center;
+}
+
 .plan-note {
     display: inline-flex;
     align-items: center;

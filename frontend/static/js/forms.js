@@ -120,6 +120,65 @@
         });
     }
 
+    function initPremiumCheckoutForms() {
+        document.querySelectorAll("[data-premium-checkout-form]").forEach((form) => {
+            form.addEventListener("submit", handlePremiumCheckoutSubmit);
+        });
+    }
+
+    async function handlePremiumCheckoutSubmit(event) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const button = form.querySelector('button[type="submit"]');
+        const message = form.querySelector("[data-premium-checkout-message]");
+
+        setPremiumCheckoutMessage(message, "");
+        setPremiumCheckoutLoading(button, true);
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                body: new FormData(form),
+                headers: { Accept: "application/json" },
+                credentials: "same-origin"
+            });
+
+            if (response.redirected) {
+                window.location.assign(response.url);
+                return;
+            }
+
+            const payload = await readCheckoutResponse(response);
+            if (!response.ok || !payload.checkout_url) {
+                throw new Error(payload.error || "Nao foi possivel iniciar a assinatura.");
+            }
+
+            window.location.assign(payload.checkout_url);
+        } catch (error) {
+            setPremiumCheckoutLoading(button, false);
+            setPremiumCheckoutMessage(message, error.message || "Nao foi possivel iniciar a assinatura.");
+        }
+    }
+
+    async function readCheckoutResponse(response) {
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) return {};
+        return response.json();
+    }
+
+    function setPremiumCheckoutLoading(button, isLoading) {
+        if (!button) return;
+        button.disabled = isLoading;
+        button.classList.toggle("is-loading", isLoading);
+        button.setAttribute("aria-busy", String(isLoading));
+    }
+
+    function setPremiumCheckoutMessage(message, text) {
+        if (!message) return;
+        message.textContent = text || "";
+    }
+
     function initHeroUpload() {
         const form = document.querySelector("[data-hero-upload-form]");
         if (!form) return;
@@ -354,6 +413,7 @@
         initHeroUpload,
         initAuthToggle,
         initLoadingForms,
+        initPremiumCheckoutForms,
         initUploadZones
     };
 })();

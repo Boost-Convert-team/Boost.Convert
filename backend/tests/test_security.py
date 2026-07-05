@@ -48,12 +48,15 @@ class SecurityMiddlewareTests(unittest.TestCase):
         self.assertTrue(is_weak_secret_key("short"))
         self.assertFalse(is_weak_secret_key("a-secure-test-secret-key-with-32-chars"))
 
-    def test_payment_webhook_requires_secret_in_production(self) -> None:
-        self.app.config.update(APP_ENV="production", PAYMENT_WEBHOOK_SECRET=None)
+    def test_mercado_pago_webhook_requires_secret_in_production(self) -> None:
+        self.app.config.update(APP_ENV="production", MERCADO_PAGO_WEBHOOK_SECRET=None)
 
-        response = self.client.post("/webhook/payment", json={"event": "payment_approved", "user_id": "1"})
+        response = self.client.post(
+            "/webhooks/mercado-pago",
+            json={"type": "subscription_preapproval", "data": {"id": "sub_123"}},
+        )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_private_checkout_route_requires_login_with_valid_csrf(self) -> None:
         response = self.client.post("/checkout/pro", data=self.csrf_data())
