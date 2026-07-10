@@ -1,0 +1,35 @@
+{% set faq_items = seo_data.faqs|default([], true) %}
+{% if faq_items %}
+    <section class="tool-content-section tool-faq-section reveal" aria-labelledby="tool-faq-title">
+        <div class="faq-layout">
+            <div class="faq-copy">
+                <span class="tool-content-kicker">Perguntas frequentes</span>
+                <h2 id="tool-faq-title">Tire suas dúvidas</h2>
+                <p>Confira respostas sobre esta conversão antes de enviar seu arquivo.</p>
+            </div>
+            <div class="faq-accordion" data-faq-accordion>
+                {% for faq in faq_items %}
+                    {% set faq_question = faq.question|default(faq.title|default('', true), true) %}
+                    {% set faq_answer = faq.answer|default(faq.text|default('', true), true) %}
+                    {% if faq_question and faq_answer %}
+                        <article class="faq-item{% if loop.first %} is-open{% endif %}">
+                            <button class="faq-question" type="button" aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="tool-faq-answer-{{ loop.index }}" id="tool-faq-question-{{ loop.index }}">
+                                <span class="faq-icon" aria-hidden="true"></span>
+                                <span>{{ faq_question }}</span>
+                            </button>
+                            <div class="faq-answer" id="tool-faq-answer-{{ loop.index }}" role="region" aria-labelledby="tool-faq-question-{{ loop.index }}"{% if not loop.first %} hidden{% endif %}>
+                                <div>
+                                    {% if faq_answer is string %}
+                                        <p>{{ faq_answer }}</p>
+                                    {% else %}
+                                        {% for paragraph in faq_answer %}<p>{{ paragraph }}</p>{% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </article>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}

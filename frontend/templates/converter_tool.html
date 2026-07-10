@@ -1,14 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}{{ tool.name|replace(" -> ", " para ") }} online - Boost.Convert{% endblock %}
-{% block meta_description %}Converta {{ tool.name|replace(" -> ", " para ") }} online pelo navegador, sem instalacao. O Boost.Convert processa seus arquivos com rapidez, seguranca e alta qualidade.{% endblock %}
+{% set seo_data = seo|default({}, true) %}
+
+{% block title %}{{ seo_data.title|default(tool.name|replace(" -> ", " para ") ~ " online - Boost.Convert", true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default("Converta " ~ (tool.name|replace(" -> ", " para ")) ~ " online pelo navegador, sem instalacao. Envie seu arquivo e baixe o resultado convertido.", true) }}{% endblock %}
 
 {% block content %}
-<main class="page-section">
+<main class="page-section tool-page">
+    {% include "partials/breadcrumbs.html" %}
+
     <div class="section-heading reveal">
         <div class="eyebrow"><i data-lucide="file" aria-hidden="true"></i> Conversor</div>
-        <h1 id="converter-title">{{ tool.name }}</h1>
-        <p>{{ tool.description|default("Envie seus arquivos e baixe o resultado convertido.", true) }}</p>
+        <h1 id="converter-title">{{ seo_data.h1|default(tool.name, true) }}</h1>
+        <p>{{ seo_data.intro|default(tool.description|default("Envie seus arquivos e baixe o resultado convertido.", true), true) }}</p>
     </div>
 
     <div class="converter-grid reveal">
@@ -59,6 +63,167 @@
                 </button>
             </form>
         </section>
+    </div>
+
+    {% set how_to = seo_data.how_to|default([], true) %}
+    {% set benefits = seo_data.benefits|default([], true) %}
+    {% set technical_notes = seo_data.technical_notes|default([], true) %}
+    {% set formats = seo_data.formats|default([], true) %}
+    {% set limitations = seo_data.limitations|default([], true) %}
+    {% set security_text = seo_data.security_text|default('', true) %}
+
+    <div class="tool-seo-content">
+        <section class="tool-content-section tool-how-to reveal" aria-labelledby="tool-how-to-title">
+            <div class="tool-content-heading">
+                <span class="tool-content-kicker">Passo a passo</span>
+                <h2 id="tool-how-to-title">Como usar este conversor</h2>
+            </div>
+            <ol class="tool-step-list">
+                {% if how_to %}
+                    {% for step in how_to %}
+                        <li class="tool-step-item">
+                            <span class="tool-step-number" aria-hidden="true">{{ loop.index }}</span>
+                            <div>
+                                {% if step is string %}
+                                    <p>{{ step }}</p>
+                                {% else %}
+                                    {% set step_title = step.title|default(step.name|default('', true), true) %}
+                                    {% set step_text = step.text|default(step.description|default('', true), true) %}
+                                    {% if step_title %}<h3>{{ step_title }}</h3>{% endif %}
+                                    {% if step_text %}<p>{{ step_text }}</p>{% endif %}
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="tool-step-item">
+                        <span class="tool-step-number" aria-hidden="true">1</span>
+                        <div><h3>Selecione o arquivo</h3><p>Arraste o arquivo para a área de envio ou clique para selecioná-lo no seu dispositivo.</p></div>
+                    </li>
+                    <li class="tool-step-item">
+                        <span class="tool-step-number" aria-hidden="true">2</span>
+                        <div><h3>Inicie a conversão</h3><p>Se houver opções disponíveis, ajuste-as e clique em “Converter”.</p></div>
+                    </li>
+                    <li class="tool-step-item">
+                        <span class="tool-step-number" aria-hidden="true">3</span>
+                        <div><h3>Baixe o resultado</h3><p>Aguarde o processamento e use a opção de download quando o arquivo estiver pronto.</p></div>
+                    </li>
+                {% endif %}
+            </ol>
+        </section>
+
+        {% if benefits %}
+            <section class="tool-content-section reveal" aria-labelledby="tool-benefits-title">
+                <div class="tool-content-heading">
+                    <span class="tool-content-kicker">Vantagens</span>
+                    <h2 id="tool-benefits-title">Benefícios desta conversão</h2>
+                </div>
+                <ul class="tool-benefit-grid">
+                    {% if benefits is string %}
+                        <li class="tool-benefit-card"><i data-lucide="check" aria-hidden="true"></i><p>{{ benefits }}</p></li>
+                    {% else %}
+                        {% for benefit in benefits %}
+                            <li class="tool-benefit-card">
+                                <i data-lucide="check" aria-hidden="true"></i>
+                                <div>
+                                    {% if benefit is string %}
+                                        <p>{{ benefit }}</p>
+                                    {% else %}
+                                        {% set benefit_title = benefit.title|default(benefit.name|default('', true), true) %}
+                                        {% set benefit_text = benefit.text|default(benefit.description|default('', true), true) %}
+                                        {% if benefit_title %}<h3>{{ benefit_title }}</h3>{% endif %}
+                                        {% if benefit_text %}<p>{{ benefit_text }}</p>{% endif %}
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </section>
+        {% endif %}
+
+        <section class="tool-content-section reveal" aria-labelledby="tool-technical-title">
+            <div class="tool-content-heading">
+                <span class="tool-content-kicker">Detalhes</span>
+                <h2 id="tool-technical-title">Informações técnicas</h2>
+            </div>
+            <div class="tool-information-grid">
+                {% if technical_notes %}
+                    <article class="tool-information-card">
+                        <i data-lucide="file-cog" aria-hidden="true"></i>
+                        <h3>Sobre a conversão</h3>
+                        {% if technical_notes is string %}
+                            <p>{{ technical_notes }}</p>
+                        {% else %}
+                            <ul>
+                                {% for note in technical_notes %}
+                                    <li>{{ note if note is string else note.text|default(note.description|default(note.title|default('', true), true), true) }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </article>
+                {% endif %}
+
+                <article class="tool-information-card">
+                    <i data-lucide="files" aria-hidden="true"></i>
+                    <h3>Formatos suportados</h3>
+                    {% if formats is string %}
+                        <p>{{ formats }}</p>
+                    {% elif formats is mapping %}
+                        <dl class="tool-format-list">
+                            {% for label, value in formats.items() %}
+                                <div><dt>{{ label }}</dt><dd>{{ value|join(', ') if value is sequence and value is not string else value }}</dd></div>
+                            {% endfor %}
+                        </dl>
+                    {% elif formats %}
+                        <ul>
+                            {% for format in formats %}
+                                <li>{{ format if format is string else format.label|default(format.name|default(format.description|default('', true), true), true) }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Arquivos aceitos nesta ferramenta: <strong>{{ tool.accept }}</strong>.</p>
+                    {% endif %}
+                </article>
+
+                {% if limitations %}
+                    <article class="tool-information-card">
+                        <i data-lucide="info" aria-hidden="true"></i>
+                        <h3>Limitações importantes</h3>
+                        {% if limitations is string %}
+                            <p>{{ limitations }}</p>
+                        {% else %}
+                            <ul>
+                                {% for limitation in limitations %}
+                                    <li>{{ limitation if limitation is string else limitation.text|default(limitation.description|default(limitation.title|default('', true), true), true) }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </article>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if security_text %}
+            <section class="tool-content-section tool-security-section reveal" aria-labelledby="tool-security-title">
+                <div class="tool-security-icon"><i data-lucide="shield-check" aria-hidden="true"></i></div>
+                <div>
+                    <span class="tool-content-kicker">Privacidade</span>
+                    <h2 id="tool-security-title">Segurança dos seus arquivos</h2>
+                    {% if security_text is string %}
+                        <p>{{ security_text }}</p>
+                    {% elif security_text is sequence %}
+                        {% for paragraph in security_text %}<p>{{ paragraph }}</p>{% endfor %}
+                    {% else %}
+                        <p>{{ security_text.text|default(security_text.description|default('', true), true) }}</p>
+                    {% endif %}
+                </div>
+            </section>
+        {% endif %}
+
+        {% include "partials/tool_faq.html" %}
+        {% include "partials/related_tools.html" %}
+        {% include "partials/related_guides.html" %}
     </div>
 </main>
 {% endblock %}

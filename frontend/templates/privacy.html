@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set page_data = privacy|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(page_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(page_data.title|default("Política de privacidade | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(page_data.meta_description|default(page_data.description|default("Saiba quais dados podem ser tratados pelo BoostConvert ao usar conversões, conta e recursos da plataforma.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(page_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set policy_sections = page_data.sections|default([], true) %}
+{% set activities = page_data.processing_activities|default(processing_activities|default([], true), true) %}
+<main class="about-page institutional-page privacy-page">
+    <section class="about-story-block">
+        <div class="about-story-content reveal">
+            {% if breadcrumb_items %}
+                <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
+                    {% for crumb in breadcrumb_items %}
+                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+            <div class="eyebrow"><i data-lucide="file-lock-2" aria-hidden="true"></i> Privacidade</div>
+            <h1>{{ page_data.h1|default("Política de privacidade", true) }}</h1>
+            <div class="about-text">
+                <p>{{ page_data.intro|default("Esta página explica, em linguagem direta, como dados e arquivos podem ser tratados quando você utiliza o BoostConvert.", true) }}</p>
+                {% if page_data.updated_at|default("", true) %}<p><strong>Última atualização:</strong> <time datetime="{{ page_data.updated_at }}">{{ page_data.updated_at }}</time></p>{% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% if policy_sections %}
+        <section class="about-team-block" aria-label="Conteúdo da política de privacidade">
+            {% for section in policy_sections %}
+                <article class="about-story-content reveal"{% if section.id|default("", true) %} id="{{ section.id }}"{% endif %}>
+                    <h2>{{ section.heading|default(section.title|default("Privacidade", true), true) }}</h2>
+                    <div class="about-text">
+                        {% for paragraph in section.paragraphs|default([], true) %}<p>{{ paragraph }}</p>{% endfor %}
+                        {% if not section.paragraphs|default([], true) and section.content|default("", true) %}<p>{{ section.content }}</p>{% endif %}
+                        {% if section.bullets|default([], true) %}<ul>{% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="about-team-block" aria-labelledby="privacy-scope-title">
+            <div class="about-team-title reveal">
+                <h2 id="privacy-scope-title">Dados tratados conforme o recurso usado</h2>
+                <p>O tipo de dado depende da ação realizada na plataforma.</p>
+            </div>
+            <div class="tools-grid reveal">
+                <article class="tool-card tool-card-documentos">
+                    <div class="tool-card-top"><span class="tool-icon"><i data-lucide="files" aria-hidden="true"></i></span></div>
+                    <h3 class="tool-title">Conversões</h3>
+                    <p class="tool-accept">Arquivos temporários, tipo de conversão e status são usados para processar e entregar o resultado solicitado.</p>
+                </article>
+                <article class="tool-card tool-card-imagens">
+                    <div class="tool-card-top"><span class="tool-icon"><i data-lucide="user-round" aria-hidden="true"></i></span></div>
+                    <h3 class="tool-title">Conta e sessão</h3>
+                    <p class="tool-accept">Quando esses recursos são usados, dados de acesso e identificadores de sessão podem ser necessários para autenticar e manter a experiência.</p>
+                </article>
+                <article class="tool-card tool-card-extras">
+                    <div class="tool-card-top"><span class="tool-icon"><i data-lucide="receipt" aria-hidden="true"></i></span></div>
+                    <h3 class="tool-title">Planos e pagamentos</h3>
+                    <p class="tool-accept">Ao contratar um plano, identificadores e o status da assinatura podem ser registrados para ativar e administrar o acesso contratado.</p>
+                </article>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if activities %}
+        <section class="about-team-block" aria-labelledby="processing-activities-title">
+            <div class="about-team-title reveal"><h2 id="processing-activities-title">Atividades de tratamento</h2></div>
+            <div class="tools-grid reveal">
+                {% if activities is mapping %}
+                    {% for activity_key, activity in activities.items() %}
+                        <article class="tool-card tool-card-extras">
+                            <h3 class="tool-title">{{ activity.name|default(activity.title|default(activity_key|replace('_', ' ')|title, true), true) }}</h3>
+                            <p class="tool-accept">{{ activity.purpose|default(activity.description|default("", true), true) }}</p>
+                            {% if activity.data|default([], true) %}<p class="tool-accept"><strong>Dados:</strong> {{ activity.data|join(", ") }}</p>{% endif %}
+                        </article>
+                    {% endfor %}
+                {% else %}
+                    {% for activity in activities %}
+                        <article class="tool-card tool-card-extras">
+                            <h3 class="tool-title">{{ activity.name|default(activity.title|default("Atividade", true), true) }}</h3>
+                            <p class="tool-accept">{{ activity.purpose|default(activity.description|default("", true), true) }}</p>
+                            {% if activity.data|default([], true) %}<p class="tool-accept"><strong>Dados:</strong> {{ activity.data|join(", ") }}</p>{% endif %}
+                        </article>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="about-mission-block" aria-labelledby="privacy-files-title">
+        <div class="about-mission-grid reveal">
+            <article><span>Arquivos</span><h2 id="privacy-files-title">Uso temporário para executar a conversão.</h2></article>
+            <article>
+                <p>Os arquivos enviados são armazenados temporariamente durante o processamento. Depois do download, a rotina de limpeza remove os arquivos associados; também existe limpeza automática conforme a retenção configurada.</p>
+                <p>Detalhes operacionais estão reunidos na página <a class="text-link" href="/security">Como protegemos seus arquivos</a>.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>Dúvidas sobre seus dados?</h2>
+            <p>Use o canal oficial de contato para enviar uma solicitação relacionada à privacidade.</p>
+            <a class="button button-primary" href="/contact">Entrar em contato <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="button button-secondary" href="/terms">Consultar termos de uso</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

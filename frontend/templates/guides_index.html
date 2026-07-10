@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set index_data = guides_page|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(index_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(index_data.title|default("Guias para converter e organizar arquivos | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(index_data.meta_description|default(index_data.description|default("Aprenda a converter, compactar e organizar arquivos com guias práticos ligados às ferramentas do BoostConvert.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(index_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set guide_source = guides|default(index_data.guides|default([], true), true) %}
+{% if guide_source is mapping %}{% set guide_items = guide_source.values() %}{% else %}{% set guide_items = guide_source %}{% endif %}
+{% set featured = featured_guide|default(index_data.featured_guide|default({}, true), true) %}
+{% set guide_categories = index_data.categories|default(categories|default([], true), true) %}
+<main class="page-section tools-page editorial-index guides-index-page">
+    {% if breadcrumb_items %}
+        <nav class="tools-quick-nav breadcrumbs reveal" aria-label="Navegação estrutural">
+            {% for crumb in breadcrumb_items %}
+                {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <header class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="book-open" aria-hidden="true"></i> Central de guias</div>
+        <h1>{{ index_data.h1|default("Guias práticos para trabalhar com arquivos", true) }}</h1>
+        <p>{{ index_data.intro|default("Entenda formatos, escolha a ferramenta certa e siga instruções claras para concluir cada tarefa.", true) }}</p>
+    </header>
+
+    {% if guide_categories %}
+        <nav class="tools-quick-nav reveal" aria-label="Categorias de guias">
+            {% for category in guide_categories %}
+                <a href="{{ category.url|default(category.href|default('/guides', true), true) }}">{{ category.name|default(category.title|default("Categoria", true), true) }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <div class="tools-layout reveal">
+        <div class="tools-content">
+            {% if featured %}
+                {% set featured_url = featured.url|default(featured.href|default(featured.path|default("", true), true), true) %}
+                {% if not featured_url and featured.slug|default("", true) %}{% set featured_url = "/guides/" ~ featured.slug %}{% endif %}
+                <section class="tools-section" aria-labelledby="featured-guide-title">
+                    <div class="tool-subsection-heading"><p>Guia em destaque</p></div>
+                    <a class="tool-card tool-card-documentos is-featured" href="{{ featured_url|default('/guides', true) }}">
+                        <div class="tool-card-top">
+                            <span class="tool-icon"><i data-lucide="{{ featured.icon|default('book-marked', true) }}" aria-hidden="true"></i></span>
+                            {% if featured.category|default("", true) %}<span class="tool-badge">{{ featured.category }}</span>{% endif %}
+                        </div>
+                        <h2 class="tool-title" id="featured-guide-title">{{ featured.title|default("Abrir guia", true) }}</h2>
+                        <p class="tool-accept">{{ featured.excerpt|default(featured.description|default("Leia o passo a passo completo.", true), true) }}</p>
+                        <span class="tool-link">Ler guia <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                </section>
+            {% endif %}
+
+            <section class="tools-section" aria-labelledby="all-guides-title">
+                <div class="tool-subsection-heading">
+                    <h2 id="all-guides-title">Todos os guias</h2>
+                    <p>Conteúdo instrucional conectado diretamente às ferramentas citadas.</p>
+                </div>
+                {% if guide_items %}
+                    <div class="tools-grid">
+                        {% for guide_item in guide_items %}
+                            {% set guide_url = guide_item.url|default(guide_item.href|default(guide_item.path|default("", true), true), true) %}
+                            {% if not guide_url and guide_item.slug|default("", true) %}{% set guide_url = "/guides/" ~ guide_item.slug %}{% endif %}
+                            <a class="tool-card tool-card-extras" href="{{ guide_url|default('/guides', true) }}">
+                                <div class="tool-card-top">
+                                    <span class="tool-icon"><i data-lucide="{{ guide_item.icon|default('file-text', true) }}" aria-hidden="true"></i></span>
+                                    {% if guide_item.category|default("", true) %}<span class="tool-badge">{{ guide_item.category }}</span>{% endif %}
+                                </div>
+                                <h3 class="tool-title">{{ guide_item.title|default("Abrir guia", true) }}</h3>
+                                <p class="tool-accept">{{ guide_item.excerpt|default(guide_item.summary|default(guide_item.description|default("Veja instruções e informações relacionadas a esta tarefa.", true), true), true) }}</p>
+                                {% if guide_item.updated_at|default("", true) or guide_item.read_time|default("", true) %}
+                                    <p class="tool-accept">
+                                        {% if guide_item.updated_at|default("", true) %}<time datetime="{{ guide_item.updated_at }}">{{ guide_item.updated_at }}</time>{% endif %}
+                                        {% if guide_item.updated_at|default("", true) and guide_item.read_time|default("", true) %} &middot; {% endif %}
+                                        {% if guide_item.read_time|default("", true) %}{{ guide_item.read_time }}{% endif %}
+                                    </p>
+                                {% endif %}
+                                <span class="tool-link">Ler guia <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="tool-subsection-heading">
+                        <p>Novos guias serão publicados apenas quando houver conteúdo completo e uma ferramenta relacionada.</p>
+                        <a class="button button-primary" href="/tools">Explorar ferramentas <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}

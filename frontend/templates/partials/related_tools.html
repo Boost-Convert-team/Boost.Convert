@@ -1,0 +1,35 @@
+{% set related_tool_items = seo_data.related_tools|default([], true) %}
+{% if related_tool_items %}
+    <section class="tool-content-section reveal" aria-labelledby="related-tools-title">
+        <div class="tool-content-heading">
+            <span class="tool-content-kicker">Continue seu trabalho</span>
+            <h2 id="related-tools-title">Ferramentas relacionadas</h2>
+        </div>
+        <ul class="tool-related-grid">
+            {% for related_tool in related_tool_items %}
+                {% if related_tool is string %}
+                    {% set related_name = related_tool|replace('-', ' ')|title %}
+                    {% set related_url = '/tools/' ~ related_tool %}
+                    {% set related_description = '' %}
+                {% else %}
+                    {% set related_name = related_tool.name|default(related_tool.title|default(related_tool.label|default('', true), true), true) %}
+                    {% set related_slug = related_tool.slug|default('', true) %}
+                    {% set related_url = related_tool.url|default(related_tool.href|default('/tools/' ~ related_slug if related_slug else '', true), true) %}
+                    {% set related_description = related_tool.description|default('', true) %}
+                {% endif %}
+                {% if related_name and related_url %}
+                    <li>
+                        <a class="tool-related-card" href="{{ related_url }}">
+                            <span class="tool-related-icon"><i data-lucide="repeat-2" aria-hidden="true"></i></span>
+                            <span class="tool-related-copy">
+                                <strong>{{ related_name }}</strong>
+                                {% if related_description %}<span>{{ related_description }}</span>{% endif %}
+                            </span>
+                            <i class="tool-related-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}

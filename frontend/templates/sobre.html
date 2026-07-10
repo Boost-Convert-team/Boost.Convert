@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Sobre o Boost.Convert e nossa historia{% endblock %}
-{% block meta_description %}Conheca a historia do Boost.Convert, uma plataforma criada para converter arquivos online com rapidez, simplicidade, seguranca e menos limites no dia a dia.{% endblock %}
-{% block canonical_url %}{{ url_for('home.sobre', _external=True) }}{% endblock %}
+{% block title %}{{ seo.title if seo is defined and seo.title else "Sobre o BoostConvert | Nossa história e missão" }}{% endblock %}
+{% block meta_description %}{{ seo.meta_description if seo is defined and seo.meta_description else "Conheça a história, a equipe e a missão do BoostConvert." }}{% endblock %}
+{% block canonical_url %}{{ seo.canonical_url if seo is defined and seo.canonical_url else default_canonical_url }}{% endblock %}
 
 {% block content %}
 <main class="about-page">
@@ -70,8 +70,11 @@
             <article class="about-member reveal">
                 <div class="member-photo">
                     <img
-                        src="{{ url_for('static', filename='img/team/arthur-photo.png') }}"
-                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/team/arthur.svg') }}';"
+                        src="{{ url_for('static', filename='img/team/arthur-photo.webp') }}"
+                        width="299"
+                        height="316"
+                        loading="lazy"
+                        decoding="async"
                         alt="Arthur, CEO, Founder e Backend Developer do Boost"
                     >
                     <span class="member-badge"><i data-lucide="rocket" aria-hidden="true"></i></span>
@@ -84,7 +87,11 @@
             <article class="about-member reveal">
                 <div class="member-photo">
                     <img
-                        src="{{ url_for('static', filename='img/team/profile-icon.jpg') }}?v=2"
+                        src="{{ url_for('static', filename='img/team/lucas-profile.webp') }}"
+                        width="736"
+                        height="736"
+                        loading="lazy"
+                        decoding="async"
                         alt="Lucas, Full Stack Developer e CTO do Boost"
                     >
                     <span class="member-badge"><i data-lucide="code-2" aria-hidden="true"></i></span>
@@ -97,7 +104,11 @@
             <article class="about-member reveal">
                 <div class="member-photo">
                     <img
-                        src="{{ url_for('static', filename='img/team/nerih team equipe.jpeg') }}"
+                        src="{{ url_for('static', filename='img/team/nerih-team.webp') }}"
+                        width="960"
+                        height="1280"
+                        loading="lazy"
+                        decoding="async"
                         alt="Nerih, CMO de marketing e crescimento do Boost"
                     >
                     <span class="member-badge"><i data-lucide="trending-up" aria-hidden="true"></i></span>
@@ -116,7 +127,11 @@
             <article class="about-member about-collaborator reveal">
                 <div class="member-photo">
                     <img
-                        src="{{ url_for('static', filename='img/team/vitor team colaborador.jpeg') }}"
+                        src="{{ url_for('static', filename='img/team/vitor-team.webp') }}"
+                        width="1024"
+                        height="882"
+                        loading="lazy"
+                        decoding="async"
                         alt="Vitor, colaborador do Boost"
                     >
                     <span class="member-badge"><i data-lucide="handshake" aria-hidden="true"></i></span>

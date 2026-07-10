@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set hub_data = hub|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(hub_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(hub_data.title|default("Ferramentas de conversão online | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(hub_data.meta_description|default(hub_data.description|default("Encontre ferramentas online para converter e organizar arquivos diretamente no navegador.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(hub_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set hub_tools = hub_data.tools|default(tools|default([], true), true) %}
+{% set hub_sections = hub_data.sections|default(sections|default([], true), true) %}
+{% set related_hubs = hub_data.related_hubs|default([], true) %}
+{% set editorial_points = hub_data.editorial_points|default([], true) %}
+<main class="page-section tools-page category-hub-page">
+    {% if breadcrumb_items %}
+        <nav class="tools-quick-nav breadcrumbs reveal" aria-label="Navegação estrutural">
+            {% for crumb in breadcrumb_items %}
+                {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                {% if crumb_url and not loop.last %}
+                    <a href="{{ crumb_url }}">{{ crumb_label }}</a>
+                {% else %}
+                    <span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <header class="section-heading reveal">
+        <div class="eyebrow">
+            <i data-lucide="{{ hub_data.icon|default('folder-open', true) }}" aria-hidden="true"></i>
+            {{ hub_data.eyebrow|default("Central de ferramentas", true) }}
+        </div>
+        <h1>{{ hub_data.h1|default(hub_data.name|default("Ferramentas de conversão online", true), true) }}</h1>
+        <p>{{ hub_data.intro|default(hub_data.description|default("Escolha uma ferramenta para trabalhar com seus arquivos diretamente no navegador.", true), true) }}</p>
+    </header>
+
+    <div class="tools-layout reveal">
+        <div class="tools-content">
+            <section class="tools-section" aria-labelledby="hub-tools-title">
+                <div class="tool-subsection-heading">
+                    <h2 id="hub-tools-title">{{ hub_data.tools_heading|default("Ferramentas disponíveis", true) }}</h2>
+                    {% if hub_data.tools_description|default("", true) %}
+                        <p>{{ hub_data.tools_description }}</p>
+                    {% endif %}
+                </div>
+
+                {% if hub_tools %}
+                    <div class="tools-grid">
+                        {% for tool in hub_tools %}
+                            {% set tool_url = tool.page_route|default(tool.page_url|default(tool.url|default(tool.href|default("", true), true), true), true) %}
+                            {% if not tool_url and tool.slug|default("", true) %}
+                                {% set tool_url = "/tools/" ~ tool.slug %}
+                            {% endif %}
+                            <a class="tool-card {{ tool.card_class|default(hub_data.card_class|default('tool-card-extras', true), true) }}" href="{{ tool_url|default('/tools', true) }}">
+                                <div class="tool-card-top">
+                                    <span class="tool-icon">
+                                        <i data-lucide="{{ tool.icon|default(hub_data.icon|default('file', true), true) }}" aria-hidden="true"></i>
+                                    </span>
+                                    {% if tool.badge|default("", true) %}
+                                        <span class="tool-badge">{{ tool.badge }}</span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="tool-title">{{ tool.name|default(tool.title|default("Abrir ferramenta", true), true) }}</h3>
+                                <p class="tool-accept">{{ tool.description|default("Abra a ferramenta para consultar os formatos aceitos e iniciar a conversão.", true) }}</p>
+                                <span class="tool-link">Usar ferramenta <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="tool-subsection-heading">
+                        <p>Consulte a biblioteca completa para encontrar a conversão de que você precisa.</p>
+                        <a class="button button-primary" href="/tools">Ver todas as ferramentas <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                {% endif %}
+            </section>
+
+            {% if editorial_points %}
+                <section class="tools-section" aria-labelledby="hub-overview-title">
+                    <div class="tool-subsection-heading">
+                        <h2 id="hub-overview-title">O que você encontra nesta categoria</h2>
+                    </div>
+                    <div class="tools-grid">
+                        {% for point in editorial_points %}
+                            <article class="tool-card {{ hub_data.card_class|default('tool-card-extras', true) }}">
+                                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="check-circle-2" aria-hidden="true"></i></span></div>
+                                <h3 class="tool-title">{{ point }}</h3>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            {% for section in hub_sections %}
+                <section class="tools-section"{% if section.id|default("", true) %} id="{{ section.id }}"{% endif %}>
+                    <div class="tool-subsection-heading">
+                        <h2>{{ section.heading|default(section.title|default("Sobre estas ferramentas", true), true) }}</h2>
+                        {% if section.intro|default("", true) %}<p>{{ section.intro }}</p>{% endif %}
+                    </div>
+                    {% if section.paragraphs|default([], true) %}
+                        <div class="about-text">
+                            {% for paragraph in section.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+                        </div>
+                    {% elif section.content|default("", true) %}
+                        <div class="about-text"><p>{{ section.content }}</p></div>
+                    {% endif %}
+                    {% if section.bullets|default([], true) %}
+                        <ul class="details-list">
+                            {% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+            {% endfor %}
+
+            {% if related_hubs %}
+                <section class="tools-section" aria-labelledby="related-hubs-title">
+                    <div class="tool-subsection-heading">
+                        <h2 id="related-hubs-title">Outras categorias</h2>
+                        <p>Continue explorando as ferramentas do BoostConvert por tipo de arquivo.</p>
+                    </div>
+                    <div class="tools-grid">
+                        {% for related in related_hubs %}
+                            <a class="tool-card tool-card-extras" href="{{ related.url|default(related.href|default('/tools', true), true) }}">
+                                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ related.icon|default('layers', true) }}" aria-hidden="true"></i></span></div>
+                                <h3 class="tool-title">{{ related.name|default(related.title|default("Ver categoria", true), true) }}</h3>
+                                {% if related.description|default("", true) %}<p class="tool-accept">{{ related.description }}</p>{% endif %}
+                                <span class="tool-link">Explorar <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+    </div>
+</main>
+{% endblock %}

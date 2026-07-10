@@ -1,0 +1,33 @@
+{% set related_guide_items = seo_data.related_guides|default([], true) %}
+{% if related_guide_items %}
+    <section class="tool-content-section reveal" aria-labelledby="related-guides-title">
+        <div class="tool-content-heading">
+            <span class="tool-content-kicker">Aprenda mais</span>
+            <h2 id="related-guides-title">Guias relacionados</h2>
+        </div>
+        <ul class="tool-guide-grid">
+            {% for guide in related_guide_items %}
+                {% if guide is string %}
+                    {% set guide_title = guide|replace('-', ' ')|title %}
+                    {% set guide_url = '/guides/' ~ guide %}
+                    {% set guide_description = '' %}
+                {% else %}
+                    {% set guide_title = guide.title|default(guide.name|default(guide.label|default('', true), true), true) %}
+                    {% set guide_slug = guide.slug|default('', true) %}
+                    {% set guide_url = guide.url|default(guide.href|default('/guides/' ~ guide_slug if guide_slug else '', true), true) %}
+                    {% set guide_description = guide.description|default(guide.excerpt|default('', true), true) %}
+                {% endif %}
+                {% if guide_title and guide_url %}
+                    <li>
+                        <a class="tool-guide-card" href="{{ guide_url }}">
+                            <span class="tool-guide-meta"><i data-lucide="book-open" aria-hidden="true"></i> Guia</span>
+                            <strong>{{ guide_title }}</strong>
+                            {% if guide_description %}<span>{{ guide_description }}</span>{% endif %}
+                            <span class="tool-guide-link">Ler guia <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}

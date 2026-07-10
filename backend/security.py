@@ -5,7 +5,7 @@ import secrets
 from dataclasses import dataclass
 from time import monotonic
 
-from flask import Flask, Response, abort, current_app, request, session
+from flask import Flask, Response, abort, current_app, redirect, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -38,6 +38,24 @@ ENDPOINT_RATE_LIMITS = {
 }
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
 
+# Runtime, account and processing URLs are useful to the product but have no
+# standalone search value.  Keeping the policy here also covers JSON and error
+# responses where an HTML meta tag is not available.
+NOINDEX_PATH_PREFIXES = (
+    "/api/",
+    "/cadastro",
+    "/checkout",
+    "/conta",
+    "/convert/",
+    "/conversions/",
+    "/dashboard",
+    "/login",
+    "/logout",
+    "/registrar",
+    "/webhook",
+    "/webhooks/",
+)
+
 
 def init_security(app: Flask) -> None:
     """Attach security middleware to the Flask app.
@@ -46,10 +64,31 @@ def init_security(app: Flask) -> None:
     """
     configure_proxy_fix(app)
     app.context_processor(inject_csrf_helpers)
+    app.before_request(enforce_canonical_origin)
     app.before_request(mark_session_permanent)
     app.before_request(enforce_csrf_token)
     app.before_request(enforce_rate_limit)
     app.after_request(apply_security_headers)
+
+
+def enforce_canonical_origin() -> Response | None:
+    """Redirect the public HTTP/www variants to the single HTTPS apex origin.
+
+    Unknown development and internal proxy hosts are left untouched. Production
+    edge configuration should apply the same rule before a request reaches the
+    application; this guard prevents duplicate public variants when it does not.
+    """
+    if not current_app.config.get("FORCE_HTTPS"):
+        return None
+
+    hostname = (request.host.split(":", 1)[0] or "").lower()
+    if hostname not in {"boostconvert.com.br", "www.boostconvert.com.br"}:
+        return None
+    if request.scheme == "https" and hostname == "boostconvert.com.br":
+        return None
+
+    target = f"https://boostconvert.com.br{request.full_path.rstrip('?')}"
+    return redirect(target, code=308 if request.method in {"GET", "HEAD"} else 307)
 
 
 def configure_proxy_fix(app: Flask) -> None:
@@ -80,6 +119,8 @@ def get_csrf_token() -> str:
 
 
 def mark_session_permanent() -> None:
+    if request.endpoint == "static" or request.path in {"/favicon.ico"}:
+        return
     if current_app.config.get("SESSION_PERMANENT", True):
         session.permanent = True
 
@@ -160,9 +201,26 @@ def apply_security_headers(response: Response) -> Response:
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if should_noindex_response(response):
+        response.headers.setdefault("X-Robots-Tag", "noindex, follow, noarchive")
     if current_app.config.get("FORCE_HTTPS"):
         response.headers.setdefault("Strict-Transport-Security", build_hsts_header())
     return response
+
+
+def should_noindex_response(response: Response) -> bool:
+    """Return whether the current response must stay out of search indexes.
+
+    Public 404 and server-error pages are excluded even when their URL does
+    not use one of the private/runtime prefixes.
+    """
+    if response.status_code >= 400:
+        return True
+    path = request.path.rstrip("/") or "/"
+    return any(
+        path == prefix.rstrip("/") or path.startswith(f"{prefix.rstrip('/')}/")
+        for prefix in NOINDEX_PATH_PREFIXES
+    )
 
 
 def build_content_security_policy() -> str:

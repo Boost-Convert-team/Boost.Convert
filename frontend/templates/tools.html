@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Ferramentas online para converter arquivos - Boost.Convert{% endblock %}
-{% block meta_description %}Escolha ferramentas gratuitas para converter documentos, PDFs, imagens, videos e audios online. O Boost.Convert funciona no navegador, com rapidez e seguranca.{% endblock %}
+{% block title %}{{ seo.title if seo is defined and seo.title else "Ferramentas online para converter arquivos | BoostConvert" }}{% endblock %}
+{% block meta_description %}{{ seo.meta_description if seo is defined and seo.meta_description else "Escolha ferramentas para converter documentos, PDFs, imagens, vídeos e áudios online no BoostConvert." }}{% endblock %}
 
 {% macro tool_card(tool, category, category_id, is_featured=False, badge_text=None) -%}
     {% set tool_page_route = tool.page_route if tool.page_route is defined else "/tools" ~ tool.route|replace("/convert", "") %}

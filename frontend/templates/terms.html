@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set page_data = terms|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(page_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(page_data.title|default("Termos de uso | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(page_data.meta_description|default(page_data.description|default("Consulte as regras gerais para utilizar as ferramentas, contas e planos do BoostConvert.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(page_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set terms_sections = page_data.sections|default([], true) %}
+<main class="about-page institutional-page terms-page">
+    <section class="about-story-block">
+        <div class="about-story-content reveal">
+            {% if breadcrumb_items %}
+                <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
+                    {% for crumb in breadcrumb_items %}
+                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+            <div class="eyebrow"><i data-lucide="scroll-text" aria-hidden="true"></i> Regras de uso</div>
+            <h1>{{ page_data.h1|default("Termos de uso", true) }}</h1>
+            <div class="about-text">
+                <p>{{ page_data.intro|default("Estes termos apresentam as regras gerais para usar as ferramentas, contas e recursos disponibilizados pelo BoostConvert.", true) }}</p>
+                {% if page_data.effective_date|default("", true) %}<p><strong>Vigência:</strong> <time datetime="{{ page_data.effective_date }}">{{ page_data.effective_date }}</time></p>{% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="about-team-block" aria-label="Conteúdo dos termos de uso">
+        {% if terms_sections %}
+            {% for section in terms_sections %}
+                <article class="about-story-content reveal"{% if section.id|default("", true) %} id="{{ section.id }}"{% endif %}>
+                    <h2>{{ section.heading|default(section.title|default("Condicao de uso", true), true) }}</h2>
+                    <div class="about-text">
+                        {% for paragraph in section.paragraphs|default([], true) %}<p>{{ paragraph }}</p>{% endfor %}
+                        {% if not section.paragraphs|default([], true) and section.content|default("", true) %}<p>{{ section.content }}</p>{% endif %}
+                        {% if section.bullets|default([], true) %}<ul>{% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        {% else %}
+            <article class="about-story-content reveal">
+                <h2>Uso permitido</h2>
+                <div class="about-text">
+                    <p>Use as ferramentas somente com arquivos que você tenha autorização para processar e de acordo com a legislação aplicável.</p>
+                    <p>Não utilize a plataforma para distribuir conteúdo ilegal, violar direitos de terceiros ou interferir no funcionamento do serviço.</p>
+                </div>
+            </article>
+            <article class="about-story-content reveal">
+                <h2>Contas, planos e limites</h2>
+                <div class="about-text">
+                    <p>Alguns recursos podem exigir conta ou estar sujeitos aos limites exibidos no plano e na própria ferramenta. O usuário é responsável por manter suas credenciais sob controle.</p>
+                </div>
+            </article>
+            <article class="about-story-content reveal">
+                <h2>Arquivos e resultados</h2>
+                <div class="about-text">
+                    <p>Os arquivos são processados para executar a conversão solicitada e permanecem temporariamente no fluxo. Baixe o resultado dentro do período em que ele estiver disponível.</p>
+                    <p>Formatação, compatibilidade e qualidade podem variar conforme o arquivo de origem e o formato de destino.</p>
+                </div>
+            </article>
+            <article class="about-story-content reveal">
+                <h2>Alterações do serviço</h2>
+                <div class="about-text"><p>Ferramentas, limites e estes termos podem ser atualizados. Quando uma data de vigência for publicada, ela indicará a versão aplicável.</p></div>
+            </article>
+        {% endif %}
+    </section>
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>Precisa de esclarecimento?</h2>
+            <p>Consulte a política de privacidade ou use o canal oficial de contato.</p>
+            <a class="button button-primary" href="/contact">Entrar em contato <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="button button-secondary" href="/privacy">Ler política de privacidade</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

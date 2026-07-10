@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set index_data = blog_page|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(index_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(index_data.title|default("Blog BoostConvert | Formatos, produtividade e arquivos", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(index_data.meta_description|default(index_data.description|default("Leia análises, novidades e conteúdos sobre formatos de arquivo, conversão e produtividade digital.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(index_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set post_source = posts|default(index_data.posts|default([], true), true) %}
+{% if post_source is mapping %}{% set post_items = post_source.values() %}{% else %}{% set post_items = post_source %}{% endif %}
+{% set featured = featured_post|default(index_data.featured_post|default({}, true), true) %}
+{% set post_categories = index_data.categories|default(categories|default([], true), true) %}
+<main class="page-section tools-page editorial-index blog-index-page">
+    {% if breadcrumb_items %}
+        <nav class="tools-quick-nav breadcrumbs reveal" aria-label="Navegação estrutural">
+            {% for crumb in breadcrumb_items %}
+                {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <header class="section-heading reveal">
+        <div class="eyebrow"><i data-lucide="newspaper" aria-hidden="true"></i> Blog BoostConvert</div>
+        <h1>{{ index_data.h1|default("Conteúdo sobre formatos e produtividade", true) }}</h1>
+        <p>{{ index_data.intro|default("Análises, pesquisas e novidades para entender melhor os arquivos usados no trabalho digital.", true) }}</p>
+    </header>
+
+    {% if post_categories %}
+        <nav class="tools-quick-nav reveal" aria-label="Categorias do blog">
+            {% for category in post_categories %}<a href="{{ category.url|default(category.href|default('/blog', true), true) }}">{{ category.name|default(category.title|default("Categoria", true), true) }}</a>{% endfor %}
+        </nav>
+    {% endif %}
+
+    <div class="tools-layout reveal">
+        <div class="tools-content">
+            {% if featured %}
+                {% set featured_url = featured.url|default(featured.href|default(featured.path|default("", true), true), true) %}
+                {% if not featured_url and featured.slug|default("", true) %}{% set featured_url = "/blog/" ~ featured.slug %}{% endif %}
+                <section class="tools-section" aria-labelledby="featured-post-title">
+                    <div class="tool-subsection-heading"><p>Em destaque</p></div>
+                    <a class="tool-card tool-card-imagens is-featured" href="{{ featured_url|default('/blog', true) }}">
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ featured.icon|default('newspaper', true) }}" aria-hidden="true"></i></span>{% if featured.category|default("", true) %}<span class="tool-badge">{{ featured.category }}</span>{% endif %}</div>
+                        <h2 class="tool-title" id="featured-post-title">{{ featured.title|default("Abrir artigo", true) }}</h2>
+                        <p class="tool-accept">{{ featured.excerpt|default(featured.description|default("Leia o artigo completo.", true), true) }}</p>
+                        <span class="tool-link">Ler artigo <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                </section>
+            {% endif %}
+
+            <section class="tools-section" aria-labelledby="latest-posts-title">
+                <div class="tool-subsection-heading"><h2 id="latest-posts-title">Publicações recentes</h2></div>
+                {% if post_items %}
+                    <div class="tools-grid">
+                        {% for post_item in post_items %}
+                            {% set post_url = post_item.url|default(post_item.href|default(post_item.path|default("", true), true), true) %}
+                            {% if not post_url and post_item.slug|default("", true) %}{% set post_url = "/blog/" ~ post_item.slug %}{% endif %}
+                            <a class="tool-card tool-card-extras" href="{{ post_url|default('/blog', true) }}">
+                                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ post_item.icon|default('file-text', true) }}" aria-hidden="true"></i></span>{% if post_item.category|default("", true) %}<span class="tool-badge">{{ post_item.category }}</span>{% endif %}</div>
+                                <h3 class="tool-title">{{ post_item.title|default("Abrir artigo", true) }}</h3>
+                                <p class="tool-accept">{{ post_item.excerpt|default(post_item.description|default("Leia este conteúdo no blog do BoostConvert.", true), true) }}</p>
+                                {% if post_item.published_at|default("", true) or post_item.read_time|default("", true) %}
+                                    <p class="tool-accept">{% if post_item.published_at|default("", true) %}<time datetime="{{ post_item.published_at }}">{{ post_item.published_at }}</time>{% endif %}{% if post_item.published_at|default("", true) and post_item.read_time|default("", true) %} &middot; {% endif %}{% if post_item.read_time|default("", true) %}{{ post_item.read_time }}{% endif %}</p>
+                                {% endif %}
+                                <span class="tool-link">Ler artigo <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="tool-subsection-heading"><p>As publicações aparecerão aqui quando estiverem revisadas e prontas para leitura.</p><a class="button button-primary" href="/guides">Ver guias práticos <i data-lucide="arrow-right" aria-hidden="true"></i></a></div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}

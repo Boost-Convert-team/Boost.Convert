@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set post_data = post|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(post_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(post_data.seo_title|default(post_data.title|default("Artigo | Blog BoostConvert", true), true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(post_data.meta_description|default(post_data.description|default(post_data.excerpt|default("Leia este artigo do BoostConvert sobre formatos, arquivos e produtividade digital.", true), true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(post_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block content %}
+{% set article_sections = sections|default(post_data.sections|default([], true), true) %}
+{% set article_paragraphs = post_data.paragraphs|default([], true) %}
+{% set main_tool_value = primary_tool|default(post_data.primary_tool|default({}, true), true) %}
+{% if main_tool_value is string %}
+    {% set main_tool = {"slug": main_tool_value, "name": main_tool_value|replace('-', ' ')|title} %}
+{% else %}
+    {% set main_tool = main_tool_value %}
+{% endif %}
+{% set related_posts_items = related_posts|default(post_data.related_posts|default([], true), true) %}
+{% set related_guides_items = related_guides|default(post_data.related_guides|default([], true), true) %}
+{% set main_tool_url = main_tool.url|default(main_tool.href|default(main_tool.page_route|default(main_tool.page_url|default("", true), true), true), true) %}
+{% if not main_tool_url and main_tool.slug|default("", true) %}{% set main_tool_url = "/tools/" ~ main_tool.slug %}{% endif %}
+<main class="about-page editorial-page blog-post-page">
+    <article class="about-story-block">
+        <div class="about-story-content reveal">
+            {% if breadcrumb_items %}
+                <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
+                    {% for crumb in breadcrumb_items %}
+                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+            <div class="eyebrow"><i data-lucide="newspaper" aria-hidden="true"></i> {{ post_data.category|default("Blog BoostConvert", true) }}</div>
+            <h1>{{ post_data.h1|default(post_data.title|default("Artigo BoostConvert", true), true) }}</h1>
+            <div class="about-text">
+                <p>{{ post_data.intro|default(post_data.excerpt|default("Informações e contexto para compreender melhor este tema.", true), true) }}</p>
+                {% if post_data.author|default("", true) or post_data.published_at|default("", true) or post_data.updated_at|default("", true) or post_data.read_time|default("", true) %}
+                    <p>
+                        {% if post_data.author|default("", true) %}<span>Por {{ post_data.author }}</span>{% endif %}
+                        {% if post_data.author|default("", true) and (post_data.published_at|default("", true) or post_data.updated_at|default("", true) or post_data.read_time|default("", true)) %} &middot; {% endif %}
+                        {% if post_data.published_at|default("", true) %}<time datetime="{{ post_data.published_at }}">Publicado em {{ post_data.published_at }}</time>{% endif %}
+                        {% if post_data.updated_at|default("", true) %}{% if post_data.published_at|default("", true) %} &middot; {% endif %}<time datetime="{{ post_data.updated_at }}">Atualizado em {{ post_data.updated_at }}</time>{% endif %}
+                        {% if post_data.read_time|default("", true) %} &middot; {{ post_data.read_time }}{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+
+            {% for paragraph in article_paragraphs %}<div class="about-text"><p>{{ paragraph }}</p></div>{% endfor %}
+            {% if not article_paragraphs and post_data.content|default("", true) %}<div class="about-text"><p>{{ post_data.content }}</p></div>{% endif %}
+
+            {% for section in article_sections %}
+                <section{% if section.id|default("", true) %} id="{{ section.id }}"{% endif %}>
+                    <h2>{{ section.heading|default(section.title|default("Sobre este tema", true), true) }}</h2>
+                    <div class="about-text">
+                        {% for paragraph in section.paragraphs|default([], true) %}<p>{{ paragraph }}</p>{% endfor %}
+                        {% if not section.paragraphs|default([], true) and section.content|default("", true) %}<p>{{ section.content }}</p>{% endif %}
+                        {% if section.bullets|default([], true) %}<ul>{% for item in section.bullets %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                </section>
+            {% endfor %}
+
+            {% if main_tool and main_tool_url %}
+                <aside class="tool-card tool-card-extras" aria-label="Ferramenta relacionada ao artigo">
+                    <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ main_tool.icon|default('wand-sparkles', true) }}" aria-hidden="true"></i></span><span class="tool-badge">Experimente</span></div>
+                    <h2 class="tool-title">{{ main_tool.name|default(main_tool.title|default("Ferramenta relacionada", true), true) }}</h2>
+                    {% if main_tool.description|default("", true) %}<p class="tool-accept">{{ main_tool.description }}</p>{% endif %}
+                    <a class="button button-primary" href="{{ main_tool_url }}">Usar ferramenta <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                </aside>
+            {% endif %}
+        </div>
+    </article>
+
+    {% if related_posts_items %}
+        <section class="about-team-block" aria-labelledby="related-posts-title">
+            <div class="about-team-title reveal"><h2 id="related-posts-title">Artigos relacionados</h2></div>
+            <div class="tools-grid reveal">
+                {% for related in related_posts_items %}
+                    {% if related is string %}
+                        {% set related_url = "/blog/" ~ related %}
+                        {% set related_title = related|replace('-', ' ')|title %}
+                    {% else %}
+                        {% set related_url = related.url|default(related.href|default(related.path|default("", true), true), true) %}
+                        {% if not related_url and related.slug|default("", true) %}{% set related_url = "/blog/" ~ related.slug %}{% endif %}
+                        {% set related_title = related.title|default("Abrir artigo", true) %}
+                    {% endif %}
+                    <a class="tool-card tool-card-extras" href="{{ related_url|default('/blog', true) }}">
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="newspaper" aria-hidden="true"></i></span>{% if related is not string and related.category|default("", true) %}<span class="tool-badge">{{ related.category }}</span>{% endif %}</div>
+                        <h3 class="tool-title">{{ related_title }}</h3>
+                        {% if related is not string and related.excerpt|default("", true) %}<p class="tool-accept">{{ related.excerpt }}</p>{% endif %}
+                        <span class="tool-link">Ler artigo <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    {% if related_guides_items %}
+        <section class="about-team-block" aria-labelledby="post-related-guides-title">
+            <div class="about-team-title reveal"><h2 id="post-related-guides-title">Guias relacionados</h2></div>
+            <div class="tools-grid reveal">
+                {% for related in related_guides_items %}
+                    {% if related is string %}
+                        {% set related_url = "/guides/" ~ related %}
+                        {% set related_title = related|replace('-', ' ')|title %}
+                    {% else %}
+                        {% set related_url = related.url|default(related.href|default(related.path|default("", true), true), true) %}
+                        {% if not related_url and related.slug|default("", true) %}{% set related_url = "/guides/" ~ related.slug %}{% endif %}
+                        {% set related_title = related.title|default("Abrir guia", true) %}
+                    {% endif %}
+                    <a class="tool-card tool-card-documentos" href="{{ related_url|default('/guides', true) }}">
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="book-open" aria-hidden="true"></i></span></div>
+                        <h3 class="tool-title">{{ related_title }}</h3>
+                        {% if related is not string and related.excerpt|default(related.summary|default("", true), true) %}<p class="tool-accept">{{ related.excerpt|default(related.summary, true) }}</p>{% endif %}
+                        <span class="tool-link">Ler guia <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>{{ post_data.cta_title|default("Continue explorando o BoostConvert", true) }}</h2>
+            <p>{{ post_data.cta_text|default("Acesse guias práticos ou escolha uma ferramenta para trabalhar com seu arquivo.", true) }}</p>
+            {% if main_tool_url %}<a class="button button-primary" href="{{ main_tool_url }}">Abrir ferramenta <i data-lucide="arrow-right" aria-hidden="true"></i></a>{% endif %}
+            <a class="button button-secondary" href="/guides">Ver todos os guias</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Boost.Convert | Conversor de arquivos online gratuito{% endblock %}
-{% block meta_description %}Converta arquivos online no Boost.Convert em poucos segundos. Transforme PDF, Word, imagens, videos e audios no navegador, sem instalacao e com privacidade.{% endblock %}
+{% block title %}BoostConvert | Conversor de arquivos online gratuito{% endblock %}
+{% block meta_description %}Converta PDF, Word, imagens, vídeos e áudios online no BoostConvert. Use dezenas de ferramentas no navegador, sem instalar programas.{% endblock %}
 
 {% block content %}
 <main class="home-page">
@@ -23,19 +23,19 @@
                         class="headline-dynamic-phrase"
                         data-hero-headline-rotator
                         data-longest-phrase="com poucos cliques."
-                        data-hero-phrases="em segundos.|sem complica&ccedil;&atilde;o.|sem instalar nada.|com poucos cliques.|em qualquer lugar.|com seguran&ccedil;a."
+                        data-hero-phrases="online.|sem complica&ccedil;&atilde;o.|sem instalar nada.|com poucos cliques.|em qualquer lugar.|com seguran&ccedil;a."
                         aria-live="off"
                     >
                         <span class="headline-dynamic-copy is-active" data-hero-headline-copy>
                             <span data-hero-headline-prefix>em</span>
-                            <em data-hero-headline-word>segundos.</em>
+                            <em data-hero-headline-word>online.</em>
                         </span>
                     </span>
                 </span>
             </h1>
             <p>
                 Converta PDF para Word, Word para PDF, v&iacute;deos para MP3,
-                imagens para PDF e dezenas de outros formatos em segundos.
+                imagens para PDF e dezenas de outros formatos diretamente no navegador.
                 Tudo online, simples e com arquivos protegidos.
             </p>
 
@@ -136,7 +136,7 @@
                     </span>
                     <span class="hero-upload-limit" data-hero-upload-limit>
                         <i data-lucide="lock-keyhole" aria-hidden="true"></i>
-                        <span>Seus arquivos s&atilde;o seguros e <strong>nunca</strong> armazenados em nossos servidores.</span>
+                        <span>Seus arquivos ficam armazenados <strong>temporariamente</strong> apenas para processamento e s&atilde;o removidos automaticamente.</span>
                     </span>
                     <span class="hero-upload-selected file-name-safe" data-hero-selected-file hidden></span>
                 </label>
@@ -180,7 +180,7 @@
                                 <span class="tool-badge">Mais usado</span>
                             </div>
                             <h3 class="tool-title">Word -&gt; PDF</h3>
-                            <p class="tool-accept">Salve seu Word moderno em PDF, preservando texto, imagens e layout.</p>
+                            <p class="tool-accept">Salve seu Word moderno em PDF e confira texto, imagens e layout no resultado.</p>
                         </a>
                         <a class="tool-card tool-card-imagens" href="{{ url_for('home.converter_tool', slug='images-to-pdf') }}">
                             <div class="tool-card-top">
@@ -324,7 +324,7 @@
                 <path d="M42 332 C 140 196 250 188 342 258 C 452 342 548 334 672 182" />
             </svg>
             <span class="price-media-dots" aria-hidden="true"></span>
-            <img src="{{ url_for('static', filename='img/pessoa usando o boost atualizado.png') }}" alt="Notebook exibindo a experi&ecirc;ncia da Boost.Convert" loading="lazy" decoding="async">
+            <img src="{{ url_for('static', filename='img/hero-boost.webp') }}" width="1280" height="853" alt="Notebook exibindo a experi&ecirc;ncia do BoostConvert" loading="lazy" decoding="async">
             <figcaption class="price-security-card">
                 <span><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
                 <strong>Seus arquivos protegidos</strong>
@@ -394,7 +394,7 @@
                         <span>Meus arquivos ficam seguros?</span>
                     </button>
                     <div class="faq-answer" id="faq-answer-3" role="region" aria-labelledby="faq-question-3" hidden>
-                        <p>Sim. Seus arquivos s&atilde;o processados com seguran&ccedil;a e removidos automaticamente ap&oacute;s o processamento.</p>
+                        <p>Os arquivos ficam em uma &aacute;rea tempor&aacute;ria durante a convers&atilde;o e s&atilde;o removidos ap&oacute;s o download ou pela rotina autom&aacute;tica de reten&ccedil;&atilde;o.</p>
                     </div>
                 </article>
 

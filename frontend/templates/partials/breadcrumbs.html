@@ -1,0 +1,29 @@
+{% set breadcrumb_items = seo_data.breadcrumbs|default([], true) %}
+<nav class="tool-breadcrumbs reveal" aria-label="Navegação estrutural">
+    <ol>
+        {% if breadcrumb_items %}
+            {% for item in breadcrumb_items %}
+                {% if item is string %}
+                    {% set breadcrumb_label = item %}
+                    {% set breadcrumb_url = '' %}
+                {% else %}
+                    {% set breadcrumb_label = item.label|default(item.name|default(item.title|default('', true), true), true) %}
+                    {% set breadcrumb_url = item.url|default(item.href|default('', true), true) %}
+                {% endif %}
+                {% if breadcrumb_label %}
+                    <li>
+                        {% if breadcrumb_url and not loop.last %}
+                            <a href="{{ breadcrumb_url }}">{{ breadcrumb_label }}</a>
+                        {% else %}
+                            <span{% if loop.last %} aria-current="page"{% endif %}>{{ breadcrumb_label }}</span>
+                        {% endif %}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <li><a href="/">Início</a></li>
+            <li><a href="/tools">Ferramentas</a></li>
+            <li><span aria-current="page">{{ seo_data.h1|default(tool.name, true) }}</span></li>
+        {% endif %}
+    </ol>
+</nav>

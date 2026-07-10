@@ -2,7 +2,7 @@
     <div class="footer-grid">
         <section class="footer-brand-column" aria-label="Boost.Convert">
             <a class="brand footer-brand" href="{{ url_for('home.home') }}">
-                <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+                <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.webp') }}" width="1280" height="256" alt="BoostConvert" loading="lazy" decoding="async">
             </a>
             <p>Convers&otilde;es de arquivos com uma experi&ecirc;ncia calma, r&aacute;pida e organizada.</p>
         </section>
@@ -11,32 +11,30 @@
             <h2>Produto</h2>
             <a href="{{ url_for('home.tools') }}">Ferramentas</a>
             <a href="{{ url_for('main.planos') }}">Planos</a>
+            <a href="{{ url_for('home.guides_index') }}">Guias</a>
+            <a href="{{ url_for('home.blog_index') }}">Blog</a>
             <a href="{{ url_for('home.sobre') }}">Sobre n&oacute;s</a>
-            <a href="{{ url_for('home.home') }}#upload">Upload</a>
-            <a href="{{ url_for('home.tools') }}#ai-tools">Recursos</a>
         </nav>
 
-        <nav class="footer-links" aria-label="Conta">
-            <h2>Conta</h2>
-            <a href="{{ url_for('auth.login') }}">Login</a>
-            <a href="{{ url_for('auth.registrar') }}">Cadastro</a>
-            <a href="{{ url_for('home.conta') }}">Configura&ccedil;&otilde;es</a>
+        <nav class="footer-links" aria-label="Categorias">
+            <h2>Categorias</h2>
+            <a href="{{ url_for('home.pdf_tools') }}">PDF</a>
+            <a href="{{ url_for('home.document_tools') }}">Documentos</a>
+            <a href="{{ url_for('home.image_tools') }}">Imagens</a>
+            <a href="{{ url_for('home.video_tools') }}">V&iacute;deos</a>
+            <a href="{{ url_for('home.audio_tools') }}">&Aacute;udios</a>
         </nav>
 
-        <nav class="footer-links footer-social-links" aria-label="Redes sociais">
-            <h2>Redes sociais</h2>
+        <nav class="footer-links footer-social-links" aria-label="Confian&ccedil;a e contato">
+            <h2>Confian&ccedil;a</h2>
+            <a href="{{ url_for('home.security_page') }}">Seguran&ccedil;a de arquivos</a>
+            <a href="{{ url_for('home.privacy_page') }}">Privacidade</a>
+            <a href="{{ url_for('home.terms_page') }}">Termos de uso</a>
+            <a href="{{ url_for('home.contact_page') }}">Contato</a>
             <a class="footer-social-link" href="https://www.instagram.com/boost.convert/" target="_blank" rel="noopener noreferrer" aria-label="Instagram da Boost.Convert">
                 <span><img src="{{ url_for('static', filename='img/icon-instagram-orange.jpg') }}" alt="" aria-hidden="true"></span>
                 Instagram
             </a>
-            <button class="footer-social-link" type="button">
-                <span><img src="{{ url_for('static', filename='img/icon-twitter-orange.jpg') }}" alt="" aria-hidden="true"></span>
-                Twitter
-            </button>
-            <button class="footer-social-link" type="button">
-                <span><i data-lucide="mail" aria-hidden="true"></i></span>
-                E-mail
-            </button>
         </nav>
     </div>
 
@@ -45,21 +43,21 @@
             <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
             <div>
                 <h3>Seguro e privado</h3>
-                <p>Seus arquivos protegidos com criptografia.</p>
+                <p>Transmiss&atilde;o segura e remo&ccedil;&atilde;o autom&aacute;tica dos arquivos tempor&aacute;rios.</p>
             </div>
         </article>
         <article>
             <span><i data-lucide="zap" aria-hidden="true"></i></span>
             <div>
-                <h3>R&aacute;pido sempre</h3>
-                <p>Convers&otilde;es em segundos, sem complica&ccedil;&atilde;o.</p>
+                <h3>Processamento online</h3>
+                <p>O tempo varia conforme tamanho, formato e complexidade do arquivo.</p>
             </div>
         </article>
         <article>
             <span><i data-lucide="cloud" aria-hidden="true"></i></span>
             <div>
-                <h3>Acesso em qualquer lugar</h3>
-                <p>Seus arquivos dispon&iacute;veis quando precisar.</p>
+                <h3>Direto no navegador</h3>
+                <p>Use as ferramentas sem instalar programas.</p>
             </div>
         </article>
     </div>

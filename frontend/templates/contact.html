@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set page_data = contact|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(page_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(page_data.title|default("Contato e suporte | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(page_data.meta_description|default(page_data.description|default("Encontre os canais oficiais para falar com a equipe do BoostConvert sobre suporte, privacidade e parcerias.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(page_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set channels = page_data.channels|default(contact_channels|default([], true), true) %}
+{% set support_email_value = page_data.support_email|default(support_email|default("", true), true) %}
+<main class="about-page institutional-page contact-page">
+    <section class="about-story-block">
+        <div class="about-story-content reveal">
+            {% if breadcrumb_items %}
+                <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
+                    {% for crumb in breadcrumb_items %}
+                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+            <div class="eyebrow"><i data-lucide="messages-square" aria-hidden="true"></i> Fale com a equipe</div>
+            <h1>{{ page_data.h1|default("Contato e suporte", true) }}</h1>
+            <div class="about-text"><p>{{ page_data.intro|default("Escolha um canal oficial para falar sobre o uso do BoostConvert, privacidade, parcerias ou outro assunto relacionado à plataforma.", true) }}</p></div>
+        </div>
+    </section>
+
+    <section class="about-team-block" aria-labelledby="contact-channels-title">
+        <div class="about-team-title reveal">
+            <h2 id="contact-channels-title">Canais oficiais</h2>
+            <p>Use somente os contatos publicados nesta página.</p>
+        </div>
+        {% if channels or support_email_value %}
+            <div class="tools-grid reveal">
+                {% if support_email_value %}
+                    <a class="tool-card tool-card-extras" href="mailto:{{ support_email_value }}">
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="mail" aria-hidden="true"></i></span></div>
+                        <h3 class="tool-title">E-mail</h3>
+                        <p class="tool-accept">{{ support_email_value }}</p>
+                        <span class="tool-link">Enviar mensagem <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                {% endif %}
+                {% for channel in channels %}
+                    <a class="tool-card tool-card-extras" href="{{ channel.url|default(channel.href|default('/contact', true), true) }}"{% if channel.external|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ channel.icon|default('message-circle', true) }}" aria-hidden="true"></i></span></div>
+                        <h3 class="tool-title">{{ channel.name|default(channel.title|default("Atendimento", true), true) }}</h3>
+                        {% if channel.description|default("", true) %}<p class="tool-accept">{{ channel.description }}</p>{% endif %}
+                        <span class="tool-link">Acessar canal <i data-lucide="arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="about-text reveal">
+                <p>Não há um canal de atendimento publicado nesta página no momento. Use apenas os perfis oficiais identificados no site.</p>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="about-mission-block" aria-labelledby="contact-preparation-title">
+        <div class="about-mission-grid reveal">
+            <article><span>Antes de enviar</span><h2 id="contact-preparation-title">Inclua contexto, mas preserve dados sensíveis.</h2></article>
+            <article>
+                <p>Informe qual ferramenta foi usada, o que aconteceu e, se houver, o identificador exibido pela plataforma.</p>
+                <p>Não envie senhas, dados de pagamento ou arquivos pessoais por um canal que não tenha sido indicado especificamente para esse fim.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>Procurando uma conversão?</h2>
+            <p>A biblioteca de ferramentas pode levar você diretamente ao conversor adequado.</p>
+            <a class="button button-primary" href="/tools">Ver ferramentas <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="button button-secondary" href="/security">Conhecer o ciclo dos arquivos</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

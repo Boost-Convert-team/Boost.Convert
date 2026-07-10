@@ -1,6 +1,6 @@
 <header class="topbar">
     <a class="brand" href="{{ url_for('home.home') }}" aria-label="Boost.Convert">
-        <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.png') }}" alt="Boost.Convert">
+        <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.webp') }}" width="1280" height="256" alt="BoostConvert" decoding="async">
     </a>
 
     <nav class="topnav mega-nav" aria-label="Ecossistema de ferramentas">
@@ -35,7 +35,7 @@
                                 <span class="mega-icon"><i data-lucide="image" aria-hidden="true"></i></span>
                                 <strong>PDF para JPG</strong>
                             </a>
-                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#documentos">
+                            <a class="mega-view-all" href="{{ url_for('home.pdf_tools') }}">
                                 <span>Ver todas</span>
                                 <em>+{{ tool_counts.mega_remaining.pdf }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -64,7 +64,7 @@
                                 <span class="mega-icon"><i data-lucide="shapes" aria-hidden="true"></i></span>
                                 <strong>SVG para PNG</strong>
                             </a>
-                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#imagens">
+                            <a class="mega-view-all" href="{{ url_for('home.image_tools') }}">
                                 <span>Ver todas</span>
                                 <em>+{{ tool_counts.mega_remaining["Imagens"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -89,7 +89,7 @@
                                 <span class="mega-icon"><i data-lucide="film" aria-hidden="true"></i></span>
                                 <strong>MP4 para GIF</strong>
                             </a>
-                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#videos">
+                            <a class="mega-view-all" href="{{ url_for('home.video_tools') }}">
                                 <span>Ver todas</span>
                                 <em>+{{ tool_counts.mega_remaining["Videos"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -114,7 +114,7 @@
                                 <span class="mega-icon"><i data-lucide="headphones" aria-hidden="true"></i></span>
                                 <strong>AAC para MP3</strong>
                             </a>
-                            <a class="mega-view-all" href="{{ url_for('home.tools') }}#audios">
+                            <a class="mega-view-all" href="{{ url_for('home.audio_tools') }}">
                                 <span>Ver todas</span>
                                 <em>+{{ tool_counts.mega_remaining["Audios"] }}</em>
                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -204,6 +204,10 @@
                 <a class="mobile-menu-link" href="{{ url_for('home.tools') }}">
                     <i data-lucide="wrench" aria-hidden="true"></i>
                     <span>Ferramentas</span>
+                </a>
+                <a class="mobile-menu-link" href="{{ url_for('home.guides_index') }}">
+                    <i data-lucide="book-open" aria-hidden="true"></i>
+                    <span>Guias</span>
                 </a>
                 <a class="mobile-menu-link" href="{{ url_for('home.conta') }}">
                     <i data-lucide="user-round" aria-hidden="true"></i>

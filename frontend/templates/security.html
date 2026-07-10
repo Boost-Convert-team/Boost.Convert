@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% set seo_data = seo|default({}, true) %}
+{% set page_data = security|default(page|default(seo_data, true), true) %}
+{% set breadcrumb_items = breadcrumbs|default(page_data.breadcrumbs|default([], true), true) %}
+
+{% block title %}{{ seo_data.title|default(page_data.title|default("Como protegemos seus arquivos | BoostConvert", true), true) }}{% endblock %}
+{% block meta_description %}{{ seo_data.meta_description|default(seo_data.description|default(page_data.meta_description|default(page_data.description|default("Entenda como o BoostConvert processa, armazena temporariamente e remove os arquivos usados em conversões online.", true), true), true), true) }}{% endblock %}
+{% block canonical_url %}{{ seo_data.canonical_url|default(page_data.canonical_url|default(request.base_url, true), true) }}{% endblock %}
+
+{% block content %}
+{% set retention_minutes_value = page_data.retention_minutes|default(retention_minutes|default(none), true) %}
+{% set safeguards = page_data.safeguards|default([], true) %}
+<main class="about-page institutional-page security-page">
+    <section class="about-story-block">
+        <div class="about-story-content reveal">
+            {% if breadcrumb_items %}
+                <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
+                    {% for crumb in breadcrumb_items %}
+                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+            <div class="eyebrow"><i data-lucide="shield-check" aria-hidden="true"></i> Segurança e privacidade</div>
+            <h1>{{ page_data.h1|default("Como protegemos seus arquivos", true) }}</h1>
+            <div class="about-text">
+                <p>{{ page_data.intro|default("Os arquivos enviados ao BoostConvert precisam existir temporariamente no ambiente de processamento para que a conversão solicitada seja executada.", true) }}</p>
+                <p>Esse armazenamento é temporário e vinculado ao fluxo da conversão. A remoção acontece pelo ciclo de download ou pela rotina automática de retenção.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-mission-block" aria-labelledby="retention-title">
+        <div class="about-mission-grid reveal">
+            <article>
+                <span>Retenção</span>
+                <h2 id="retention-title">Arquivos temporários, com remoção prevista no fluxo.</h2>
+            </article>
+            <article>
+                <p>Após a conclusão da transferência do download, os arquivos vinculados à conversão são removidos pela rotina de limpeza.</p>
+                {% if retention_minutes_value %}
+                    <p>Conversões concluídas ou com falha também passam por limpeza automática depois de {{ retention_minutes_value }} minutos, conforme a configuração de retenção ativa.</p>
+                {% elif page_data.retention_text|default("", true) %}
+                    <p>{{ page_data.retention_text }}</p>
+                {% else %}
+                    <p>Conversões concluídas ou com falha também passam por limpeza automática conforme a janela definida na configuração operacional vigente.</p>
+                {% endif %}
+            </article>
+        </div>
+    </section>
+
+    <section class="about-team-block" aria-labelledby="file-cycle-title">
+        <div class="about-team-title reveal">
+            <h2 id="file-cycle-title">O ciclo do arquivo</h2>
+            <p>O arquivo percorre somente as etapas necessárias para executar e entregar a conversão solicitada.</p>
+        </div>
+        <div class="tools-grid reveal">
+            <article class="tool-card tool-card-documentos">
+                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="upload-cloud" aria-hidden="true"></i></span><span class="tool-badge">01</span></div>
+                <h3 class="tool-title">Envio e processamento</h3>
+                <p class="tool-accept">O arquivo é recebido em uma área temporária e usado para executar a ferramenta escolhida.</p>
+            </article>
+            <article class="tool-card tool-card-imagens">
+                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="download" aria-hidden="true"></i></span><span class="tool-badge">02</span></div>
+                <h3 class="tool-title">Entrega do resultado</h3>
+                <p class="tool-accept">O resultado fica disponível pelo fluxo de download associado ao usuário ou à sessão que iniciou a conversão.</p>
+            </article>
+            <article class="tool-card tool-card-extras">
+                <div class="tool-card-top"><span class="tool-icon"><i data-lucide="trash-2" aria-hidden="true"></i></span><span class="tool-badge">03</span></div>
+                <h3 class="tool-title">Remoção</h3>
+                <p class="tool-accept">A limpeza ocorre depois do download ou pela rotina automática aplicada ao fim da janela de retenção configurada.</p>
+            </article>
+        </div>
+
+        {% if safeguards %}
+            <div class="about-team-title reveal">
+                <h2>{{ page_data.safeguards_heading|default("Controles aplicados", true) }}</h2>
+            </div>
+            <div class="tools-grid reveal">
+                {% for safeguard in safeguards %}
+                    <article class="tool-card tool-card-extras">
+                        <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ safeguard.icon|default('check-circle-2', true) }}" aria-hidden="true"></i></span></div>
+                        <h3 class="tool-title">{{ safeguard.title|default("Controle operacional", true) }}</h3>
+                        <p class="tool-accept">{{ safeguard.description|default(safeguard.text|default("", true), true) }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="about-build-block">
+        <div class="about-build-content reveal">
+            <h2>Quer entender mais?</h2>
+            <p>Consulte a política de privacidade ou fale com a equipe pelos canais oficiais.</p>
+            <a class="button button-primary" href="/privacy">Ler política de privacidade <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="button button-secondary" href="/contact">Entrar em contato</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

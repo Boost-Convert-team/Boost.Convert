@@ -134,7 +134,11 @@ class Config:
     MERCADO_PAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
     MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET")
     MERCADO_PAGO_PLAN_PRICE = os.getenv("MERCADO_PAGO_PLAN_PRICE", "19.90")
-    BASE_URL = os.getenv("BASE_URL")
+    # Public SEO origin.  This must not depend on the inbound Host or proxy
+    # scheme because those values may vary behind nginx and during health
+    # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
+    BASE_URL = (os.getenv("BASE_URL") or "https://boostconvert.com.br").rstrip("/")
+    SEND_FILE_MAX_AGE_DEFAULT = timedelta(days=365)
     CONVERSION_FILE_RETENTION_MINUTES = get_int_env("CONVERSION_FILE_RETENTION_MINUTES", 15)
     AI_TRANSCRIPT_RETENTION_MINUTES = get_int_env("AI_TRANSCRIPT_RETENTION_MINUTES", 15)
     CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env("CONVERSION_CLEANUP_INTERVAL_MINUTES", 5)
