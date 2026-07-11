@@ -14,6 +14,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
+from Blueprints.main.seo_catalog import GUIDES
 from config import Config
 from extensions import db
 
@@ -29,6 +30,7 @@ PRIORITY_TOOL_SLUGS = (
     "jpg-to-png",
     "png-to-jpg",
     "jpg-to-webp",
+    "webp-to-jpg",
     "heic-to-jpg",
     "mp4-to-mp3",
     "wav-to-mp3",
@@ -52,6 +54,8 @@ PRIVATE_PATH_PREFIXES = (
     "/api/",
     "/cadastro",
     "/checkout",
+    "/checkout-pro",
+    "/checkout-pix",
     "/conta",
     "/convert/",
     "/conversions/",
@@ -260,7 +264,7 @@ class SeoContractTests(unittest.TestCase):
             for base_url in ("http://boostconvert.com.br", "https://www.boostconvert.com.br"):
                 with self.subTest(base_url=base_url):
                     redirected = self.client.get("/tools/pdf-to-docx?source=test", base_url=base_url)
-                    self.assertEqual(308, redirected.status_code)
+                    self.assertEqual(301, redirected.status_code)
                     self.assertEqual(
                         f"{PUBLIC_ORIGIN}/tools/pdf-to-docx?source=test",
                         redirected.headers["Location"],
@@ -306,6 +310,8 @@ class SeoContractTests(unittest.TestCase):
         private_paths = (
             "/login",
             "/dashboard",
+            "/checkout-pro",
+            "/checkout-pix",
             "/api/conversion-options?extension=pdf",
         )
         for path in private_paths:
@@ -340,6 +346,10 @@ class SeoContractTests(unittest.TestCase):
                 faq_page = next(node for node in nodes if node.get("@type") == "FAQPage")
                 self.assertTrue(faq_page.get("mainEntity"), f"{path}: empty FAQ schema")
 
+                document = _response.get_data(as_text=True)
+                self.assertNotIn("Informações técnicas", document)
+                self.assertNotIn("Guias relacionados", document)
+
                 breadcrumb = next(node for node in nodes if node.get("@type") == "BreadcrumbList")
                 self.assertGreaterEqual(len(breadcrumb.get("itemListElement", [])), 3)
                 self.assertNotIn(parsed.title, titles, f"duplicate title: {parsed.title}")
@@ -360,10 +370,17 @@ class SeoContractTests(unittest.TestCase):
         for slug in GUIDE_SLUGS:
             path = f"/guides/{slug}"
             with self.subTest(path=path):
-                _response, parsed = self.assert_indexable_page(path)
+                response, parsed = self.assert_indexable_page(path)
                 self.assertIn(path, sitemap_paths)
                 types = schema_types(schema_nodes(parsed.json_ld))
                 self.assertTrue({"Article", "BreadcrumbList"}.issubset(types), types)
+                breadcrumb = re.search(
+                    r'<nav class="tools-quick-nav breadcrumbs".*?</nav>',
+                    response.get_data(as_text=True),
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(breadcrumb)
+                self.assertNotIn(GUIDES[slug].h1, breadcrumb.group(0))
 
     def test_related_tool_and_guide_links_do_not_return_404(self) -> None:
         related_paths: set[str] = set()

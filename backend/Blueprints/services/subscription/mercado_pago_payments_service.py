@@ -4,6 +4,7 @@ import json
 from datetime import timedelta
 from typing import Any
 from urllib.parse import urljoin
+from uuid import uuid4
 
 from flask import current_app
 
@@ -24,6 +25,7 @@ from Blueprints.services.subscription.mercado_pago_service import (
 
 
 PRO_PLAN_NAME = "BoostConvert PRO"
+PRO_PLAN_CODE = "BOOSTCONVERT_PRO"
 ONE_TIME_ACCESS_DAYS = 30
 PIX_PAYMENT_METHOD = "pix"
 DEBIT_PAYMENT_METHOD = "debit_card"
@@ -97,6 +99,78 @@ def create_one_time_checkout_preference(usuario: Usuario) -> dict[str, Any]:
     }
 
 
+def create_pix_payment(usuario: Usuario) -> dict[str, Any]:
+    """Create and persist a pending Pix payment without granting PRO access."""
+    price = get_plan_price()
+    base_url = get_base_url()
+    payload = {
+        "transaction_amount": float(price),
+        "description": f"{PRO_PLAN_NAME} - 30 dias",
+        "payment_method_id": PIX_PAYMENT_METHOD,
+        "payer": {"email": usuario.email},
+        "external_reference": build_external_reference(usuario.id),
+        "notification_url": urljoin(f"{base_url}/", "api/webhooks/mercadopago"),
+        "metadata": {
+            "user_id": usuario.id,
+            "plan": PRO_PLAN_CODE,
+        },
+    }
+    data = mercado_pago_request(
+        "POST",
+        "/v1/payments",
+        json_payload=payload,
+        extra_headers={"X-Idempotency-Key": str(uuid4())},
+    )
+    point_of_interaction = data.get("point_of_interaction")
+    transaction_data = (
+        point_of_interaction.get("transaction_data", {})
+        if isinstance(point_of_interaction, dict)
+        else {}
+    )
+    if not isinstance(transaction_data, dict) or not transaction_data:
+        transaction_data = data.get("transaction_data")
+    if not isinstance(transaction_data, dict):
+        transaction_data = {}
+
+    qr_code = get_string(transaction_data, "qr_code")
+    qr_code_base64 = get_string(transaction_data, "qr_code_base64")
+    if not qr_code or not qr_code_base64:
+        raise MercadoPagoError("Mercado Pago nao retornou os dados do QR Code Pix.")
+
+    payment = upsert_payment_from_provider_data(
+        data,
+        user=usuario,
+        requested_payment_method=PIX_PAYMENT_METHOD,
+        activate_access=False,
+    )
+    payment.pix_qr_code = qr_code
+    payment.pix_qr_code_base64 = qr_code_base64
+    db.session.commit()
+
+    current_app.logger.info(
+        json.dumps(
+            {
+                "event": "mercado_pago_pix_payment_created",
+                "user_id": usuario.id,
+                "provider_payment_id": payment.provider_payment_id,
+                "status": payment.status,
+            },
+            ensure_ascii=False,
+        )
+    )
+    return {
+        "ok": True,
+        "provider": PROVIDER,
+        "plan": PRO_PLAN_CODE,
+        "plan_name": PRO_PLAN_NAME,
+        "payment_id": payment.provider_payment_id,
+        "status": payment.status,
+        "amount": f"{price:.2f}",
+        "qr_code": qr_code,
+        "qr_code_base64": qr_code_base64,
+    }
+
+
 def select_preference_checkout_url(provider_data: dict[str, Any]) -> str:
     access_token = str(current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "")
     init_point = get_string(provider_data, "init_point")
@@ -163,8 +237,9 @@ def apply_confirmed_payment_status(payment: Payment, provider_data: dict[str, An
 
     if status in APPROVED_PAYMENT_STATUSES and detected_method in ONE_TIME_PAYMENT_METHODS:
         payment.payment_method = detected_method
+        payment.approved_at = payment.approved_at or utc_now()
         if payment.premium_expires_at is None:
-            payment.premium_expires_at = utc_now() + timedelta(days=ONE_TIME_ACCESS_DAYS)
+            payment.premium_expires_at = payment.approved_at + timedelta(days=ONE_TIME_ACCESS_DAYS)
         payment.user.plano = "pro"
         payment.user.status_assinatura = "active"
         return

@@ -17,12 +17,10 @@
     {% if breadcrumb_items %}
         <nav class="tools-quick-nav breadcrumbs reveal" aria-label="Navegação estrutural">
             {% for crumb in breadcrumb_items %}
-                {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
-                {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
-                {% if crumb_url and not loop.last %}
-                    <a href="{{ crumb_url }}">{{ crumb_label }}</a>
-                {% else %}
-                    <span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>
+                {% if not loop.last %}
+                    {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                    {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                    {% if crumb_url %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% endif %}
                 {% endif %}
             {% endfor %}
         </nav>
@@ -48,7 +46,7 @@
                 </div>
 
                 {% if hub_tools %}
-                    <div class="tools-grid">
+                    <div class="tools-grid category-tools-grid">
                         {% for tool in hub_tools %}
                             {% set tool_url = tool.page_route|default(tool.page_url|default(tool.url|default(tool.href|default("", true), true), true), true) %}
                             {% if not tool_url and tool.slug|default("", true) %}
@@ -82,7 +80,7 @@
                     <div class="tool-subsection-heading">
                         <h2 id="hub-overview-title">O que você encontra nesta categoria</h2>
                     </div>
-                    <div class="tools-grid">
+                    <div class="tools-grid category-summary-grid">
                         {% for point in editorial_points %}
                             <article class="tool-card {{ hub_data.card_class|default('tool-card-extras', true) }}">
                                 <div class="tool-card-top"><span class="tool-icon"><i data-lucide="check-circle-2" aria-hidden="true"></i></span></div>
@@ -120,9 +118,9 @@
                         <h2 id="related-hubs-title">Outras categorias</h2>
                         <p>Continue explorando as ferramentas do BoostConvert por tipo de arquivo.</p>
                     </div>
-                    <div class="tools-grid">
+                    <div class="tools-grid category-related-grid">
                         {% for related in related_hubs %}
-                            <a class="tool-card tool-card-extras" href="{{ related.url|default(related.href|default('/tools', true), true) }}">
+                            <a class="tool-card {{ related.card_class|default('tool-card-extras', true) }}" href="{{ related.url|default(related.href|default('/tools', true), true) }}">
                                 <div class="tool-card-top"><span class="tool-icon"><i data-lucide="{{ related.icon|default('layers', true) }}" aria-hidden="true"></i></span></div>
                                 <h3 class="tool-title">{{ related.name|default(related.title|default("Ver categoria", true), true) }}</h3>
                                 {% if related.description|default("", true) %}<p class="tool-accept">{{ related.description }}</p>{% endif %}

@@ -218,6 +218,58 @@ body:has(.conversion-status-stage--download-ready) .footer {
     justify-content: center;
 }
 
+.conversion-next-steps {
+    width: min(920px, 100%);
+    margin: clamp(64px, 8vw, 96px) auto 0;
+    padding-top: 38px;
+    border-top: 1px solid #e2e2e7;
+}
+
+.conversion-next-steps > span {
+    color: var(--orange-deep);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+.conversion-next-steps h2 {
+    margin: 10px 0 24px;
+    color: #1f2937;
+    font-size: clamp(25px, 3vw, 34px);
+}
+
+.conversion-next-steps ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.conversion-next-steps a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0;
+    border-top: 1px solid #e2e2e7;
+    color: #263f3b;
+    font-family: var(--font-ui);
+    font-weight: 600;
+}
+
+.conversion-next-steps li:nth-child(odd) a {
+    margin-right: 24px;
+}
+
+.conversion-next-steps a svg {
+    width: 17px;
+    height: 17px;
+    color: var(--orange-deep);
+}
+
 @keyframes conversionStatusSpin {
     to {
         transform: rotate(360deg);
@@ -252,5 +304,13 @@ body:has(.conversion-status-stage--download-ready) .footer {
     .conversion-status-actions,
     .conversion-status-actions .button {
         width: 100%;
+    }
+
+    .conversion-next-steps ul {
+        grid-template-columns: 1fr;
+    }
+
+    .conversion-next-steps li:nth-child(odd) a {
+        margin-right: 0;
     }
 }

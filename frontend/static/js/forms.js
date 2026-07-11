@@ -13,41 +13,88 @@
 
         if (note) note.dataset.defaultText = note.textContent;
 
-        const state = { files: Array.from(input.files || []) };
-        const render = () => renderUploadFiles(zone, list, note, state.files);
+        const defaultAccept = input.getAttribute("accept") || "";
+        const state = { files: Array.from(input.files || []), validationMessage: "" };
+        const render = () => renderUploadFiles(zone, list, note, state.files, state.validationMessage);
         const acceptFiles = (files) => {
-            state.files = getNextUploadFiles(input, state.files, files);
+            const result = getSameExtensionFiles(state.files, files, input.multiple);
+            state.files = result.files;
+            state.validationMessage = result.message;
             if (!syncUploadInput(input, state.files)) state.files = Array.from(input.files || []);
+            restoreInputAccept(input, defaultAccept);
             render();
         };
 
         addUploadDragEvents(zone, acceptFiles);
         input.addEventListener("change", () => acceptFiles(input.files));
-        if (addButton) addButton.addEventListener("click", (event) => openUploadPicker(event, input));
+        if (addButton) addButton.addEventListener("click", (event) => {
+            restrictInputToFirstExtension(input, state.files);
+            openUploadPicker(event, input);
+        });
+        input.addEventListener("cancel", () => restoreInputAccept(input, defaultAccept));
         render();
     }
 
-    function renderUploadFiles(zone, list, note, files) {
+    function renderUploadFiles(zone, list, note, files, validationMessage = "") {
         list.innerHTML = "";
         zone.classList.toggle("has-files", files.length > 0);
         files.slice(0, 6).forEach((file, index) => list.appendChild(createFilePreview(file, index)));
-        renderUploadNote(note, files.length);
+        renderUploadNote(note, files.length, validationMessage);
         if (window.lucide) window.lucide.createIcons();
     }
 
-    function renderUploadNote(note, fileCount) {
+    function renderUploadNote(note, fileCount, validationMessage = "") {
         if (!note) return;
+
+        if (validationMessage) {
+            note.textContent = validationMessage;
+            return;
+        }
 
         note.textContent = fileCount
             ? `${fileCount} arquivo(s) pronto(s) para converter`
             : note.dataset.defaultText || "";
     }
 
-    function getNextUploadFiles(input, currentFiles, files) {
+    function getSameExtensionFiles(currentFiles, files, allowsMultiple = true) {
+        const existingFiles = Array.from(currentFiles || []);
         const incomingFiles = Array.from(files || []);
-        if (!incomingFiles.length) return currentFiles;
-        if (!input.multiple) return incomingFiles.slice(0, 1);
-        return currentFiles.concat(incomingFiles);
+        if (!incomingFiles.length) return { files: existingFiles, message: "" };
+        if (!allowsMultiple) return { files: incomingFiles.slice(0, 1), message: "" };
+
+        const requiredExtension = getFileExtension(existingFiles[0] || incomingFiles[0]);
+        if (!requiredExtension) {
+            return { files: existingFiles, message: "Nao foi possivel identificar a extensao do arquivo." };
+        }
+
+        const acceptedFiles = incomingFiles.filter((file) => getFileExtension(file) === requiredExtension);
+        const rejectedCount = incomingFiles.length - acceptedFiles.length;
+        return {
+            files: existingFiles.concat(acceptedFiles),
+            message: rejectedCount
+                ? `Adicione apenas arquivos .${requiredExtension.toUpperCase()}. ${rejectedCount} arquivo(s) ignorado(s).`
+                : ""
+        };
+    }
+
+    function getFileExtension(file) {
+        const name = String(file?.name || "");
+        const dotIndex = name.lastIndexOf(".");
+        if (dotIndex < 0 || dotIndex === name.length - 1) return "";
+        return name.slice(dotIndex + 1).toLowerCase();
+    }
+
+    function restrictInputToFirstExtension(input, files) {
+        const extension = getFileExtension(Array.from(files || [])[0]);
+        if (extension) input.setAttribute("accept", `.${extension}`);
+    }
+
+    function restoreInputAccept(input, defaultAccept) {
+        if (defaultAccept) {
+            input.setAttribute("accept", defaultAccept);
+            return;
+        }
+        input.removeAttribute("accept");
     }
 
     function syncUploadInput(input, files) {
@@ -201,11 +248,13 @@
         const panel = form.querySelector("[data-hero-conversion-panel]");
         const optionsList = form.querySelector("[data-hero-conversion-options]");
         const message = form.querySelector("[data-hero-upload-message]");
+        const defaultHeroAccept = input?.getAttribute("accept") || "";
+
+        if (!input || !dropzone || !panel || !optionsList) return;
+
         let heroFiles = Array.from(input.files || []);
         let shouldAppendHeroFiles = false;
         let selectedRoute = "";
-
-        if (!input || !dropzone || !panel || !optionsList) return;
 
         const setMessage = (text) => {
             if (!message) return;
@@ -253,9 +302,12 @@
         };
 
         const setHeroFiles = (files, shouldAppend = false) => {
-            const incomingFiles = Array.from(files || []);
-            heroFiles = shouldAppend ? heroFiles.concat(incomingFiles) : incomingFiles;
+            const baseFiles = shouldAppend ? heroFiles : [];
+            const result = getSameExtensionFiles(baseFiles, files, true);
+            heroFiles = result.files;
             if (!syncHeroInput(heroFiles)) heroFiles = Array.from(input.files || []);
+            restoreInputAccept(input, defaultHeroAccept);
+            return result.message;
         };
 
         const resetOptions = () => {
@@ -298,14 +350,7 @@
             setMessage("Escolha uma saida para converter agora.");
         };
 
-        const getFileExtension = (file) => {
-            const name = file?.name || "";
-            const dotIndex = name.lastIndexOf(".");
-            if (dotIndex < 0) return "";
-            return name.slice(dotIndex + 1).toLowerCase();
-        };
-
-        const loadConversions = async () => {
+        const loadConversions = async (validationMessage = "") => {
             const file = heroFiles[0];
             resetOptions();
             setSelectedFiles(heroFiles);
@@ -328,6 +373,7 @@
                 if (!response.ok) throw new Error("Erro ao buscar conversoes.");
                 const data = await response.json();
                 renderOptions(data.tools || []);
+                if (validationMessage) setMessage(validationMessage);
             } catch {
                 resetOptions();
                 setMessage("Nao foi possivel carregar as conversoes agora.");
@@ -352,17 +398,18 @@
             const files = event.dataTransfer.files;
             if (!files?.length) return;
 
-            setHeroFiles(files, true);
-            loadConversions();
+            const validationMessage = setHeroFiles(files, true);
+            loadConversions(validationMessage);
         });
 
         input.addEventListener("change", () => {
-            setHeroFiles(input.files, shouldAppendHeroFiles);
+            const validationMessage = setHeroFiles(input.files, shouldAppendHeroFiles);
             shouldAppendHeroFiles = false;
-            loadConversions();
+            loadConversions(validationMessage);
         });
         input.addEventListener("cancel", () => {
             shouldAppendHeroFiles = false;
+            restoreInputAccept(input, defaultHeroAccept);
         });
 
         if (addFilesButton) {
@@ -370,6 +417,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 shouldAppendHeroFiles = true;
+                restrictInputToFirstExtension(input, heroFiles);
                 input.click();
             });
             addFilesButton.addEventListener("keydown", (event) => {
@@ -377,6 +425,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 shouldAppendHeroFiles = true;
+                restrictInputToFirstExtension(input, heroFiles);
                 input.click();
             });
         }
@@ -422,6 +471,8 @@
         initAuthToggle,
         initLoadingForms,
         initProCheckoutForms,
-        initUploadZones
+        initUploadZones,
+        getFileExtension,
+        getSameExtensionFiles
     };
 })();

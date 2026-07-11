@@ -28,15 +28,17 @@
             {% if breadcrumb_items %}
                 <nav class="tools-quick-nav breadcrumbs" aria-label="Navegação estrutural">
                     {% for crumb in breadcrumb_items %}
-                        {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
-                        {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
-                        {% if crumb_url and not loop.last %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb_label }}</span>{% endif %}
+                        {% if not loop.last %}
+                            {% set crumb_url = crumb.url|default(crumb.href|default("", true), true) %}
+                            {% set crumb_label = crumb.name|default(crumb.label|default(crumb.title|default("Página", true), true), true) %}
+                            {% if crumb_url %}<a href="{{ crumb_url }}">{{ crumb_label }}</a>{% endif %}
+                        {% endif %}
                     {% endfor %}
                 </nav>
             {% endif %}
             <div class="eyebrow"><i data-lucide="book-open-check" aria-hidden="true"></i> {{ guide_data.category|default("Guia prático", true) }}</div>
             <h1>{{ guide_data.h1|default(guide_data.title|default("Guia de conversão de arquivos", true), true) }}</h1>
-            <div class="about-text">
+            <div class="about-text guide-header-copy">
                 <p>{{ guide_data.intro|default(guide_data.summary|default(guide_data.excerpt|default("Veja as etapas e os cuidados relevantes para concluir esta tarefa.", true), true), true) }}</p>
                 {% if guide_data.author|default("", true) or guide_data.updated_at|default("", true) or guide_data.read_time|default("", true) %}
                     <p>
@@ -83,9 +85,9 @@
     </article>
 
     {% if related_tools_items %}
-        <section class="about-team-block" aria-labelledby="guide-related-tools-title">
+        <section class="about-team-block guide-related-section" aria-labelledby="guide-related-tools-title">
             <div class="about-team-title reveal"><h2 id="guide-related-tools-title">Ferramentas relacionadas</h2><p>Continue o fluxo com conversores ligados ao tema deste guia.</p></div>
-            <div class="tools-grid reveal">
+            <div class="tools-grid guide-related-grid reveal">
                 {% for tool in related_tools_items %}
                     {% if tool is string %}
                         {% set tool_url = "/tools/" ~ tool %}
@@ -107,9 +109,9 @@
     {% endif %}
 
     {% if related_guides_items %}
-        <section class="about-team-block" aria-labelledby="guide-related-guides-title">
+        <section class="about-team-block guide-related-section" aria-labelledby="guide-related-guides-title">
             <div class="about-team-title reveal"><h2 id="guide-related-guides-title">Continue aprendendo</h2></div>
-            <div class="tools-grid reveal">
+            <div class="tools-grid guide-related-grid reveal">
                 {% for related in related_guides_items %}
                     {% if related is string %}
                         {% set related_url = "/guides/" ~ related %}
@@ -117,7 +119,7 @@
                     {% else %}
                         {% set related_url = related.url|default(related.href|default(related.path|default("", true), true), true) %}
                         {% if not related_url and related.slug|default("", true) %}{% set related_url = "/guides/" ~ related.slug %}{% endif %}
-                        {% set related_title = related.title|default("Abrir guia", true) %}
+                        {% set related_title = related.h1|default(related.title|default("Abrir guia", true), true) %}
                     {% endif %}
                     <a class="tool-card tool-card-documentos" href="{{ related_url|default('/guides', true) }}">
                         <div class="tool-card-top"><span class="tool-icon"><i data-lucide="book-open" aria-hidden="true"></i></span></div>

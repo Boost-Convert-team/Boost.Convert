@@ -112,5 +112,16 @@
             </div>
         {% endif %}
     </section>
+    {% if is_ready_for_download and related_tools %}
+        <section class="conversion-next-steps reveal" aria-labelledby="conversion-next-steps-title">
+            <span>Próximos passos</span>
+            <h2 id="conversion-next-steps-title">Continue trabalhando com seu arquivo</h2>
+            <ul>
+                {% for related_tool in related_tools %}
+                    <li><a href="{{ related_tool.page_route }}">{{ related_tool.name }} <i data-lucide="arrow-right" aria-hidden="true"></i></a></li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
 </main>
 {% endblock %}

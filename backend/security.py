@@ -33,6 +33,7 @@ AUTH_RATE_LIMITS = {
 ENDPOINT_RATE_LIMITS = {
     "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
     "checkout.checkout_pro": RateLimitRule(10, 60),
+    "checkout.create_pix_payment": RateLimitRule(5, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
@@ -45,6 +46,8 @@ NOINDEX_PATH_PREFIXES = (
     "/api/",
     "/cadastro",
     "/checkout",
+    "/checkout-pro",
+    "/checkout-pix",
     "/conta",
     "/convert/",
     "/conversions/",
@@ -88,7 +91,9 @@ def enforce_canonical_origin() -> Response | None:
         return None
 
     target = f"https://boostconvert.com.br{request.full_path.rstrip('?')}"
-    return redirect(target, code=308 if request.method in {"GET", "HEAD"} else 307)
+    # Public variants are permanent duplicates. Preserve non-idempotent methods,
+    # but use the SEO-standard 301 response for normal document requests.
+    return redirect(target, code=301 if request.method in {"GET", "HEAD"} else 308)
 
 
 def configure_proxy_fix(app: Flask) -> None:

@@ -1,7 +1,10 @@
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
+
+from flask import url_for
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -12,6 +15,7 @@ from Blueprints.main.checkout_routes import (
     checkout,
     checkout_credit_subscription,
     checkout_pro,
+    create_pix_payment as create_pix_payment_route,
 )
 from Blueprints.handlers.conversion_handlers import (
     handle_conversion_error,
@@ -36,6 +40,10 @@ class SubscriptionRedirectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
+
+        choice_response = self.client.get("/checkout-pro")
+        self.assertEqual(choice_response.status_code, 302)
+        self.assertIn("/login", choice_response.headers["Location"])
 
     def test_checkout_get_redirects_to_planos(self) -> None:
         with self.app.test_request_context("/checkout"):
@@ -95,6 +103,30 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(response.json["plan_name"], "BoostConvert PRO")
         self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
+        with self.app.test_request_context():
+            self.assertEqual(url_for("checkout.checkout_pro"), "/checkout/pro")
+
+    def test_pix_api_returns_local_checkout_redirect(self) -> None:
+        pix_response = {
+            "ok": True,
+            "payment_id": "pay_pix_123",
+            "status": "pending",
+            "qr_code": "000201-code",
+            "qr_code_base64": "cXI=",
+        }
+        with self.app.test_request_context("/api/payment/pix", method="POST"):
+            with patch(
+                "Blueprints.main.checkout_routes.current_user",
+                SimpleNamespace(id=42, email="pix@example.com"),
+            ), patch(
+                "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+                return_value=pix_response,
+            ):
+                response, status_code = create_pix_payment_route.__wrapped__()
+
+        self.assertEqual(status_code, 201)
+        self.assertEqual(response.json["payment_id"], "pay_pix_123")
+        self.assertEqual(response.json["redirect_url"], "/checkout-pix?payment_id=pay_pix_123")
 
     def test_legacy_pix_and_debit_routes_use_same_hosted_checkout(self) -> None:
         mercado_pago_response = {
@@ -117,16 +149,16 @@ class SubscriptionRedirectTests(unittest.TestCase):
                 self.assertEqual(status_code, 200)
                 self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
 
-    def test_planos_pro_button_uses_single_internal_checkout_form(self) -> None:
+    def test_planos_pro_button_opens_payment_choice(self) -> None:
         template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text()
+        choice_template = (BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html").read_text()
 
-        self.assertIn('data-pro-checkout-form', template)
-        self.assertIn("url_for('checkout.checkout_pro')", template)
+        self.assertIn("url_for('checkout.checkout_pro_choice')", template)
         self.assertIn("BoostConvert PRO", template)
-        self.assertNotIn("Assinar com Cart", template)
-        self.assertNotIn("Pagar com PIX", template)
-        self.assertNotIn("Pagar com Cart", template)
-        self.assertNotIn("30 dias de acesso", template)
+        self.assertIn('data-pro-checkout-form', choice_template)
+        self.assertIn("url_for('checkout.checkout_pro')", choice_template)
+        self.assertIn('data-pix-payment-form', choice_template)
+        self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
         self.assertNotIn('href="https://pay.', template)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:

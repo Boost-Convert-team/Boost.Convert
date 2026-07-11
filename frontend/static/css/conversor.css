@@ -768,6 +768,33 @@
     outline-offset: 3px;
 }
 
+/* Keep tool pages useful and concise: content is structured without a card wall. */
+.tool-step-item,
+.tool-benefit-card {
+    border: 0;
+    border-top: 1px solid rgba(227, 217, 206, .82);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.tool-step-item {
+    padding: 24px 0;
+}
+
+.tool-benefit-card {
+    padding: 20px 0;
+}
+
+.tool-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tool-related-card {
+    border-radius: 14px;
+    box-shadow: none;
+}
+
 @media (max-width: 980px) {
     .tool-step-list,
     .tool-benefit-grid,

@@ -44,6 +44,13 @@ HUB_ICONS = {
     "video": "play-circle",
     "audio": "audio-lines",
 }
+HUB_CARD_CLASSES = {
+    "pdf": "tool-card-documentos",
+    "documents": "tool-card-documentos",
+    "images": "tool-card-imagens",
+    "video": "tool-card-videos",
+    "audio": "tool-card-audios",
+}
 
 
 def iter_functional_tools():
@@ -67,6 +74,32 @@ def find_tool_by_slug(slug):
             if tool["route"] == tool_route:
                 return tool
     return None
+
+
+def related_tools_for_job(job):
+    """Resolve next-step links from presentation metadata only."""
+    normalized_name = str(getattr(job, "tool_name", "")).strip().lower()
+    slug = next(
+        (
+            candidate_slug
+            for _, candidate_slug, _ in iter_functional_tools()
+            if candidate_slug.replace("-", "_") == normalized_name
+        ),
+        None,
+    )
+    if not slug:
+        return []
+    tool = find_tool_by_slug(slug)
+    if tool is None:
+        return []
+    record = get_tool_seo(slug, name=str(tool.get("name", "")), accept=str(tool.get("accept", "")))
+    functional_index = get_functional_tool_index()
+    return [
+        card
+        for related_slug in record.related_tools
+        for card in [resolve_tool_card(related_slug, functional_index)]
+        if card
+    ]
 
 
 def get_tools_for_extension(extension):
@@ -168,7 +201,6 @@ def build_tool_page_seo(tool, slug):
     record_data = as_serializable_dict(record)
     functional_index = get_functional_tool_index()
     related_tools = [resolve_tool_card(item, functional_index) for item in record.related_tools]
-    related_guides = [resolve_guide_card(item) for item in record.related_guides]
     category = get_hub_seo(record.category)
     breadcrumbs = breadcrumb_items(
         ("Início", "/"),
@@ -198,13 +230,10 @@ def build_tool_page_seo(tool, slug):
         intro=record.intro,
         how_to=record_data["how_to"],
         benefits=list(record.benefits),
-        technical_notes=list(record.technical_notes),
-        formats={"Entrada": list(record.accepted_formats), "Saída": list(record.output_formats)},
         limitations=[*record.limitations, *real_limits],
         security_text=list(record.security),
         faqs=record_data["faq"],
         related_tools=[item for item in related_tools if item],
-        related_guides=[item for item in related_guides if item],
         breadcrumbs=breadcrumbs,
         updated_at=record.updated_at.isoformat(),
         status=record.status,
@@ -265,6 +294,7 @@ def build_hub_page(hub_key):
             "description": item.description,
             "url": public_url(item.path),
             "icon": HUB_ICONS[key],
+            "card_class": HUB_CARD_CLASSES[key],
         }
         for key, item in CATEGORIES.items()
         if key != hub_key
@@ -274,6 +304,7 @@ def build_hub_page(hub_key):
         {
             "meta_description": hub.description,
             "icon": HUB_ICONS[hub_key],
+            "card_class": HUB_CARD_CLASSES[hub_key],
             "tools": cards,
             "breadcrumbs": breadcrumbs,
             "related_hubs": related_hubs,
@@ -310,6 +341,8 @@ def robots_txt():
             "Allow: /",
             "Disallow: /api/",
             "Disallow: /checkout/",
+            "Disallow: /checkout-pro",
+            "Disallow: /checkout-pix",
             "Disallow: /convert/",
             "Disallow: /conversions/",
             "Disallow: /conta",
@@ -405,6 +438,7 @@ def privacy_page():
 @home_bp.route("/contact")
 def contact_page():
     page, seo = build_page_seo("contact")
+    page["support_email"] = "boostconvertsuporte@gmail.com"
     page["channels"] = [
         {
             "name": "Instagram",
@@ -564,6 +598,7 @@ def conversion_status(job_id):
         "conversion_status.html",
         job=job,
         is_downloadable=is_job_downloadable(job),
+        related_tools=related_tools_for_job(job),
     )
 
 
@@ -579,6 +614,7 @@ def conversion_batch_status(job_ids):
         job_ids=",".join(requested_ids),
         all_jobs_downloadable=bool(jobs) and len(downloadable_job_ids) == len(jobs),
         downloadable_job_ids=downloadable_job_ids,
+        related_tools=related_tools_for_job(jobs[0]) if jobs else [],
     )
 
 

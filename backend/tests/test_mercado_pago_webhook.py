@@ -117,6 +117,22 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self.assertEqual(self.user_plan_state(user_id), ("pro", "active"))
         self.assertEqual(self.payment_state("pay_pix")[0], "pix")
         self.assertIsNotNone(self.payment_state("pay_pix")[2])
+        self.assertIsNotNone(self.payment_approved_at("pay_pix"))
+
+    def test_requested_api_webhook_alias_processes_approved_pix(self) -> None:
+        user_id = self.create_user("pix-alias@example.com", "free", "inactive")
+        provider_data = self.provider_payment_data(user_id, "pay_pix_alias", "approved", "pix", "bank_transfer")
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_mercado_pago_payload(
+                {"id": 2010, "type": "payment", "data": {"id": "pay_pix_alias"}},
+                "pay_pix_alias",
+                path="/api/webhooks/mercadopago",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.user_plan_state(user_id), ("pro", "active"))
 
     def test_approved_debit_payment_sets_user_plan_to_pro_for_30_days(self) -> None:
         user_id = self.create_user("debito@example.com", "free", "inactive")
@@ -222,6 +238,10 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             payment = Payment.query.filter_by(provider_payment_id=provider_payment_id).one()
             return payment.payment_method, payment.status, payment.premium_expires_at
 
+    def payment_approved_at(self, provider_payment_id: str):
+        with self.app.app_context():
+            return Payment.query.filter_by(provider_payment_id=provider_payment_id).one().approved_at
+
     def provider_subscription_data(
         self,
         user_id: int,
@@ -261,6 +281,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self,
         payload: dict[str, object],
         data_id: str,
+        path: str = "/webhooks/mercado-pago",
     ) -> TestResponse:
         x_request_id = "request-id-123"
         ts = "1781009491"
@@ -271,7 +292,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             hashlib.sha256,
         ).hexdigest()
         return self.client.post(
-            f"/webhooks/mercado-pago?data.id={data_id}",
+            f"{path}?data.id={data_id}",
             content_type="application/json",
             data=_serialize_payload(payload),
             headers={

@@ -392,3 +392,221 @@ body:has(.status-card) .section-heading h1 {
         radial-gradient(circle at 58% 20%, rgba(240, 138, 36, .15), transparent 36%),
         rgba(255, 255, 255, .54);
 }
+
+/* Institutional pages read like company documentation, not campaign pages. */
+.institutional-page,
+.institutional-page .about-story-block,
+.institutional-page .about-mission-block,
+.institutional-page .about-team-block,
+.institutional-page .about-build-block {
+    background: #fff;
+}
+
+.institutional-page::before,
+.institutional-page::after {
+    display: none;
+}
+
+.institutional-page .about-story-block {
+    padding: clamp(64px, 7vw, 96px) 24px clamp(44px, 5vw, 64px);
+}
+
+.institutional-page .about-story-content,
+.institutional-page .about-team-title,
+.institutional-page .about-build-content {
+    width: min(760px, 100%);
+    max-width: 760px;
+    margin-inline: auto;
+}
+
+.institutional-page .about-story-content h1 {
+    max-width: 720px;
+    font-size: clamp(40px, 5vw, 64px);
+    line-height: 1.02;
+}
+
+.institutional-page .about-text,
+.institutional-page .about-text p,
+.institutional-page .about-text li,
+.institutional-page .about-mission-grid p,
+.institutional-page .about-build-content p {
+    color: #4d5b58;
+    font-size: 17px;
+    line-height: 1.78;
+}
+
+.institutional-page .about-mission-block,
+.institutional-page .about-team-block,
+.institutional-page .about-build-block {
+    padding: clamp(44px, 5vw, 68px) 24px;
+    border-top: 1px solid #e8e2db;
+}
+
+.institutional-page .about-mission-grid {
+    width: min(760px, 100%);
+    max-width: 760px;
+    margin-inline: auto;
+    grid-template-columns: minmax(150px, .34fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+}
+
+.institutional-page .about-mission-grid h2,
+.institutional-page .about-team-title h2,
+.institutional-page .about-story-content h2,
+.institutional-page .about-build-content h2 {
+    font-size: clamp(25px, 3vw, 34px);
+    line-height: 1.18;
+}
+
+.institutional-page .about-team-block > .about-story-content + .about-story-content {
+    margin-top: 0;
+    padding-top: 38px;
+    border-top: 1px solid #e8e2db;
+}
+
+.institutional-page .tools-grid {
+    display: block;
+    width: min(760px, 100%);
+    margin: 30px auto 0;
+}
+
+.institutional-page .tool-card,
+.institutional-page .tool-card:hover {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 18px;
+    min-height: 0;
+    padding: 24px 0;
+    border: 0;
+    border-top: 1px solid #e8e2db;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.institutional-page .tool-card-top {
+    grid-row: 1 / span 3;
+    margin: 0;
+}
+
+.institutional-page .tool-card .tool-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #fff6ec;
+}
+
+.institutional-page .tool-card .tool-badge {
+    display: none;
+}
+
+.institutional-page .tool-card .tool-title,
+.institutional-page .tool-card .tool-accept,
+.institutional-page .tool-card .tool-link {
+    grid-column: 2;
+}
+
+.institutional-page .tool-card .tool-accept {
+    margin-top: 5px;
+    color: #5c6865;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.institutional-page .about-build-content {
+    text-align: left;
+}
+
+.institutional-page .about-build-content .button {
+    min-height: auto;
+    margin: 8px 22px 0 0;
+    padding: 0 0 3px;
+    border: 0;
+    border-bottom: 1px solid currentColor;
+    border-radius: 0;
+    background: transparent;
+    color: #9a4c0a;
+    box-shadow: none;
+}
+
+.institutional-page .about-build-content .button:hover {
+    background: transparent;
+    color: #713705;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Editorial collections use a quiet publication list. */
+.editorial-index .tools-layout,
+.editorial-index .tools-content {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.editorial-index .tools-content {
+    width: min(900px, 100%);
+    margin-inline: auto;
+}
+
+.editorial-index .tools-section {
+    padding-inline: 0;
+}
+
+.editorial-index .tools-grid {
+    display: block;
+}
+
+.editorial-index .tool-card,
+.editorial-index .tool-card.is-featured,
+.editorial-index .tool-card:hover {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 28px;
+    min-height: 0;
+    padding: 28px 0;
+    border: 0;
+    border-top: 1px solid #e8e2db;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.editorial-index .tool-card-top {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.editorial-index .tool-icon {
+    display: none;
+}
+
+.editorial-index .tool-title,
+.editorial-index .tool-accept {
+    grid-column: 1;
+}
+
+.editorial-index .tool-link {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: center;
+}
+
+@media (max-width: 700px) {
+    .institutional-page .about-mission-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .editorial-index .tool-card,
+    .editorial-index .tool-card.is-featured {
+        grid-template-columns: 1fr;
+    }
+
+    .editorial-index .tool-link {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}

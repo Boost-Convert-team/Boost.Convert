@@ -12,6 +12,7 @@ webhook_bp = Blueprint("webhook", __name__)
 def webhook(): return jsonify({"ok": True})
 
 @webhook_bp.route("/webhooks/mercado-pago", methods=["POST"])
+@webhook_bp.route("/api/webhooks/mercadopago", methods=["POST"])
 def receive_mercado_pago_webhook():
     payload = read_json_payload()
     if payload is None:

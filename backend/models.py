@@ -62,6 +62,9 @@ class Payment(db.Model):
     amount = db.Column(db.Numeric(10, 2), nullable=True)
     currency = db.Column(db.String(10), nullable=True)
     premium_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    approved_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    pix_qr_code = db.Column(db.Text, nullable=True)
+    pix_qr_code_base64 = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 

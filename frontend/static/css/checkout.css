@@ -1,0 +1,213 @@
+body:has(.checkout-page) {
+    background: #fffdfa;
+}
+
+.checkout-page {
+    min-height: 70vh;
+    padding: clamp(64px, 7vw, 96px) 24px clamp(80px, 8vw, 112px);
+    background: linear-gradient(180deg, #fff 0%, #fffdfa 100%);
+}
+
+.checkout-heading {
+    width: min(760px, 100%);
+    margin: 0 auto clamp(42px, 6vw, 64px);
+    text-align: center;
+}
+
+.checkout-heading .eyebrow {
+    display: flex;
+    margin: 0 auto 20px;
+}
+
+.checkout-heading h1 {
+    margin: 0 0 18px;
+    color: var(--text);
+    font-size: clamp(40px, 5vw, 62px);
+    line-height: 1.04;
+    letter-spacing: -.035em;
+}
+
+.checkout-heading p {
+    max-width: 660px;
+    margin: 0 auto;
+    color: #5d6966;
+    font-family: var(--font-ui);
+    font-size: 17px;
+    line-height: 1.7;
+}
+
+.checkout-heading > strong {
+    display: block;
+    margin-top: 18px;
+    color: #203f3a;
+    font-family: var(--font-ui);
+    font-size: 24px;
+}
+
+.payment-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 360px));
+    justify-content: center;
+    gap: 18px;
+    width: min(760px, 100%);
+    margin: 0 auto;
+}
+
+.payment-choice-card {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-height: 330px;
+    padding: 30px;
+    border: 1px solid #eadfd4;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 18px 52px rgba(88, 58, 24, .04);
+}
+
+.payment-choice-card--pix {
+    border-color: rgba(240, 138, 36, .28);
+}
+
+.payment-choice-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    background: #fff3e6;
+    color: var(--orange-deep);
+}
+
+.payment-choice-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.payment-choice-card h2 {
+    margin: 0 0 10px;
+    color: #203f3a;
+    font-size: 28px;
+}
+
+.payment-choice-card p {
+    margin: 0;
+    color: #64706d;
+    font-family: var(--font-ui);
+    line-height: 1.65;
+}
+
+.payment-choice-card form {
+    margin-top: auto;
+}
+
+.payment-choice-card .button {
+    justify-content: center;
+    width: 100%;
+}
+
+.checkout-message {
+    min-height: 24px;
+    margin-top: 12px !important;
+    color: #9a4c0a !important;
+    font-size: 14px;
+}
+
+.pix-payment-panel {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    width: min(620px, 100%);
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 46px);
+    border: 1px solid #eadfd4;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgba(88, 58, 24, .045);
+}
+
+.pix-payment-panel h2 {
+    margin: 0 0 24px;
+    color: #203f3a;
+    font-size: 28px;
+}
+
+.pix-qr-code {
+    width: min(280px, 100%);
+    height: auto;
+    aspect-ratio: 1;
+    padding: 10px;
+    border: 1px solid #eee5dc;
+    border-radius: 16px;
+    background: #fff;
+}
+
+.pix-payment-panel label {
+    align-self: flex-start;
+    margin: 28px 0 9px;
+    color: #314945;
+    font-size: 14px;
+}
+
+.pix-payment-panel textarea {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #dfd6cc;
+    border-radius: 12px;
+    background: #fffdfa;
+    color: #4d5b58;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+}
+
+.pix-copy-button {
+    justify-content: center;
+    width: 100%;
+    margin-top: 12px;
+}
+
+.pix-payment-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 28px 0 0;
+    color: #52615d;
+    font-family: var(--font-ui);
+    text-align: center;
+}
+
+.pix-waiting-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+    background: var(--orange);
+    animation: pixWaitingPulse 1.4s ease-in-out infinite;
+}
+
+.pix-payment-status[data-status="approved"] {
+    color: #19734f;
+    font-weight: 600;
+}
+
+.pix-security-note {
+    margin: 18px 0 0;
+    color: #78827f;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+@keyframes pixWaitingPulse {
+    50% { opacity: .35; transform: scale(.8); }
+}
+
+@media (max-width: 700px) {
+    .checkout-page { padding: 50px 20px 76px; }
+    .payment-choice-grid { grid-template-columns: minmax(0, 380px); }
+    .payment-choice-card { min-height: 290px; padding: 24px; }
+    .pix-payment-panel { padding: 24px 18px; }
+}

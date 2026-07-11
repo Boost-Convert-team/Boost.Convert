@@ -72,6 +72,7 @@ def export_user_data(usuario):
                 "premium_expires_at": payment.premium_expires_at.isoformat()
                 if payment.premium_expires_at
                 else None,
+                "approved_at": payment.approved_at.isoformat() if payment.approved_at else None,
             }
             for payment in Payment.query.filter_by(user_id=usuario.id).all()
         ],

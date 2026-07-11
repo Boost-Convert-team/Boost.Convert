@@ -5,6 +5,14 @@
                 <img class="brand-logo" src="{{ url_for('static', filename='img/boost-convert-logo-clean.webp') }}" width="1280" height="256" alt="BoostConvert" loading="lazy" decoding="async">
             </a>
             <p>Convers&otilde;es de arquivos com uma experi&ecirc;ncia calma, r&aacute;pida e organizada.</p>
+            <div class="footer-contact-links" aria-label="Redes sociais e contato">
+                <a class="footer-contact-icon" href="https://www.instagram.com/boost.convert/" target="_blank" rel="noopener noreferrer" aria-label="Instagram da BoostConvert" title="Instagram">
+                    <img src="{{ url_for('static', filename='img/icon-instagram-orange.jpg') }}" alt="" aria-hidden="true">
+                </a>
+                <a class="footer-contact-icon" href="mailto:boostconvertsuporte@gmail.com" aria-label="Enviar e-mail para o suporte da BoostConvert" title="boostconvertsuporte@gmail.com">
+                    <i data-lucide="mail" aria-hidden="true"></i>
+                </a>
+            </div>
         </section>
 
         <nav class="footer-links" aria-label="Produto">
@@ -12,7 +20,6 @@
             <a href="{{ url_for('home.tools') }}">Ferramentas</a>
             <a href="{{ url_for('main.planos') }}">Planos</a>
             <a href="{{ url_for('home.guides_index') }}">Guias</a>
-            <a href="{{ url_for('home.blog_index') }}">Blog</a>
             <a href="{{ url_for('home.sobre') }}">Sobre n&oacute;s</a>
         </nav>
 
@@ -25,16 +32,12 @@
             <a href="{{ url_for('home.audio_tools') }}">&Aacute;udios</a>
         </nav>
 
-        <nav class="footer-links footer-social-links" aria-label="Confian&ccedil;a e contato">
+        <nav class="footer-links" aria-label="Confian&ccedil;a">
             <h2>Confian&ccedil;a</h2>
             <a href="{{ url_for('home.security_page') }}">Seguran&ccedil;a de arquivos</a>
             <a href="{{ url_for('home.privacy_page') }}">Privacidade</a>
             <a href="{{ url_for('home.terms_page') }}">Termos de uso</a>
             <a href="{{ url_for('home.contact_page') }}">Contato</a>
-            <a class="footer-social-link" href="https://www.instagram.com/boost.convert/" target="_blank" rel="noopener noreferrer" aria-label="Instagram da Boost.Convert">
-                <span><img src="{{ url_for('static', filename='img/icon-instagram-orange.jpg') }}" alt="" aria-hidden="true"></span>
-                Instagram
-            </a>
         </nav>
     </div>
 

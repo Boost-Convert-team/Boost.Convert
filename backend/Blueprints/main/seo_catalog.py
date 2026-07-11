@@ -21,7 +21,7 @@ from typing import Any, Literal, Mapping
 
 
 SeoStatus = Literal["draft", "indexable", "noindex", "retired"]
-UPDATED_AT = date(2026, 7, 10)
+UPDATED_AT = date(2026, 7, 11)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +81,29 @@ class ToolSeo:
     @property
     def path(self) -> str:
         return f"/tools/{self.slug}"
+
+    # Public vocabulary used by the content workflow. The stored field names
+    # stay backward compatible with the existing rendering layer.
+    @property
+    def categoria(self) -> str:
+        return self.category
+
+    @property
+    def meta_description(self) -> str:
+        return self.description
+
+    @property
+    def beneficios(self) -> tuple[str, ...]:
+        return self.benefits
+
+    @property
+    def como_usar(self) -> tuple[HowToStep, ...]:
+        return self.how_to
+
+
+# Canonical name for the independent SEO content layer. ``ToolSeo`` remains
+# available so current integrations do not need an architectural refactor.
+ToolSEO = ToolSeo
 
 
 @dataclass(frozen=True, slots=True)
@@ -1070,6 +1093,62 @@ _TOOL_SEO = {
         ),
         related_tools=("jpg-to-png", "png-to-webp", "webp-to-jpg", "webp-to-png", "png-to-jpg"),
         related_guides=("jpg-vs-png-vs-webp",),
+        updated_at=UPDATED_AT,
+        status="indexable",
+    ),
+    "webp-to-jpg": ToolSeo(
+        slug="webp-to-jpg",
+        category="images",
+        title="Converter WebP para JPG Online Grátis | BoostConvert",
+        description=(
+            "Converta imagens WebP para JPG online e escolha a qualidade JPEG. Crie uma "
+            "saída compatível com aplicativos e formulários que ainda não aceitam WebP."
+        ),
+        h1="Converter WebP para JPG Online",
+        intro=(
+            "Transforme uma imagem WebP em JPG quando o programa, formulário ou dispositivo "
+            "de destino não aceitar o formato original. A ferramenta gera uma nova imagem e "
+            "mantém o arquivo WebP original inalterado."
+        ),
+        how_to=_steps(
+            "Selecione uma imagem com extensão WebP.",
+            "Baixe o JPG e confira cores, fundo e nível de detalhe antes de compartilhar.",
+        ),
+        benefits=(
+            "Cria uma imagem JPG aceita por uma ampla variedade de aplicativos.",
+            "Mantém as dimensões visuais durante a troca de formato.",
+            "Permite escolher a qualidade JPEG disponível na ferramenta.",
+            "Preserva o perfil de cores quando ele está disponível para o processamento.",
+        ),
+        technical_notes=(
+            "A imagem WebP é decodificada e salva como JPEG.",
+            "JPG não oferece transparência e usa compressão com perdas.",
+            "Áreas transparentes são compostas sobre um fundo sólido na saída.",
+        ),
+        accepted_formats=("WEBP",),
+        output_formats=("JPG",),
+        limitations=(
+            "Animações WebP não podem ser representadas em uma única imagem JPG.",
+            "Transparência não existe no formato JPG e será substituída por um fundo sólido.",
+            "A conversão não aumenta a resolução nem recupera detalhes ausentes.",
+        ),
+        security=_COMMON_SECURITY,
+        faq=_faq(
+            (
+                "Por que converter WebP para JPG?",
+                "JPG ainda é exigido por alguns aplicativos, editores e formulários. A conversão ajuda quando o destino não aceita WebP.",
+            ),
+            (
+                "O que acontece com a transparência do WebP?",
+                "JPG não suporta canal alfa. As áreas transparentes precisam ser compostas sobre um fundo sólido na imagem resultante.",
+            ),
+            (
+                "Um WebP animado continua animado em JPG?",
+                "Não. JPG representa uma imagem estática e não preserva a animação do arquivo WebP.",
+            ),
+        ),
+        related_tools=("jpg-to-webp", "webp-to-png", "png-to-jpg", "jpg-to-png", "images-to-pdf"),
+        related_guides=("jpg-vs-png-vs-webp", "como-transformar-jpg-em-pdf"),
         updated_at=UPDATED_AT,
         status="indexable",
     ),
