@@ -363,16 +363,17 @@ def test_free_file_count_limit(client, samples):
         f"status={ok_response.status_code}",
     )
 
-    blocked_response = post_files(
+    upgrade_response = post_files(
         client,
         "/convert/txt-to-docx",
         [samples["txt"], samples["txt"], samples["txt"]],
     )
     record(
         "/convert/txt-to-docx",
-        "free_three_files_blocked",
-        blocked_response.status_code == 400,
-        f"status={blocked_response.status_code}, body={blocked_response.data[:120]!r}",
+        "free_three_files_requires_upgrade",
+        upgrade_response.status_code in (302, 303)
+        and upgrade_response.headers.get("Location", "").endswith("/planos"),
+        f"status={upgrade_response.status_code}, location={upgrade_response.headers.get('Location', '')}",
     )
 
 def test_error_message_sanitizer():

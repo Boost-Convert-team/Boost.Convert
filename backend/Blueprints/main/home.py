@@ -201,6 +201,7 @@ def build_tool_page_seo(tool, slug):
     record_data = as_serializable_dict(record)
     functional_index = get_functional_tool_index()
     related_tools = [resolve_tool_card(item, functional_index) for item in record.related_tools]
+    related_guides = [resolve_guide_card(item) for item in record.related_guides]
     category = get_hub_seo(record.category)
     breadcrumbs = breadcrumb_items(
         ("Início", "/"),
@@ -234,6 +235,7 @@ def build_tool_page_seo(tool, slug):
         security_text=list(record.security),
         faqs=record_data["faq"],
         related_tools=[item for item in related_tools if item],
+        related_guides=[item for item in related_guides if item],
         breadcrumbs=breadcrumbs,
         updated_at=record.updated_at.isoformat(),
         status=record.status,
@@ -339,20 +341,6 @@ def robots_txt():
         [
             "User-agent: *",
             "Allow: /",
-            "Disallow: /api/",
-            "Disallow: /checkout/",
-            "Disallow: /checkout-pro",
-            "Disallow: /checkout-pix",
-            "Disallow: /convert/",
-            "Disallow: /conversions/",
-            "Disallow: /conta",
-            "Disallow: /dashboard",
-            "Disallow: /login",
-            "Disallow: /logout",
-            "Disallow: /registrar",
-            "Disallow: /cadastro",
-            "Disallow: /webhook",
-            "Disallow: /webhooks/",
             f"Sitemap: {public_url('/sitemap.xml')}",
             "",
         ]

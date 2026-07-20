@@ -14,7 +14,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
-from Blueprints.main.seo_catalog import GUIDES
+from Blueprints.main.seo_catalog import GUIDES, TOOL_SEO
 from config import Config
 from extensions import db
 
@@ -86,6 +86,8 @@ class SeoHtmlParser(HTMLParser):
         self.title_parts: list[str] = []
         self.json_ld: list[dict | list] = []
         self._in_title = False
+        self._in_h1 = False
+        self.h1_parts: list[list[str]] = []
         self._in_json_ld = False
         self._json_ld_parts: list[str] = []
 
@@ -101,6 +103,9 @@ class SeoHtmlParser(HTMLParser):
                 self.meta[key] = attributes.get("content", "")
         elif tag.lower() == "title":
             self._in_title = True
+        elif tag.lower() == "h1":
+            self._in_h1 = True
+            self.h1_parts.append([])
         elif tag.lower() == "script" and attributes.get("type", "").lower() == "application/ld+json":
             self._in_json_ld = True
             self._json_ld_parts = []
@@ -108,12 +113,16 @@ class SeoHtmlParser(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self._in_title:
             self.title_parts.append(data)
+        if self._in_h1 and self.h1_parts:
+            self.h1_parts[-1].append(data)
         if self._in_json_ld:
             self._json_ld_parts.append(data)
 
     def handle_endtag(self, tag: str) -> None:
         if tag.lower() == "title":
             self._in_title = False
+        elif tag.lower() == "h1":
+            self._in_h1 = False
         elif tag.lower() == "script" and self._in_json_ld:
             payload = "".join(self._json_ld_parts).strip()
             if payload:
@@ -124,6 +133,10 @@ class SeoHtmlParser(HTMLParser):
     @property
     def title(self) -> str:
         return " ".join("".join(self.title_parts).split())
+
+    @property
+    def h1(self) -> list[str]:
+        return [" ".join("".join(parts).split()) for parts in self.h1_parts]
 
 
 def parse_html(document: str) -> SeoHtmlParser:
@@ -238,11 +251,13 @@ class SeoContractTests(unittest.TestCase):
         return entries
 
     def test_home_canonical_and_global_schemas(self) -> None:
-        _response, parsed = self.assert_indexable_page("/")
+        response, parsed = self.assert_indexable_page("/")
         types = schema_types(schema_nodes(parsed.json_ld))
 
         self.assertIn("Organization", types)
         self.assertIn("WebSite", types)
+        self.assertEqual(["Converta arquivos online."], parsed.h1)
+        self.assertNotIn("Converta arquivos em online", response.get_data(as_text=True))
 
     def test_canonical_is_independent_from_request_host_and_scheme(self) -> None:
         response = self.client.get(
@@ -292,7 +307,7 @@ class SeoContractTests(unittest.TestCase):
         sitemap_paths = {urlsplit(location).path for location in entries}
         self.assertTrue(expected_paths.issubset(sitemap_paths), expected_paths - sitemap_paths)
 
-    def test_robots_declares_public_access_runtime_blocks_and_sitemap(self) -> None:
+    def test_robots_allows_noindex_responses_to_be_crawled_and_declares_sitemap(self) -> None:
         response = self.client.get("/robots.txt")
         body = response.get_data(as_text=True)
 
@@ -300,8 +315,7 @@ class SeoContractTests(unittest.TestCase):
         self.assertEqual("text/plain", response.mimetype)
         self.assertIn("User-agent: *", body)
         self.assertIn("Allow: /", body)
-        for path in ("/api/", "/checkout/", "/convert/", "/webhook"):
-            self.assertIn(f"Disallow: {path}", body)
+        self.assertNotIn("Disallow:", body)
         self.assertIn(f"Sitemap: {PUBLIC_ORIGIN}/sitemap.xml", body)
         self.assertNotIn("http://boostconvert.com.br", body)
         self.assertNotIn("www.boostconvert.com.br", body)
@@ -348,7 +362,6 @@ class SeoContractTests(unittest.TestCase):
 
                 document = _response.get_data(as_text=True)
                 self.assertNotIn("Informações técnicas", document)
-                self.assertNotIn("Guias relacionados", document)
 
                 breadcrumb = next(node for node in nodes if node.get("@type") == "BreadcrumbList")
                 self.assertGreaterEqual(len(breadcrumb.get("itemListElement", [])), 3)
@@ -399,12 +412,37 @@ class SeoContractTests(unittest.TestCase):
                     if parsed.path.startswith(("/tools/", "/guides/")):
                         page_links.add(parsed.path)
             self.assertTrue(page_links, f"{path} must expose related tools or guides")
+            if TOOL_SEO[slug].related_guides:
+                self.assertTrue(
+                    any(link.startswith("/guides/") for link in page_links),
+                    f"{path} must link to a related guide",
+                )
             related_paths.update(page_links)
 
         for path in sorted(related_paths):
             with self.subTest(related_path=path):
                 response = self.client.get(path)
                 self.assertEqual(200, response.status_code, f"broken related link: {path}")
+
+    def test_every_sitemap_page_has_unique_metadata_canonical_brand_and_one_h1(self) -> None:
+        titles: dict[str, str] = {}
+        descriptions: dict[str, str] = {}
+
+        for location in self.sitemap_entries():
+            path = urlsplit(location).path
+            with self.subTest(path=path):
+                _response, parsed = self.assert_indexable_page(path)
+                self.assertEqual(1, len(parsed.h1), f"{path} must expose exactly one H1")
+                self.assertNotIn("Boost.Convert", parsed.title)
+                self.assertNotIn("Boost.Convert", parsed.meta["description"])
+                self.assertNotIn(parsed.title, titles, f"duplicate title with {titles.get(parsed.title)}")
+                self.assertNotIn(
+                    parsed.meta["description"],
+                    descriptions,
+                    f"duplicate description with {descriptions.get(parsed.meta['description'])}",
+                )
+                titles[parsed.title] = path
+                descriptions[parsed.meta["description"]] = path
 
 
 if __name__ == "__main__":
