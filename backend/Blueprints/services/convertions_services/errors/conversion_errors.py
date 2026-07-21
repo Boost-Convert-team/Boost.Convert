@@ -286,9 +286,18 @@ def is_ffmpeg_error(error: BaseException) -> bool:
 
 
 def is_safe_runtime_message(message: str) -> bool:
-    safe_prefixes = ("Erro de conexao com a IA:", "Erro na IA:", "Configure OPENROUTER_API_KEY")
-    safe_messages = {"A transcricao voltou vazia.", "Configure OPENROUTER_API_KEY para usar esta ferramenta.", "Informe um texto para adicionar ao PDF.", "Pagina informada nao existe no PDF.", "Informe a senha do PDF.", "Informe uma senha para proteger o PDF.", "Senha do PDF invalida.", "Rotacao invalida.", "Nao encontrei imagens incorporadas neste PDF.", "Nao foi possivel converter este arquivo com LibreOffice. Verifique se o arquivo abre normalmente e tente novamente."}
-    return message in safe_messages or any(message.startswith(prefix) for prefix in safe_prefixes)
+    safe_messages = {
+        "Informe um texto para adicionar ao PDF.",
+        "Pagina informada nao existe no PDF.",
+        "Informe a senha do PDF.",
+        "Informe uma senha para proteger o PDF.",
+        "Senha do PDF invalida.",
+        "Rotacao invalida.",
+        "Nao encontrei imagens incorporadas neste PDF.",
+        "Nao foi possivel converter este arquivo com LibreOffice. "
+        "Verifique se o arquivo abre normalmente e tente novamente.",
+    }
+    return message in safe_messages
 
 
 def clean_error_message(message: str) -> str:

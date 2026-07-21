@@ -3,8 +3,14 @@ from collections.abc import Mapping
 from os import PathLike
 from typing import Union
 
-from Blueprints.services.convertions_services.conversion_option_values import get_h264_crf, get_h264_preset
-from Blueprints.services.convertions_services.ffmpeg_runner import FFmpegArgument, run_ffmpeg_with_fallback
+from Blueprints.services.convertions_services.conversion_rules.conversion_option_values import (
+    get_h264_crf,
+    get_h264_preset,
+)
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import (
+    FFmpegArgument,
+    run_ffmpeg_with_fallback,
+)
 
 
 VideoPath = Union[str, PathLike[str]]

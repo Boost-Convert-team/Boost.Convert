@@ -1,5 +1,7 @@
-from Blueprints.services.convertions_services.conversion_option_values import get_audio_bitrate
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.conversion_rules.conversion_option_values import (
+    get_audio_bitrate,
+)
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import run_ffmpeg
 
 
 def convert_ogg_mp3(input_path, output_path, options=None):

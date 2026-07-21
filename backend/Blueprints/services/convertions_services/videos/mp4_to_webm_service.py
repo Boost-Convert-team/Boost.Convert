@@ -1,5 +1,7 @@
-from Blueprints.services.convertions_services.conversion_option_values import get_vp9_crf
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.conversion_rules.conversion_option_values import (
+    get_vp9_crf,
+)
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import run_ffmpeg
 
 
 DEFAULT_WEBM_QUALITY = "balanced"

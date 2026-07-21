@@ -1,5 +1,7 @@
-from Blueprints.services.convertions_services.conversion_option_values import get_sample_rate
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.conversion_rules.conversion_option_values import (
+    get_sample_rate,
+)
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import run_ffmpeg
 
 
 def convert_mp4_wav(input_path, output_path, options=None):

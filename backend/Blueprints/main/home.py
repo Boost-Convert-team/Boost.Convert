@@ -15,7 +15,6 @@ from Blueprints.main.seo_catalog import (
     GUIDES,
     UPDATED_AT,
     as_serializable_dict,
-    get_guide_seo,
     get_hub_seo,
     get_page_seo,
     get_tool_seo,
@@ -31,7 +30,9 @@ from Blueprints.main.seo_helpers import (
     website_schema,
 )
 from Blueprints.main.tools_registry import TOOLS
-from Blueprints.services.convertions_services.conversion_options import get_conversion_options
+from Blueprints.services.convertions_services.conversion_rules.conversion_options import (
+    get_conversion_options,
+)
 from Blueprints.services.convertions_services.conversion_rules.conversion_limits import get_tool_limit_info
 
 home_bp = Blueprint("home", __name__)

@@ -11,8 +11,6 @@ def create_simple_converter_blueprint(route):
     )
     return blueprint
 
-def create_simple_converter_blueprints(routes): return [create_simple_converter_blueprint(route) for route in routes]
-
 def create_simple_converter_view(route):
     def converter_view():
         return handle_conversion(

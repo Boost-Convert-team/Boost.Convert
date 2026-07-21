@@ -1,13 +1,15 @@
-from extensions import db
+import os
+
 from app import create_app
 from config import get_bool_env, should_auto_create_db
-import os
+from extensions import db
 
 app = create_app()
 
 if __name__ == "__main__":
-    if should_auto_create_db(app): 
-        with app.app_context(): db.create_all()
+    if should_auto_create_db(app):
+        with app.app_context():
+            db.create_all()
     app.run(
         host=os.getenv("HOST", "localhost"),
         port=int(os.getenv("PORT", "5001")),

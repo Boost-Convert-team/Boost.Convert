@@ -16,10 +16,12 @@ from app import create_app
 from config import Config
 from extensions import db
 from models import ConversionJob, Usuario
-import Blueprints.handlers.handler_convertions as conversion_handler
+import Blueprints.handlers.conversion_handlers as conversion_handler
 import Blueprints.services.convertions_services.upload_flow.job_submission as job_submission
-from Blueprints.services.convertions_services.job_queue import process_conversion_job
-from Blueprints.services.convertions_services.conversion_errors import get_user_friendly_conversion_error
+from Blueprints.services.convertions_services.errors.conversion_errors import (
+    get_user_friendly_conversion_error,
+)
+from Blueprints.services.convertions_services.runtime.job_queue import process_conversion_job
 
 RESULTS = []
 

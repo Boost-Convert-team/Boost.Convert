@@ -24,17 +24,6 @@ class ErrorPagesTests(unittest.TestCase):
         self.assertIn("Boost.Convert", html)
         self.assertIn("P\u00e1gina n\u00e3o encontrada", html)
 
-    def test_removed_external_downloader_routes_return_404(self) -> None:
-        removed_tool_path = "/tools/" + "".join(("you", "tube")) + "-download"
-        for path, method in (
-            (removed_tool_path, self.client.get),
-            (f"{removed_tool_path}/download", lambda url: self.client.post(url, data=self.csrf_data())),
-        ):
-            with self.subTest(path=path):
-                response = method(path)
-
-                self.assertEqual(response.status_code, 404)
-
     def test_api_missing_route_keeps_json_error(self) -> None:
         response = self.client.get("/api/rota-inexistente", headers={"Accept": "application/json"})
 

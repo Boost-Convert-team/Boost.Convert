@@ -187,18 +187,15 @@ AUDIO_BLUEPRINTS = (
     wma_mp3_bp,
 )
 
-TOOLS_BLUEPRINTS = ()
-
 ALL_BLUEPRINTS = (
     *MAIN_BLUEPRINTS,
     *DOCUMENT_BLUEPRINTS,
     *IMAGE_BLUEPRINTS,
     *VIDEO_BLUEPRINTS,
     *AUDIO_BLUEPRINTS,
-    *TOOLS_BLUEPRINTS,
 )
 
 
-def registrando_blueprints(app):
+def register_blueprints(app):
     for blueprint in ALL_BLUEPRINTS:
         app.register_blueprint(blueprint)

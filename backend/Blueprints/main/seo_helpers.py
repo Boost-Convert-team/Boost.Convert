@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from typing import Any, Iterable, Mapping
 from urllib.parse import urlsplit
@@ -56,20 +55,6 @@ def robots_for_path(path: str) -> str:
     ):
         return "noindex, follow"
     return "index, follow"
-
-
-def to_mapping(value: Any) -> dict[str, Any]:
-    if value is None:
-        return {}
-    if is_dataclass(value):
-        return asdict(value)
-    if isinstance(value, Mapping):
-        return dict(value)
-    return {
-        name: getattr(value, name)
-        for name in dir(value)
-        if not name.startswith("_") and not callable(getattr(value, name))
-    }
 
 
 def serialize_date(value: date | datetime | str | None) -> str | None:

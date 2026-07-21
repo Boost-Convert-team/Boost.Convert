@@ -1,5 +1,9 @@
-from Blueprints.services.convertions_services.conversion_option_values import get_gif_duration, get_gif_fps, get_gif_width
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.conversion_rules.conversion_option_values import (
+    get_gif_duration,
+    get_gif_fps,
+    get_gif_width,
+)
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import run_ffmpeg
 
 
 DEFAULT_GIF_DURATION_SECONDS = 10

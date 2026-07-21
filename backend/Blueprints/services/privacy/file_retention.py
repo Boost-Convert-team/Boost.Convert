@@ -26,18 +26,10 @@ def get_conversion_retention_minutes(app):
     return get_config_int(app, "CONVERSION_FILE_RETENTION_MINUTES", 15)
 
 
-def get_ai_transcript_retention_minutes(app):
-    return get_config_int(app, "AI_TRANSCRIPT_RETENTION_MINUTES", 15)
-
-
 def get_conversions_root(app):
     root = os.path.abspath(os.path.join(app.instance_path, "conversions"))
     os.makedirs(root, exist_ok=True)
     return root
-
-
-def get_ai_transcripts_root(app):
-    return Path(app.instance_path) / "ai_tools" / "transcripts"
 
 
 def cleanup_expired_conversion_files(app):
@@ -58,25 +50,6 @@ def cleanup_expired_conversion_files(app):
     changed = cleanup_orphan_conversion_directories(conversions_root, cutoff) or changed
     if changed:
         db.session.commit()
-
-
-def cleanup_expired_ai_transcripts(app):
-    transcript_root = get_ai_transcripts_root(app)
-    if not transcript_root.exists():
-        return
-
-    cutoff_timestamp = (
-        utc_now() - timedelta(minutes=get_ai_transcript_retention_minutes(app))
-    ).timestamp()
-
-    for path in transcript_root.iterdir():
-        if not path.is_file():
-            continue
-        try:
-            if path.stat().st_mtime < cutoff_timestamp:
-                path.unlink()
-        except OSError:
-            pass
 
 
 def expire_conversion_job_files(app, job_id):

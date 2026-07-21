@@ -14,7 +14,9 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
 from Blueprints.main.downloads import get_safe_download_path
-from Blueprints.services.convertions_services.conversion_limits import validate_upload_size
+from Blueprints.services.convertions_services.conversion_rules.conversion_limits import (
+    validate_upload_size,
+)
 from Blueprints.services.convertions_services.documents.files_to_zip_service import secure_archive_filename
 from Blueprints.services.convertions_services.runtime import ffmpeg_runner
 from Blueprints.services.convertions_services.upload_flow.job_factory import create_single_conversion_job

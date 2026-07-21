@@ -1,7 +1,9 @@
 from flask import current_app, redirect, url_for
 from extensions import db
 from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
-from Blueprints.services.convertions_services.conversion_limits import validate_multi_file_count
+from Blueprints.services.convertions_services.conversion_rules.conversion_limits import (
+    validate_multi_file_count,
+)
 from Blueprints.services.convertions_services.upload_flow.job_factory import create_file_collection_job, create_pdf_collection_job, create_single_conversion_job
 from Blueprints.services.convertions_services.upload_flow.job_submission import submit_jobs
 from Blueprints.services.convertions_services.upload_flow.request_context import get_conversion_request_context, get_uploaded_files

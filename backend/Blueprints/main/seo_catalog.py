@@ -1601,25 +1601,10 @@ def get_hub_seo(key: str) -> CategorySeo:
     return CATEGORIES[str(key).strip().lower()]
 
 
-def get_guide_seo(slug: str) -> GuideSeo:
-    """Return guide metadata by slug."""
-
-    normalized = str(slug or "").strip().lower().strip("/")
-    if normalized.startswith("guides/"):
-        normalized = normalized[len("guides/") :]
-    return GUIDES[normalized]
-
-
 def get_page_seo(key: str) -> PageSeo:
     """Return institutional or collection-page metadata by key."""
 
     return PAGES[str(key).strip().lower()]
-
-
-def iter_indexable_tools() -> tuple[ToolSeo, ...]:
-    """Return the explicit priority records currently approved for indexing."""
-
-    return tuple(item for item in TOOL_SEO.values() if item.status == "indexable")
 
 
 def as_serializable_dict(record: Any) -> dict[str, Any]:
@@ -1670,11 +1655,9 @@ __all__ = (
     "ToolSeo",
     "as_serializable_dict",
     "build_fallback_tool_seo",
-    "get_guide_seo",
     "get_hub_seo",
     "get_page_seo",
     "get_tool_seo",
-    "iter_indexable_tools",
     "normalize_slug",
     "public_url",
     "to_dict",

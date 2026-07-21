@@ -1,4 +1,4 @@
-from Blueprints.services.convertions_services.ffmpeg_runner import run_ffmpeg
+from Blueprints.services.convertions_services.runtime.ffmpeg_runner import run_ffmpeg
 
 
 def convert_wav_flac(input_path, output_path, options=None):

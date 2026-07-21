@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from flask import request
 from flask_login import current_user
-from Blueprints.services.convertions_services.conversion_options import sanitize_conversion_options
+from Blueprints.services.convertions_services.conversion_rules.conversion_options import (
+    sanitize_conversion_options,
+)
 from Blueprints.services.subscription.session_service import get_anonymous_session_id
 
 @dataclass

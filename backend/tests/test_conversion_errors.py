@@ -14,20 +14,6 @@ from Blueprints.services.convertions_services.errors.conversion_errors import (
 
 
 class ConversionErrorsTests(unittest.TestCase):
-    def test_openrouter_placeholder_message_reaches_ui(self) -> None:
-        message = "Configure OPENROUTER_API_KEY com uma chave real. Valor atual: prefixo 'cole_s', tamanho 24; esperado segredo da OpenRouter."
-
-        friendly_message = get_user_friendly_conversion_error(RuntimeError(message))
-
-        self.assertEqual(friendly_message, message)
-
-    def test_openrouter_model_status_message_reaches_ui(self) -> None:
-        message = "Erro na IA: status 404 no OpenRouter para modelo 'x/y:free'."
-
-        friendly_message = get_user_friendly_conversion_error(RuntimeError(message))
-
-        self.assertEqual(friendly_message, message)
-
     def test_empty_output_file_message_explains_next_step(self) -> None:
         friendly_error = build_friendly_conversion_error(RuntimeError("Arquivo final vazio."))
 
