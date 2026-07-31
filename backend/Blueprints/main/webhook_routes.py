@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
+from extensions import db
 from Blueprints.services.subscription.mercado_pago_service import (
     MercadoPagoError,
     process_mercado_pago_webhook,
@@ -25,6 +26,7 @@ def receive_mercado_pago_webhook():
     try:
         result = process_mercado_pago_webhook(payload)
     except MercadoPagoError as exc:
+        db.session.rollback()
         current_app.logger.warning("mercado_pago_webhook_processing_failed error=%s", exc)
         return jsonify({"ok": False, "error": str(exc)}), 502
 

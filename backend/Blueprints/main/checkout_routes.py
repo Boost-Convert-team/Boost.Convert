@@ -1,4 +1,16 @@
-from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
+from uuid import uuid4
+
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from Blueprints.services.subscription.mercado_pago_service import (
@@ -37,6 +49,7 @@ def checkout_pro_choice() -> Response:
         "checkout_pro.html",
         plan_name=PRO_PLAN_NAME,
         price=format_brl(get_plan_price()),
+        pix_idempotency_key=str(uuid4()),
     )
 
 
@@ -45,7 +58,11 @@ def checkout_pro_choice() -> Response:
 def create_pix_payment() -> tuple[Response, int]:
     """Create a pending Pix payment; access remains locked until its webhook."""
     try:
-        payment = create_mercado_pago_pix_payment(current_user)
+        payment = create_mercado_pago_pix_payment(
+            current_user,
+            request.form.get("pix_idempotency_key")
+            or request.headers.get("X-Idempotency-Key"),
+        )
     except MercadoPagoError as exc:
         current_app.logger.warning(
             "mercado_pago_pix_create_failed user_id=%s error=%s",
@@ -125,7 +142,10 @@ def checkout_credit_subscription() -> tuple[Response, int]:
 def checkout_pro() -> tuple[Response, int]:
     """Create a Checkout Pro preference for 30 days of BoostConvert PRO."""
     try:
-        checkout = create_one_time_checkout_preference(current_user)
+        checkout = create_one_time_checkout_preference(
+            current_user,
+            exclude_pix=request.path == "/checkout/pro",
+        )
     except MercadoPagoError as exc:
         current_app.logger.warning(
             "mercado_pago_checkout_preference_create_failed user_id=%s error=%s",

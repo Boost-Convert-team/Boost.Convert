@@ -162,7 +162,8 @@ body:has(.checkout-page) {
     resize: none;
 }
 
-.pix-copy-button {
+.pix-copy-button,
+.pix-payment-link {
     justify-content: center;
     width: 100%;
     margin-top: 12px;

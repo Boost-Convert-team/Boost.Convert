@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urljoin
@@ -14,13 +14,19 @@ from flask import current_app, request
 
 from extensions import db
 from models import PaymentWebhookEvent, Subscription, Usuario
+from Blueprints.services.subscription.subscription_service import (
+    ACTIVE_SUBSCRIPTION_STATUSES,
+    APPROVED_PAYMENT_STATUSES,
+    as_utc,
+    synchronize_user_pro_status,
+)
 
 
 MERCADO_PAGO_API_BASE_URL = "https://api.mercadopago.com"
 PROVIDER = "mercado_pago"
 EXTERNAL_REFERENCE_PREFIX = "boost:user:"
 PRO_PLAN_NAME = "BoostConvert PRO"
-ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
+PRO_PLAN_CODE = "BOOSTCONVERT_PRO"
 INACTIVE_SUBSCRIPTION_STATUSES = {
     "cancelled",
     "canceled",
@@ -29,7 +35,6 @@ INACTIVE_SUBSCRIPTION_STATUSES = {
     "expired",
     "inactive",
 }
-APPROVED_PAYMENT_STATUSES = {"approved", "processed"}
 FAILED_PAYMENT_STATUSES = {
     "cancelled",
     "canceled",
@@ -130,13 +135,23 @@ def dispatch_mercado_pago_webhook(
         invoice_data = get_authorized_payment(resource_id)
         preapproval_id = get_string(invoice_data, "preapproval_id")
         payment = invoice_data.get("payment") if isinstance(invoice_data.get("payment"), dict) else {}
-        payment_id = get_string(payment, "id") or get_string(invoice_data, "id")
-        payment_status = get_string(payment, "status") or get_string(invoice_data, "status")
+        payment_id = get_string(payment, "id")
 
         if preapproval_id:
             subscription_data = get_subscription(preapproval_id)
             subscription = upsert_subscription_from_provider_data(subscription_data, payment_id)
-            apply_payment_status(subscription, payment_status)
+            if payment_id:
+                from Blueprints.services.subscription.mercado_pago_payments_service import (
+                    process_confirmed_payment,
+                )
+
+                confirmed_payment = process_confirmed_payment(payment_id)
+                apply_payment_status(subscription, confirmed_payment.status)
+            else:
+                subscription.latest_payment_status = (
+                    get_string(payment, "status") or "pending"
+                )
+                synchronize_user_pro_status(subscription.user, persist=False)
             return MercadoPagoWebhookResult("processed", event_type, resource_id)
 
     if event_type == "payment":
@@ -164,11 +179,17 @@ def dispatch_mercado_pago_webhook(
 def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
     secret = current_app.config.get("MERCADO_PAGO_WEBHOOK_SECRET")
     if not secret:
-        return current_app.config.get("APP_ENV") not in {"production", "prod"}
+        current_app.logger.error("mercado_pago_webhook_secret_not_configured")
+        return False
 
     x_signature = request.headers.get("x-signature", "")
     x_request_id = request.headers.get("x-request-id", "")
     data_id = get_signature_data_id(payload)
+    payload_resource_id = extract_webhook_resource_id(payload)
+    if not x_signature or not x_request_id or not data_id:
+        return False
+    if payload_resource_id and payload_resource_id != data_id:
+        return False
     return validate_signature_parts(x_signature, x_request_id, data_id, secret)
 
 
@@ -205,7 +226,7 @@ def parse_signature_header(x_signature: str) -> dict[str, str]:
 def build_webhook_manifest(data_id: str, x_request_id: str, ts: str) -> str:
     manifest = ""
     if data_id:
-        manifest += f"id:{data_id};"
+        manifest += f"id:{data_id.lower()};"
     if x_request_id:
         manifest += f"request-id:{x_request_id};"
     if ts:
@@ -312,6 +333,12 @@ def upsert_subscription_from_provider_data(
         auto_recurring = {}
 
     subscription.user_id = user.id
+    subscription.external_reference = (
+        get_string(provider_data, "external_reference")
+        or subscription.external_reference
+        or build_external_reference(user.id)
+    )
+    subscription.plan = subscription.plan or PRO_PLAN_CODE
     subscription.status = get_string(provider_data, "status") or "pending"
     subscription.provider_payment_id = provider_payment_id or subscription.provider_payment_id
     subscription.amount = parse_decimal(auto_recurring.get("transaction_amount"))
@@ -326,31 +353,38 @@ def upsert_subscription_from_provider_data(
 def apply_subscription_status(user: Usuario, subscription: Subscription) -> None:
     status = subscription.status.lower()
     if status in ACTIVE_SUBSCRIPTION_STATUSES:
-        user.plano = "pro"
-        user.status_assinatura = "active"
         subscription.started_at = subscription.started_at or utc_now()
         subscription.canceled_at = None
+        synchronize_user_pro_status(user, persist=False)
         return
 
     if status in INACTIVE_SUBSCRIPTION_STATUSES:
-        user.plano = "free"
-        user.status_assinatura = "inactive"
         subscription.canceled_at = subscription.canceled_at or utc_now()
+        synchronize_user_pro_status(user, persist=False)
 
 
 def apply_payment_status(subscription: Subscription, payment_status: str) -> None:
     status = payment_status.lower()
+    subscription.latest_payment_status = status
     if status in APPROVED_PAYMENT_STATUSES:
-        subscription.user.plano = "pro"
-        subscription.user.status_assinatura = "active"
         subscription.started_at = subscription.started_at or utc_now()
+        paid_through_at = get_subscription_paid_through_at(subscription)
+        current_paid_through = as_utc(subscription.paid_through_at)
+        if current_paid_through is None or current_paid_through < paid_through_at:
+            subscription.paid_through_at = paid_through_at
+        synchronize_user_pro_status(subscription.user, persist=False)
         return
 
     if status in FAILED_PAYMENT_STATUSES:
-        subscription.status = f"payment_{status}"
-        subscription.user.plano = "free"
-        subscription.user.status_assinatura = "inactive"
-        subscription.canceled_at = subscription.canceled_at or utc_now()
+        synchronize_user_pro_status(subscription.user, persist=False)
+
+
+def get_subscription_paid_through_at(subscription: Subscription) -> datetime:
+    now = utc_now()
+    next_payment_at = as_utc(subscription.next_payment_at)
+    if next_payment_at is not None and next_payment_at > now:
+        return next_payment_at
+    return now + timedelta(days=30)
 
 
 def find_user_for_subscription(
@@ -412,7 +446,7 @@ def extract_webhook_resource_id(payload: dict[str, Any]) -> str:
 
 
 def extract_webhook_event_id(payload: dict[str, Any]) -> str:
-    event_id = payload.get("id") or request.headers.get("x-request-id", "")
+    event_id = request.headers.get("x-request-id", "") or payload.get("id")
     return str(event_id).strip() if event_id else ""
 
 

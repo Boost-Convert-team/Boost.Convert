@@ -50,26 +50,42 @@ class PixPaymentServiceTests(unittest.TestCase):
                 "payment_type_id": "bank_transfer",
                 "transaction_amount": "19.90",
                 "currency_id": "BRL",
+                "date_created": "2026-07-31T10:15:00Z",
+                "metadata": {"user_id": user.id, "plan": "BOOSTCONVERT_PRO"},
                 "point_of_interaction": {
                     "transaction_data": {
                         "qr_code": "000201-pix-copy-code",
                         "qr_code_base64": "cXItY29kZQ==",
+                        "ticket_url": "https://www.mercadopago.com.br/payments/pay_pix_pending/ticket",
                     }
                 },
             }
+            idempotency_key = "11111111-2222-4333-8444-555555555555"
 
             with patch(
                 "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
                 return_value=provider_data,
             ) as request_payment:
-                result = create_pix_payment(user)
+                result = create_pix_payment(user, idempotency_key)
+                repeated_result = create_pix_payment(user, idempotency_key)
 
             payment = Payment.query.filter_by(provider_payment_id="pay_pix_pending").one()
             self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
             self.assertIsNone(payment.premium_expires_at)
             self.assertIsNone(payment.approved_at)
             self.assertEqual(payment.pix_qr_code, "000201-pix-copy-code")
+            self.assertEqual(
+                payment.pix_ticket_url,
+                provider_data["point_of_interaction"]["transaction_data"]["ticket_url"],
+            )
+            self.assertEqual(payment.external_reference, f"boost:user:{user.id}")
+            self.assertEqual(payment.plan, "BOOSTCONVERT_PRO")
+            self.assertEqual(payment.idempotency_key, idempotency_key)
+            self.assertIsNotNone(payment.payment_created_at)
             self.assertEqual(result["payment_id"], "pay_pix_pending")
+            self.assertEqual(result["ticket_url"], payment.pix_ticket_url)
+            self.assertEqual(repeated_result, result)
+            self.assertEqual(request_payment.call_count, 1)
 
             _method, path = request_payment.call_args.args[:2]
             kwargs = request_payment.call_args.kwargs
@@ -77,7 +93,11 @@ class PixPaymentServiceTests(unittest.TestCase):
             self.assertEqual(kwargs["json_payload"]["payment_method_id"], "pix")
             self.assertEqual(kwargs["json_payload"]["transaction_amount"], 19.90)
             self.assertEqual(kwargs["json_payload"]["metadata"]["plan"], "BOOSTCONVERT_PRO")
-            self.assertIn("X-Idempotency-Key", kwargs["extra_headers"])
+            self.assertEqual(kwargs["extra_headers"]["X-Idempotency-Key"], idempotency_key)
+            self.assertEqual(
+                kwargs["json_payload"]["notification_url"],
+                "https://boostconvert.com.br/api/webhooks/mercadopago",
+            )
 
     def test_existing_card_checkout_pro_preference_is_preserved(self) -> None:
         with self.app.app_context(), self.app.test_request_context("/checkout/pro", method="POST"):
@@ -91,11 +111,15 @@ class PixPaymentServiceTests(unittest.TestCase):
                     "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
                 },
             ) as request_preference:
-                result = create_one_time_checkout_preference(user)
+                result = create_one_time_checkout_preference(user, exclude_pix=True)
 
             self.assertEqual(result["preference_id"], "pref_card_123")
             self.assertIn("mercadopago.com.br", result["checkout_url"])
             self.assertEqual(request_preference.call_args.args[:2], ("POST", "/checkout/preferences"))
+            excluded_types = request_preference.call_args.kwargs["json_payload"][
+                "payment_methods"
+            ]["excluded_payment_types"]
+            self.assertIn({"id": "bank_transfer"}, excluded_types)
 
 
 if __name__ == "__main__":

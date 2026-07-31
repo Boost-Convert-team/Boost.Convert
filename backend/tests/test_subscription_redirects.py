@@ -159,6 +159,11 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertIn("url_for('checkout.checkout_pro')", choice_template)
         self.assertIn('data-pix-payment-form', choice_template)
         self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
+        self.assertIn('name="pix_idempotency_key"', choice_template)
+        pix_template = (
+            BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pix.html"
+        ).read_text()
+        self.assertIn("payment.pix_ticket_url", pix_template)
         self.assertNotIn('href="https://pay.', template)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:

@@ -22,12 +22,30 @@
             <i data-lucide="copy" aria-hidden="true"></i>
             Copiar código Pix
         </button>
+        {% if payment.pix_ticket_url %}
+        <a class="button button-secondary pix-payment-link"
+           href="{{ payment.pix_ticket_url }}"
+           target="_blank"
+           rel="noopener noreferrer">
+            <i data-lucide="external-link" aria-hidden="true"></i>
+            Abrir link de pagamento Pix
+        </a>
+        {% endif %}
 
         <p class="pix-payment-status" data-pix-payment-status data-status="{{ payment.status }}" aria-live="polite">
+            {% if is_confirmed %}
+            Pagamento confirmado. Seu BoostConvert PRO está ativo.
+            {% elif payment.status|lower in ['rejected', 'cancelled', 'canceled', 'expired', 'refunded', 'charged_back'] %}
+            O pagamento não foi aprovado. Gere um novo Pix para tentar novamente.
+            {% else %}
             <span class="pix-waiting-dot" aria-hidden="true"></span>
             Aguardando confirmação do pagamento...
+            {% endif %}
         </p>
-        <a class="text-link" href="{{ url_for('home.conta') }}" data-pix-account-link hidden>Ir para minha conta</a>
+        <a class="text-link"
+           href="{{ url_for('home.conta') }}"
+           data-pix-account-link
+           {% if not is_confirmed %}hidden{% endif %}>Ir para minha conta</a>
         <p class="pix-security-note">O PRO será liberado somente após a confirmação real do Mercado Pago.</p>
     </section>
 </main>

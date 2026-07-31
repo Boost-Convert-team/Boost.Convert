@@ -31,11 +31,15 @@ class Subscription(db.Model):
     provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
+    external_reference = db.Column(db.String(255), nullable=True, index=True)
+    plan = db.Column(db.String(50), nullable=True, index=True)
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     amount = db.Column(db.Numeric(10, 2), nullable=True)
     currency = db.Column(db.String(10), nullable=True)
     started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     next_payment_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    paid_through_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    latest_payment_status = db.Column(db.String(50), nullable=True, index=True)
     canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
@@ -50,6 +54,11 @@ class Payment(db.Model):
             "provider_payment_id",
             name="uq_payments_provider_payment_id",
         ),
+        db.UniqueConstraint(
+            "provider",
+            "idempotency_key",
+            name="uq_payments_provider_idempotency_key",
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -57,14 +66,19 @@ class Payment(db.Model):
     provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
+    external_reference = db.Column(db.String(255), nullable=True, index=True)
+    plan = db.Column(db.String(50), nullable=True, index=True)
+    idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     payment_method = db.Column(db.String(50), nullable=False, index=True)
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     amount = db.Column(db.Numeric(10, 2), nullable=True)
     currency = db.Column(db.String(10), nullable=True)
     premium_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    payment_created_at = db.Column(db.DateTime(timezone=True), nullable=True)
     approved_at = db.Column(db.DateTime(timezone=True), nullable=True)
     pix_qr_code = db.Column(db.Text, nullable=True)
     pix_qr_code_base64 = db.Column(db.Text, nullable=True)
+    pix_ticket_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 

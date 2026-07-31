@@ -65,7 +65,10 @@
                 if (payload.approved) {
                     window.clearInterval(interval);
                     renderApprovedStatus(page, status);
-                } else if (["rejected", "cancelled", "canceled", "expired"].includes(payload.status)) {
+                } else if (
+                    ["rejected", "cancelled", "canceled", "expired", "refunded", "charged_back"]
+                        .includes(payload.status)
+                ) {
                     window.clearInterval(interval);
                     status.dataset.status = payload.status;
                     status.textContent = "O pagamento não foi aprovado. Gere um novo Pix para tentar novamente.";
