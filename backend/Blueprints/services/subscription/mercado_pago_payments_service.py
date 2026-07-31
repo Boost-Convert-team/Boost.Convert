@@ -52,14 +52,23 @@ CREATING_PAYMENT_STATUS = "creating"
 
 def create_one_time_checkout_preference(
     usuario: Usuario,
-    exclude_pix: bool = False,
+    credit_card_only: bool = False,
 ) -> dict[str, Any]:
     """Create a Checkout Pro preference where Mercado Pago renders payment methods."""
     price = get_plan_price()
     base_url = get_base_url()
     excluded_payment_types = [{"id": "ticket"}, {"id": "atm"}]
-    if exclude_pix:
-        excluded_payment_types.append({"id": "bank_transfer"})
+    if credit_card_only:
+        excluded_payment_types.extend(
+            {"id": payment_type}
+            for payment_type in (
+                "account_money",
+                "bank_transfer",
+                "debit_card",
+                "digital_currency",
+                "prepaid_card",
+            )
+        )
     payload = {
         "items": [
             {

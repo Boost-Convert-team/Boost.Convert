@@ -144,7 +144,7 @@ def checkout_pro() -> tuple[Response, int]:
     try:
         checkout = create_one_time_checkout_preference(
             current_user,
-            exclude_pix=request.path == "/checkout/pro",
+            credit_card_only=request.path == "/checkout/pro",
         )
     except MercadoPagoError as exc:
         current_app.logger.warning(

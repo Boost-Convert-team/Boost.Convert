@@ -111,7 +111,7 @@ class PixPaymentServiceTests(unittest.TestCase):
                     "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
                 },
             ) as request_preference:
-                result = create_one_time_checkout_preference(user, exclude_pix=True)
+                result = create_one_time_checkout_preference(user, credit_card_only=True)
 
             self.assertEqual(result["preference_id"], "pref_card_123")
             self.assertIn("mercadopago.com.br", result["checkout_url"])
@@ -119,7 +119,19 @@ class PixPaymentServiceTests(unittest.TestCase):
             excluded_types = request_preference.call_args.kwargs["json_payload"][
                 "payment_methods"
             ]["excluded_payment_types"]
-            self.assertIn({"id": "bank_transfer"}, excluded_types)
+            excluded_type_ids = {item["id"] for item in excluded_types}
+            self.assertEqual(
+                excluded_type_ids,
+                {
+                    "account_money",
+                    "atm",
+                    "bank_transfer",
+                    "debit_card",
+                    "digital_currency",
+                    "prepaid_card",
+                    "ticket",
+                },
+            )
 
 
 if __name__ == "__main__":
