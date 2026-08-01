@@ -1,7 +1,7 @@
 """remove PIX checkout fields
 
 Revision ID: f5a1c9d3e7b2
-Revises: c4a8e2f1b7d9
+Revises: e2f7a9c4d1b6
 Create Date: 2026-08-01 04:25:00.000000
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "f5a1c9d3e7b2"
-down_revision = "c4a8e2f1b7d9"
+down_revision = "e2f7a9c4d1b6"
 branch_labels = None
 depends_on = None
 

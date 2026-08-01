@@ -23,7 +23,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
         config = AlembicConfig(str(BACKEND_ROOT / "migrations" / "alembic.ini"))
         config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
         script = ScriptDirectory.from_config(config)
-        self.assertEqual(script.get_heads(), ["f5a1c9d3e7b2"])
+        self.assertEqual(script.get_heads(), ["a8d4e6f2c1b9"])
 
     def test_payment_migration_upgrades_and_downgrades_isolated_database(self) -> None:
         migrations_path = BACKEND_ROOT / "migrations"
