@@ -26,7 +26,9 @@ class SecurityMiddlewareTests(unittest.TestCase):
     def test_security_headers_are_present(self) -> None:
         response = self.client.get("/")
 
-        self.assertIn("Content-Security-Policy", response.headers)
+        content_security_policy = response.headers["Content-Security-Policy"]
+        self.assertIn("http2.mlstatic.com", content_security_policy)
+        self.assertIn("https://*.mercadolivre.com", content_security_policy)
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("geolocation=()", response.headers["Permissions-Policy"])

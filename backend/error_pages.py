@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, make_response, request
 from flask.typing import ResponseReturnValue
 from werkzeug.exceptions import HTTPException
 
@@ -28,8 +28,15 @@ def _handle_http_error(error: HTTPException) -> ResponseReturnValue:
     status_code = error.code or 500
     message = _get_http_error_message(status_code)
     if _wants_json_error():
-        return jsonify({"ok": False, "error": message}), status_code
-    return render_conversion_error_response(ValueError(message), status_code)
+        response = make_response(jsonify({"ok": False, "error": message}), status_code)
+    else:
+        response = make_response(
+            render_conversion_error_response(ValueError(message), status_code)
+        )
+    retry_after = getattr(error, "retry_after", None)
+    if status_code == 429 and retry_after is not None:
+        response.headers["Retry-After"] = str(retry_after)
+    return response
 
 
 def _get_http_error_message(status_code: int) -> str:

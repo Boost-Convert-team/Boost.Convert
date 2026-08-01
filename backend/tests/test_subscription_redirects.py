@@ -14,6 +14,7 @@ from app import create_app
 from Blueprints.main.checkout_routes import (
     checkout,
     checkout_credit_subscription,
+    checkout_pro_choice,
     create_card_payment as create_card_payment_route,
     create_pix_payment as create_pix_payment_route,
     legacy_checkout_disabled,
@@ -154,6 +155,24 @@ class SubscriptionRedirectTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("payment.pix_ticket_url", pix_template)
         self.assertNotIn('href="https://pay.', template)
+
+    def test_checkout_template_receives_only_the_public_mercado_pago_key(self) -> None:
+        public_key = "TEST-public-key-visible-in-browser"
+        access_token = "TEST-private-access-token-never-rendered"
+        self.app.config.update(
+            MERCADO_PAGO_PUBLIC_KEY=public_key,
+            MERCADO_PAGO_ACCESS_TOKEN=access_token,
+        )
+        with self.app.test_request_context("/checkout-pro"):
+            with patch(
+                "Blueprints.main.checkout_routes.current_user",
+                SimpleNamespace(id=42, email="payer@example.com"),
+            ):
+                rendered = checkout_pro_choice.__wrapped__()
+
+        self.assertIn(f'data-public-key="{public_key}"', rendered)
+        self.assertIn('id="cardPaymentBrick_container"', rendered)
+        self.assertNotIn(access_token, rendered)
 
     def test_upgrade_required_redirects_to_planos(self) -> None:
         with self.app.test_request_context("/convert/pdf-to-docx", method="POST"):

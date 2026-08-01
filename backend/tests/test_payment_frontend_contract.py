@@ -51,6 +51,15 @@ class PaymentFrontendContractTests(unittest.TestCase):
         content_position = self.template.index("{% block content %}")
         self.assertLess(sdk_position, content_position)
 
+    def test_card_initialization_errors_are_visible_and_controlled(self) -> None:
+        self.assertIn('reportCardPaymentError("initialization", error)', self.javascript)
+        self.assertIn('reportCardPaymentError("sdk", error)', self.javascript)
+        self.assertIn("Não foi possível iniciar o pagamento seguro por cartão.", self.javascript)
+        self.assertIn(
+            "catch (error) {\n            reportCardPaymentError(\"initialization\", error)",
+            self.javascript,
+        )
+
     def test_duplicate_submission_guard_is_reset_after_error(self) -> None:
         self.assertIn("if (cardSubmissionInFlight) return", self.javascript)
         self.assertIn("cardSubmissionInFlight = true", self.javascript)

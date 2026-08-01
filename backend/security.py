@@ -3,10 +3,13 @@ from __future__ import annotations
 import hmac
 import secrets
 from dataclasses import dataclass
+from math import ceil
 from time import monotonic
+from uuid import UUID
 
 from flask import Flask, Response, abort, current_app, redirect, request, session
 from flask_login import current_user
+from werkzeug.exceptions import TooManyRequests
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -26,7 +29,14 @@ class RateLimitRule:
     window_seconds: int
 
 
-RATE_LIMIT_HITS: dict[str, list[float]] = {}
+@dataclass(frozen=True)
+class RateLimitHit:
+    occurred_at: float
+    idempotency_token: str | None = None
+
+
+RATE_LIMIT_HITS: dict[str, list[RateLimitHit]] = {}
+RATE_LIMIT_RAW_HITS: dict[str, list[float]] = {}
 AUTH_RATE_LIMITS = {
     "auth.login": RateLimitRule(5, 300),
     "auth.registrar": RateLimitRule(5, 300),
@@ -40,6 +50,11 @@ ENDPOINT_RATE_LIMITS = {
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
+PAYMENT_CREATION_ENDPOINTS = {
+    "checkout.create_pix_payment",
+    "checkout.create_card_payment",
+}
+PAYMENT_CREATION_RAW_LIMIT = RateLimitRule(30, 60)
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
 
 # Runtime, account and processing URLs are useful to the product but have no
@@ -167,10 +182,32 @@ def enforce_rate_limit() -> None:
     rule = get_rate_limit_rule()
     if rule is None or not current_app.config.get("RATE_LIMIT_ENABLED", True):
         return
-    hits = get_recent_rate_limit_hits(get_rate_limit_key(), rule.window_seconds)
+
+    key = get_rate_limit_key()
+    now = monotonic()
+    if request.endpoint in PAYMENT_CREATION_ENDPOINTS:
+        raw_hits = get_recent_raw_rate_limit_hits(
+            key,
+            PAYMENT_CREATION_RAW_LIMIT.window_seconds,
+            now,
+        )
+        if len(raw_hits) >= PAYMENT_CREATION_RAW_LIMIT.max_requests:
+            raise_rate_limit(raw_hits, PAYMENT_CREATION_RAW_LIMIT.window_seconds, now)
+        raw_hits.append(now)
+
+    hits = get_recent_rate_limit_hits(key, rule.window_seconds, now)
+    idempotency_token = get_payment_idempotency_token()
+    if idempotency_token and any(
+        hit.idempotency_token == idempotency_token for hit in hits
+    ):
+        return
     if len(hits) >= rule.max_requests:
-        abort(429)
-    hits.append(monotonic())
+        raise_rate_limit(
+            [hit.occurred_at for hit in hits],
+            rule.window_seconds,
+            now,
+        )
+    hits.append(RateLimitHit(now, idempotency_token))
 
 
 def get_rate_limit_rule() -> RateLimitRule | None:
@@ -190,12 +227,53 @@ def get_rate_limit_key() -> str:
     return f"{client_id}:{endpoint_id}"
 
 
-def get_recent_rate_limit_hits(key: str, window_seconds: int) -> list[float]:
-    now = monotonic()
+def get_recent_rate_limit_hits(
+    key: str,
+    window_seconds: int,
+    now: float | None = None,
+) -> list[RateLimitHit]:
+    now = monotonic() if now is None else now
     cutoff = now - window_seconds
-    hits = [hit for hit in RATE_LIMIT_HITS.get(key, []) if hit >= cutoff]
+    hits = [
+        hit for hit in RATE_LIMIT_HITS.get(key, []) if hit.occurred_at >= cutoff
+    ]
     RATE_LIMIT_HITS[key] = hits
     return hits
+
+
+def get_recent_raw_rate_limit_hits(
+    key: str,
+    window_seconds: int,
+    now: float,
+) -> list[float]:
+    cutoff = now - window_seconds
+    hits = [hit for hit in RATE_LIMIT_RAW_HITS.get(key, []) if hit >= cutoff]
+    RATE_LIMIT_RAW_HITS[key] = hits
+    return hits
+
+
+def get_payment_idempotency_token() -> str | None:
+    if request.endpoint not in PAYMENT_CREATION_ENDPOINTS:
+        return None
+    raw_token = (
+        request.form.get("pix_idempotency_key")
+        or request.headers.get("X-Idempotency-Key")
+        or ""
+    ).strip()
+    try:
+        return str(UUID(raw_token))
+    except (ValueError, AttributeError):
+        return None
+
+
+def raise_rate_limit(hits: list[float], window_seconds: int, now: float) -> None:
+    retry_after = max(1, ceil((hits[0] + window_seconds) - now))
+    current_app.logger.warning(
+        "rate_limit_exceeded endpoint=%s retry_after=%s",
+        request.endpoint,
+        retry_after,
+    )
+    raise TooManyRequests(retry_after=retry_after)
 
 
 def clear_rate_limit_state() -> None:
@@ -204,6 +282,7 @@ def clear_rate_limit_state() -> None:
     Example: clear_rate_limit_state()
     """
     RATE_LIMIT_HITS.clear()
+    RATE_LIMIT_RAW_HITS.clear()
 
 
 def apply_security_headers(response: Response) -> Response:
@@ -239,9 +318,9 @@ def build_content_security_policy() -> str:
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com https://http2.mlstatic.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-        "img-src 'self' data: https://*.mercadopago.com https://*.mercadolibre.com",
+        "img-src 'self' data: https://*.mercadopago.com https://*.mercadolibre.com https://*.mercadolivre.com https://http2.mlstatic.com",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self' https://*.mercadopago.com https://*.mercadolibre.com",
+        "connect-src 'self' https://*.mercadopago.com https://*.mercadolibre.com https://http2.mlstatic.com",
         "frame-src https://*.mercadopago.com https://*.mercadolibre.com",
         "frame-ancestors 'none'",
         "base-uri 'self'",

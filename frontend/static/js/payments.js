@@ -1,6 +1,8 @@
 (function () {
     let cardBrickController = null;
     let cardBrickInitializing = false;
+    let cardBrickReady = false;
+    let cardBrickInitializationFailed = false;
     let cardSubmissionInFlight = false;
 
     function initPayments() {
@@ -17,21 +19,28 @@
         if (!config || !container) return;
         if (cardBrickController || cardBrickInitializing) return;
         const message = document.querySelector("[data-card-payment-message]");
+        const publicKey = String(config.dataset.publicKey || "").trim();
+        if (!publicKey) {
+            setMessage(message, "O pagamento por cartão está temporariamente indisponível.");
+            return;
+        }
         if (!window.MercadoPago) {
             setMessage(message, "Não foi possível carregar o pagamento seguro por cartão.");
             return;
         }
 
         cardBrickInitializing = true;
+        cardBrickReady = false;
+        cardBrickInitializationFailed = false;
         let idempotencyKey = config.dataset.idempotencyKey;
         try {
             const amount = Number(config.dataset.amount);
             if (!Number.isFinite(amount) || amount <= 0) {
                 throw new Error("Valor de pagamento inválido.");
             }
-            const mercadoPago = new window.MercadoPago(config.dataset.publicKey, { locale: "pt-BR" });
+            const mercadoPago = new window.MercadoPago(publicKey, { locale: "pt-BR" });
             const bricksBuilder = mercadoPago.bricks();
-            cardBrickController = await bricksBuilder.create("cardPayment", container.id, {
+            const controller = await bricksBuilder.create("cardPayment", container.id, {
                 initialization: {
                     amount,
                     payer: { email: config.dataset.payerEmail }
@@ -45,6 +54,7 @@
                 },
                 callbacks: {
                     onReady: () => {
+                        cardBrickReady = true;
                         container.dataset.brickReady = "true";
                         setMessage(message, "");
                     },
@@ -80,14 +90,26 @@
                             if (!redirecting) cardSubmissionInFlight = false;
                         }
                     },
-                    onError: () => {
-                        if (!message?.textContent) {
+                    onError: (error) => {
+                        reportCardPaymentError("sdk", error);
+                        if (!cardBrickReady) {
+                            cardBrickInitializationFailed = true;
+                            if (cardBrickController?.unmount) cardBrickController.unmount();
+                            cardBrickController = null;
+                            setMessage(message, "Não foi possível iniciar o pagamento seguro por cartão.");
+                        } else if (!message?.textContent) {
                             setMessage(message, "Não foi possível processar o cartão. Revise os dados e tente novamente.");
                         }
                     }
                 }
             });
-        } catch (_) {
+            if (cardBrickInitializationFailed) {
+                if (controller?.unmount) controller.unmount();
+            } else {
+                cardBrickController = controller;
+            }
+        } catch (error) {
+            reportCardPaymentError("initialization", error);
             setMessage(message, "Não foi possível iniciar o pagamento seguro por cartão.");
         } finally {
             cardBrickInitializing = false;
@@ -236,9 +258,16 @@
         if (message) message.textContent = text || "";
     }
 
+    function reportCardPaymentError(stage, error) {
+        const name = String(error?.name || "Error");
+        const detail = String(error?.message || error || "Falha desconhecida.");
+        console.error(`[BoostPayments] card ${stage}: ${name}: ${detail}`);
+    }
+
     window.addEventListener("pagehide", () => {
         if (cardBrickController?.unmount) cardBrickController.unmount();
         cardBrickController = null;
+        cardBrickReady = false;
     });
     window.BoostPayments = { initPayments };
 })();
