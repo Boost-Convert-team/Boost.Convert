@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from time import monotonic
 
 from flask import Flask, Response, abort, current_app, redirect, request, session
+from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -31,6 +32,7 @@ AUTH_RATE_LIMITS = {
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
+    "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
     "checkout.create_pix_payment": RateLimitRule(5, 60),
     "checkout.create_card_payment": RateLimitRule(5, 60),
     "checkout.pix_payment_status": RateLimitRule(30, 60),
@@ -180,8 +182,11 @@ def get_rate_limit_rule() -> RateLimitRule | None:
 
 
 def get_rate_limit_key() -> str:
-    client_id = request.remote_addr or "unknown"
     endpoint_id = request.endpoint or request.path
+    if endpoint_id.startswith("checkout.") and current_user.is_authenticated:
+        client_id = f"user:{current_user.get_id()}"
+    else:
+        client_id = request.remote_addr or "unknown"
     return f"{client_id}:{endpoint_id}"
 
 

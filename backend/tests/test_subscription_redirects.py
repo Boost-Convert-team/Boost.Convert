@@ -13,6 +13,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from app import create_app
 from Blueprints.main.checkout_routes import (
     checkout,
+    checkout_credit_subscription,
     create_card_payment as create_card_payment_route,
     create_pix_payment as create_pix_payment_route,
     legacy_checkout_disabled,
@@ -51,11 +52,25 @@ class SubscriptionRedirectTests(unittest.TestCase):
 
         self.assertEqual(checkout_response.location, "/planos")
 
-    def test_credit_subscription_is_disabled(self) -> None:
+    def test_original_credit_subscription_route_is_preserved(self) -> None:
+        subscription = {
+            "plan_name": "BoostConvert PRO",
+            "checkout_url": "https://www.mercadopago.com.br/subscriptions/checkout",
+            "subscription_id": "sub_original",
+            "status": "pending",
+        }
         with self.app.test_request_context("/checkout/credit-subscription", method="POST"):
-            response, status_code = legacy_checkout_disabled.__wrapped__()
-        self.assertEqual(status_code, 410)
-        self.assertIn("desativado", response.json["error"])
+            with patch(
+                "Blueprints.main.checkout_routes.current_user",
+                SimpleNamespace(id=42, email="subscriber@example.com"),
+            ), patch(
+                "Blueprints.main.checkout_routes.create_monthly_subscription",
+                return_value=subscription,
+            ) as create_subscription:
+                response, status_code = checkout_credit_subscription.__wrapped__()
+        self.assertEqual(status_code, 200)
+        self.assertEqual(response.json["subscription_id"], "sub_original")
+        create_subscription.assert_called_once()
 
     def test_card_api_returns_local_status_redirect(self) -> None:
         mercado_pago_response = {
@@ -131,7 +146,9 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertIn('data-pix-payment-form', choice_template)
         self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
         self.assertIn('name="pix_idempotency_key"', choice_template)
-        self.assertIn("sem renovação automática", choice_template)
+        self.assertIn("Assinar {{ plan_name }}", choice_template)
+        self.assertNotIn("sem renovação automática", choice_template)
+        self.assertNotIn("30 dias", choice_template)
         pix_template = (
             BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pix.html"
         ).read_text(encoding="utf-8")

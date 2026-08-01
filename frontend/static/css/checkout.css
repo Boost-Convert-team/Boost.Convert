@@ -101,10 +101,6 @@ body:has(.checkout-page) {
     margin-top: auto;
 }
 
-.payment-choice-card--card {
-    min-height: 520px;
-}
-
 .card-payment-brick {
     width: 100%;
     margin-top: auto;

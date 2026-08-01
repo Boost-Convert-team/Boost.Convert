@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.BoostForms?.initHeroUpload();
     window.BoostForms?.initLoadingForms();
     window.BoostForms?.initAuthToggle();
+    window.BoostPayments?.initPayments();
     initFaqAccordion();
     initConversionStatusPage();
     window.BoostNavigation?.initPageTransitions();

@@ -22,6 +22,7 @@ from Blueprints.services.subscription.mercado_pago_service import (
     MercadoPagoInvalidResponseError,
     MercadoPagoTimeoutError,
     PROVIDER,
+    create_monthly_subscription,
     get_plan_price,
 )
 from Blueprints.services.subscription.mercado_pago_payments_service import (
@@ -167,12 +168,37 @@ def card_payment_status(attempt_id: str) -> tuple[Response, int]:
 
 
 @checkout_bp.post("/checkout/credit-subscription")
+@login_required
+def checkout_credit_subscription() -> tuple[Response, int]:
+    """Create the original Mercado Pago monthly subscription."""
+    try:
+        subscription = create_monthly_subscription(current_user)
+    except MercadoPagoError as exc:
+        current_app.logger.warning(
+            "mercado_pago_subscription_create_failed user_id=%s error_type=%s",
+            getattr(current_user, "id", None),
+            type(exc).__name__,
+        )
+        return jsonify({"ok": False, "error": str(exc)}), 502
+
+    return jsonify(
+        {
+            "ok": True,
+            "provider": "mercado_pago",
+            "plan_name": subscription["plan_name"],
+            "checkout_url": subscription["checkout_url"],
+            "subscription_id": subscription["subscription_id"],
+            "status": subscription["status"],
+        }
+    ), 200
+
+
 @checkout_bp.post("/checkout/pix")
 @checkout_bp.post("/checkout/debit")
 @checkout_bp.post("/checkout/pro")
 @login_required
 def legacy_checkout_disabled() -> tuple[Response, int]:
-    """The product now exposes only independent one-time PIX/card endpoints."""
+    """Keep obsolete hosted-checkout endpoints out of the current payment UI."""
     return jsonify(
         {
             "ok": False,

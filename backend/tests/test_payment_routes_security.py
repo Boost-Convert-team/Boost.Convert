@@ -81,6 +81,20 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         service.assert_not_called()
 
+    def test_pix_endpoint_requires_csrf_even_when_authenticated(self) -> None:
+        self.login()
+        with patch(
+            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment"
+        ) as service:
+            response = self.client.post(
+                "/api/payment/pix",
+                data={
+                    "pix_idempotency_key": "11111111-2222-4333-8444-555555555555"
+                },
+            )
+        self.assertEqual(response.status_code, 400)
+        service.assert_not_called()
+
     def test_card_endpoint_accepts_only_json_and_uuid_idempotency(self) -> None:
         self.login()
         headers = self.csrf_headers()
@@ -287,9 +301,75 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         self.assertEqual(responses[-1].status_code, 429)
         self.assertEqual(service.call_count, 5)
 
-    def login(self) -> None:
+    def test_pix_endpoint_rate_limit_blocks_sixth_attempt(self) -> None:
+        self.login()
+        response_data = {
+            "ok": True,
+            "attempt_id": "11111111-2222-4333-8444-555555555555",
+            "payment_id": "pay_pix_rate_limited",
+            "status": "pending",
+            "approved": False,
+        }
+        with patch(
+            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+            return_value=response_data,
+        ) as service:
+            responses = [
+                self.client.post(
+                    "/api/payment/pix",
+                    data=self.pix_form(),
+                    environ_overrides={"REMOTE_ADDR": "203.0.113.10"},
+                )
+                for _index in range(6)
+            ]
+        self.assertEqual(responses[-1].status_code, 429)
+        self.assertEqual(service.call_count, 5)
+
+    def test_authenticated_users_do_not_share_pix_rate_limit_by_ip(self) -> None:
+        with self.app.app_context():
+            other = Usuario(
+                email="second-rate-user@example.com",
+                plano="free",
+                status_assinatura="inactive",
+            )
+            db.session.add(other)
+            db.session.commit()
+            other_user_id = other.id
+
+        response_data = {
+            "ok": True,
+            "attempt_id": "11111111-2222-4333-8444-555555555555",
+            "payment_id": "pay_pix_shared_ip",
+            "status": "pending",
+            "approved": False,
+        }
+        with patch(
+            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+            return_value=response_data,
+        ) as service:
+            self.login()
+            first_user_responses = [
+                self.client.post(
+                    "/api/payment/pix",
+                    data=self.pix_form(),
+                    environ_overrides={"REMOTE_ADDR": "203.0.113.20"},
+                )
+                for _index in range(5)
+            ]
+            self.login(other_user_id)
+            second_user_response = self.client.post(
+                "/api/payment/pix",
+                data=self.pix_form(),
+                environ_overrides={"REMOTE_ADDR": "203.0.113.20"},
+            )
+
+        self.assertTrue(all(response.status_code == 201 for response in first_user_responses))
+        self.assertEqual(second_user_response.status_code, 201)
+        self.assertEqual(service.call_count, 6)
+
+    def login(self, user_id: int | None = None) -> None:
         with self.client.session_transaction() as session:
-            session["_user_id"] = str(self.user_id)
+            session["_user_id"] = str(user_id or self.user_id)
             session["_fresh"] = True
 
     def csrf_headers(self) -> dict[str, str]:
@@ -306,6 +386,15 @@ class PaymentRouteSecurityTests(unittest.TestCase):
             "issuer_id": "123",
             "installments": 1,
             "payer": {"email": "route-card@example.com"},
+        }
+
+    def pix_form(self) -> dict[str, str]:
+        token = "test-csrf-token-with-enough-length-123"
+        with self.client.session_transaction() as session:
+            session[CSRF_SESSION_KEY] = token
+        return {
+            "_csrf_token": token,
+            "pix_idempotency_key": "11111111-2222-4333-8444-555555555555",
         }
 
 

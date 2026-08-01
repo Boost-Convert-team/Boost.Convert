@@ -14,10 +14,13 @@ class PaymentFrontendContractTests(unittest.TestCase):
         cls.javascript = (PROJECT_ROOT / "frontend/static/js/payments.js").read_text(
             encoding="utf-8"
         )
+        cls.app_javascript = (PROJECT_ROOT / "frontend/static/js/app.js").read_text(
+            encoding="utf-8"
+        )
 
     def test_pix_and_card_are_independent_options(self) -> None:
-        self.assertIn("Pagar com cartão de crédito", self.template)
-        self.assertIn("Pagar com PIX", self.template)
+        self.assertIn("<h2>Cartão</h2>", self.template)
+        self.assertIn("Pagar com Pix", self.template)
         self.assertEqual(self.template.count('id="cardPaymentBrick_container"'), 1)
         pix_section = self.template.split("payment-choice-card--pix", 1)[1]
         self.assertNotIn("cardPaymentBrick_container", pix_section)
@@ -28,6 +31,25 @@ class PaymentFrontendContractTests(unittest.TestCase):
         self.assertIn('["debit_card", "prepaid_card"]', self.javascript)
         self.assertIn("cardBrickInitializing", self.javascript)
         self.assertIn("cardBrickController.unmount()", self.javascript)
+
+    def test_payment_module_has_one_centralized_idempotent_initialization(self) -> None:
+        self.assertNotIn(
+            'document.addEventListener("DOMContentLoaded", initPayments)',
+            self.javascript,
+        )
+        self.assertEqual(
+            self.app_javascript.count("window.BoostPayments?.initPayments()"), 1
+        )
+        self.assertIn('form.dataset.paymentInitialized === "true"', self.javascript)
+        self.assertIn('form.dataset.submissionInFlight === "true"', self.javascript)
+        self.assertIn('page.dataset.paymentPollingInitialized === "true"', self.javascript)
+
+    def test_card_sdk_loads_before_the_local_payment_initialization(self) -> None:
+        self.assertIn("{% block extra_head %}", self.template)
+        self.assertIn("https://sdk.mercadopago.com/js/v2", self.template)
+        sdk_position = self.template.index("https://sdk.mercadopago.com/js/v2")
+        content_position = self.template.index("{% block content %}")
+        self.assertLess(sdk_position, content_position)
 
     def test_duplicate_submission_guard_is_reset_after_error(self) -> None:
         self.assertIn("if (cardSubmissionInFlight) return", self.javascript)
@@ -49,6 +71,28 @@ class PaymentFrontendContractTests(unittest.TestCase):
         self.assertIn("installments:", self.javascript)
         for raw_field in ("card_number", "security_code", "expiration_date"):
             self.assertNotIn(raw_field, self.javascript)
+
+    def test_original_commercial_copy_is_preserved(self) -> None:
+        templates = "\n".join(
+            (PROJECT_ROOT / path).read_text(encoding="utf-8")
+            for path in (
+                "frontend/templates/checkout_pro.html",
+                "frontend/templates/checkout_card_status.html",
+                "frontend/templates/home.html",
+                "frontend/templates/planos.html",
+            )
+        )
+        self.assertIn("Assinar {{ plan_name }}", self.template)
+        self.assertIn("Assinar BoostConvert PRO", templates)
+        self.assertIn("/ m&ecirc;s", templates)
+        for forbidden_copy in (
+            "Compra única",
+            "compra única",
+            "Sem renovação",
+            "sem renovação",
+            "30 dias",
+        ):
+            self.assertNotIn(forbidden_copy, templates)
 
 
 if __name__ == "__main__":

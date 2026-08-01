@@ -16,20 +16,24 @@
         const container = document.getElementById("cardPaymentBrick_container");
         if (!config || !container) return;
         if (cardBrickController || cardBrickInitializing) return;
-        cardBrickInitializing = true;
         const message = document.querySelector("[data-card-payment-message]");
         if (!window.MercadoPago) {
             setMessage(message, "Não foi possível carregar o pagamento seguro por cartão.");
             return;
         }
 
+        cardBrickInitializing = true;
         let idempotencyKey = config.dataset.idempotencyKey;
-        const mercadoPago = new window.MercadoPago(config.dataset.publicKey, { locale: "pt-BR" });
-        const bricksBuilder = mercadoPago.bricks();
         try {
+            const amount = Number(config.dataset.amount);
+            if (!Number.isFinite(amount) || amount <= 0) {
+                throw new Error("Valor de pagamento inválido.");
+            }
+            const mercadoPago = new window.MercadoPago(config.dataset.publicKey, { locale: "pt-BR" });
+            const bricksBuilder = mercadoPago.bricks();
             cardBrickController = await bricksBuilder.create("cardPayment", container.id, {
                 initialization: {
-                    amount: Number(config.dataset.amount),
+                    amount,
                     payer: { email: config.dataset.payerEmail }
                 },
                 customization: {
@@ -40,10 +44,14 @@
                     }
                 },
                 callbacks: {
-                    onReady: () => setMessage(message, ""),
+                    onReady: () => {
+                        container.dataset.brickReady = "true";
+                        setMessage(message, "");
+                    },
                     onSubmit: async (formData) => {
                         if (cardSubmissionInFlight) return;
                         cardSubmissionInFlight = true;
+                        let redirecting = false;
                         setMessage(message, "Processando pagamento com segurança...");
                         try {
                             const payload = buildCardPayload(formData);
@@ -66,9 +74,10 @@
                                 throw new Error(errorMessage);
                             }
                             if (!result.redirect_url) throw new Error("Pagamento criado sem página de status.");
+                            redirecting = true;
                             window.location.assign(result.redirect_url);
                         } finally {
-                            cardSubmissionInFlight = false;
+                            if (!redirecting) cardSubmissionInFlight = false;
                         }
                     },
                     onError: () => {
@@ -106,13 +115,17 @@
     function initPixCreationForm() {
         const form = document.querySelector("[data-pix-payment-form]");
         if (!form) return;
+        if (form.dataset.paymentInitialized === "true") return;
+        form.dataset.paymentInitialized = "true";
         const button = form.querySelector('button[type="submit"]');
         const message = form.querySelector("[data-pix-payment-message]");
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
+            if (form.dataset.submissionInFlight === "true") return;
+            form.dataset.submissionInFlight = "true";
             setButtonLoading(button, true);
-            setMessage(message, "Criando pagamento PIX...");
+            setMessage(message, "Criando pagamento Pix...");
             try {
                 const response = await fetch(form.action, {
                     method: "POST",
@@ -121,11 +134,12 @@
                     credentials: "same-origin"
                 });
                 const payload = await readJson(response);
-                if (!response.ok) throw new Error(payload.error || "Não foi possível criar o PIX.");
+                if (!response.ok) throw new Error(payload.error || "Não foi possível criar o Pix.");
                 if (!payload.redirect_url) throw new Error("O pagamento foi criado sem uma página de destino.");
                 window.location.assign(payload.redirect_url);
             } catch (error) {
-                setMessage(message, error.message || "Não foi possível criar o PIX.");
+                setMessage(message, error.message || "Não foi possível criar o Pix.");
+                form.dataset.submissionInFlight = "false";
                 setButtonLoading(button, false);
             }
         });
@@ -135,11 +149,13 @@
         const button = document.querySelector("[data-copy-pix-code]");
         const field = document.querySelector("[data-pix-copy-code]");
         if (!button || !field) return;
+        if (button.dataset.copyInitialized === "true") return;
+        button.dataset.copyInitialized = "true";
         button.addEventListener("click", async () => {
             const copied = await copyText(field.value, field);
             if (!copied) return;
             const originalHtml = button.innerHTML;
-            button.textContent = "Código PIX copiado";
+            button.textContent = "Código Pix copiado";
             window.setTimeout(() => { button.innerHTML = originalHtml; }, 2200);
         });
     }
@@ -148,6 +164,8 @@
         const page = document.querySelector(pageSelector);
         const status = page?.querySelector(statusSelector);
         if (!page || !status || !page.dataset.statusUrl) return;
+        if (page.dataset.paymentPollingInitialized === "true") return;
+        page.dataset.paymentPollingInitialized = "true";
         if (page.dataset.paymentConfirmed === "true") {
             renderApprovedStatus(page, status, accountSelector);
             return;
@@ -176,7 +194,7 @@
 
     function renderApprovedStatus(page, status, accountSelector) {
         status.dataset.status = "approved";
-        status.textContent = "Pagamento confirmado. Seu BoostConvert PRO está ativo por 30 dias.";
+        status.textContent = "Pagamento confirmado. Seu BoostConvert PRO está ativo.";
         const accountLink = page.querySelector(accountSelector);
         if (accountLink) accountLink.hidden = false;
     }
@@ -223,5 +241,4 @@
         cardBrickController = null;
     });
     window.BoostPayments = { initPayments };
-    document.addEventListener("DOMContentLoaded", initPayments);
 })();

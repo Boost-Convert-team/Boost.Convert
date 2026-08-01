@@ -11,14 +11,14 @@
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="credit-card" aria-hidden="true"></i> Pagamento por cartão</span>
         <h1>{{ plan_name }}</h1>
-        <p>Compra única de {{ price }} para 30 dias de acesso PRO.</p>
+        <p>Acompanhe a confirmação do pagamento pelo Mercado Pago.</p>
     </header>
 
     <section class="pix-payment-panel reveal" aria-labelledby="card-payment-status-title">
         <h2 id="card-payment-status-title">Status do pagamento</h2>
         <p class="pix-payment-status" data-card-payment-status data-status="{{ payment.status }}" aria-live="polite">
             {% if is_confirmed %}
-            Pagamento confirmado. Seu BoostConvert PRO está ativo por 30 dias.
+            Pagamento confirmado. Seu BoostConvert PRO está ativo.
             {% elif payment.status|lower in ['rejected', 'cancelled', 'canceled', 'expired', 'refunded', 'charged_back'] %}
             O pagamento não foi aprovado ou deixou de ser válido.
             {% else %}
