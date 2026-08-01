@@ -18,6 +18,7 @@ from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 from extensions import db
 from Blueprints.services.subscription.mercado_pago_service import (
     MercadoPagoError,
+    MercadoPagoConfigurationError,
     MercadoPagoHTTPError,
     MercadoPagoInvalidResponseError,
     MercadoPagoTimeoutError,
@@ -29,11 +30,13 @@ from Blueprints.services.subscription.mercado_pago_payments_service import (
     APPROVED_PAYMENT_STATUSES,
     CREDIT_PAYMENT_METHOD,
     PIX_PAYMENT_METHOD,
+    PayerValidationError,
     PRO_PLAN_NAME,
     CardPaymentValidationError,
     IdempotencyKeyValidationError,
     create_card_payment as create_mercado_pago_card_payment,
     create_pix_payment as create_mercado_pago_pix_payment,
+    get_payment_attempt_id,
     reconcile_payment,
 )
 from models import Payment
@@ -77,6 +80,8 @@ def create_pix_payment() -> tuple[Response, int]:
             request.form.get("pix_idempotency_key")
             or request.headers.get("X-Idempotency-Key"),
         )
+    except PayerValidationError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 422
     except SQLAlchemyError as exc:
         return handle_payment_database_error("pix_create", exc)
     except MercadoPagoError as exc:
@@ -221,7 +226,7 @@ def build_reconciled_status_response(
     return jsonify(
         {
             "ok": True,
-            "attempt_id": payment.attempt_id,
+            "attempt_id": get_payment_attempt_id(payment),
             "payment_id": payment.provider_payment_id,
             "status": payment.status,
             "approved": is_payment_confirmed(payment),
@@ -252,7 +257,7 @@ def get_user_card_attempt_or_404(attempt_id: str) -> Payment:
     payment = Payment.query.filter_by(
         user_id=current_user.id,
         provider=PROVIDER,
-        attempt_id=normalized_attempt_id,
+        idempotency_key=normalized_attempt_id,
         payment_method=CREDIT_PAYMENT_METHOD,
     ).first()
     if payment is None:
@@ -284,20 +289,43 @@ def handle_provider_error(
 ) -> tuple[Response, int]:
     db.session.rollback()
     current_app.logger.warning(
-        "mercado_pago_operation_failed operation=%s error_type=%s",
-        operation,
-        type(exc).__name__,
+        "payment_error status=%s code=%s cause=%s correlation_id=%s",
+        getattr(exc, "provider_status", "local"),
+        getattr(exc, "code", "payment_error"),
+        getattr(exc, "cause", type(exc).__name__),
+        getattr(exc, "correlation_id", "unavailable"),
     )
     if isinstance(exc, MercadoPagoHTTPError):
-        response = jsonify({"ok": False, "error": str(exc)})
+        response = jsonify(
+            {
+                "ok": False,
+                "error": str(exc),
+                "provider_status": exc.provider_status,
+                "code": exc.provider_code,
+                "cause": exc.provider_cause,
+                "correlation_id": exc.correlation_id,
+            }
+        )
         if exc.retry_after:
             response.headers["Retry-After"] = exc.retry_after
         return response, exc.public_status
     if isinstance(exc, MercadoPagoTimeoutError):
-        return jsonify({"ok": False, "error": str(exc)}), 503
+        return jsonify(build_safe_payment_error(exc)), 503
     if isinstance(exc, MercadoPagoInvalidResponseError):
-        return jsonify({"ok": False, "error": str(exc)}), 502
+        return jsonify(build_safe_payment_error(exc)), 502
+    if isinstance(exc, MercadoPagoConfigurationError):
+        return jsonify(build_safe_payment_error(exc)), 503
     return jsonify({"ok": False, "error": "Nao foi possivel processar o pagamento."}), 502
+
+
+def build_safe_payment_error(exc: MercadoPagoError) -> dict[str, object]:
+    return {
+        "ok": False,
+        "error": str(exc),
+        "code": exc.code,
+        "cause": exc.cause,
+        "correlation_id": exc.correlation_id,
+    }
 
 
 def format_brl(value: object) -> str:

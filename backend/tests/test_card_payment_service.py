@@ -74,8 +74,7 @@ class CardPaymentServiceTests(unittest.TestCase):
             self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
             self.assertIsNone(payment.premium_expires_at)
             self.assertEqual(payment.payment_method, "credit_card")
-            self.assertEqual(payment.provider_payment_method_id, "visa")
-            self.assertEqual(payment.payment_type, "credit_card")
+            self.assertEqual(payment.payment_method, "credit_card")
             self.assertEqual(posted_payload["transaction_amount"], 19.90)
             self.assertNotIn("token", Payment.__table__.columns.keys())
             self.assertNotIn("tok_test_123", repr(payment.__dict__))
@@ -188,7 +187,7 @@ class CardPaymentServiceTests(unittest.TestCase):
             user = self.create_user("card@example.com")
             key = "11111111-2222-4333-8444-555555555555"
             original_commit = db.session.commit
-            winner_attempt_id = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            winner_attempt_id = key
             first_call = True
 
             def concurrent_commit():
@@ -208,8 +207,6 @@ class CardPaymentServiceTests(unittest.TestCase):
                         ),
                         idempotency_key=key,
                         payment_method="credit_card",
-                        provider_payment_method_id="visa",
-                        payment_type="credit_card",
                         status="creating",
                         amount="19.90",
                         currency="BRL",
@@ -225,8 +222,6 @@ class CardPaymentServiceTests(unittest.TestCase):
                     user,
                     key,
                     payment_method="credit_card",
-                    provider_payment_method_id="visa",
-                    payment_type="credit_card",
                 )
             self.assertEqual(payment.attempt_id, winner_attempt_id)
             self.assertEqual(Payment.query.count(), 1)
@@ -343,10 +338,8 @@ class CardPaymentServiceTests(unittest.TestCase):
             provider_payment_id=provider_payment_id,
             external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
             plan="BOOSTCONVERT_PRO",
-            idempotency_key="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+            idempotency_key=attempt_id,
             payment_method="credit_card",
-            provider_payment_method_id="visa",
-            payment_type="credit_card",
             status="pending",
             amount="19.90",
             currency="BRL",

@@ -113,7 +113,7 @@ def create_app() -> Flask:
     @app.get("/health")
     def health():
         try:
-            db.session.execute(text("SELECT attempt_id FROM payments LIMIT 1"))
+            db.session.execute(text("SELECT id FROM payments LIMIT 1"))
         except SQLAlchemyError:
             db.session.rollback()
             return jsonify({"status": "unavailable"}), 503

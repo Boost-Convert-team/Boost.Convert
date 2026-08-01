@@ -3,13 +3,14 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urljoin
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import requests
 from flask import current_app, request
@@ -52,6 +53,23 @@ FAILED_PAYMENT_STATUSES = {
 class MercadoPagoError(RuntimeError):
     """Raised when Mercado Pago cannot create or confirm a payment."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "payment_error",
+        cause: str | None = None,
+        correlation_id: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.cause = cause or message
+        self.correlation_id = correlation_id or str(uuid4())
+
+
+class MercadoPagoConfigurationError(MercadoPagoError):
+    """A required, non-secret payment setting is absent or inconsistent."""
+
 
 class MercadoPagoTimeoutError(MercadoPagoError):
     """Raised when the provider did not answer within the configured timeout."""
@@ -66,11 +84,23 @@ class MercadoPagoHTTPError(MercadoPagoError):
         *,
         provider_status: int,
         public_status: int,
+        provider_code: str = "unavailable",
+        provider_cause: str | None = None,
+        correlation_id: str | None = None,
         retry_after: str | None = None,
     ) -> None:
-        super().__init__(message)
+        normalized_correlation_id = correlation_id or str(uuid4())
+        normalized_cause = provider_cause or message
+        super().__init__(
+            message,
+            code=provider_code,
+            cause=normalized_cause,
+            correlation_id=normalized_correlation_id,
+        )
         self.provider_status = provider_status
         self.public_status = public_status
+        self.provider_code = provider_code
+        self.provider_cause = normalized_cause
         self.retry_after = retry_after
 
 
@@ -327,9 +357,14 @@ def mercado_pago_request(
     extra_headers: dict[str, str] | None = None,
     expected_response_types: tuple[type, ...] = (dict,),
 ) -> Any:
+    correlation_id = str(uuid4())
     access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
     if not access_token:
-        raise MercadoPagoError("MERCADO_PAGO_ACCESS_TOKEN nao configurado.")
+        raise MercadoPagoConfigurationError(
+            "MERCADO_PAGO_ACCESS_TOKEN nao configurado.",
+            code="payment_access_token_missing",
+            correlation_id=correlation_id,
+        )
 
     url = f"{MERCADO_PAGO_API_BASE_URL}{path}"
     try:
@@ -348,20 +383,28 @@ def mercado_pago_request(
             timeout=15,
         )
     except requests.Timeout as exc:
-        raise MercadoPagoTimeoutError("Mercado Pago demorou para responder.") from exc
+        raise MercadoPagoTimeoutError(
+            "Mercado Pago demorou para responder.",
+            code="provider_timeout",
+            correlation_id=correlation_id,
+        ) from exc
     except requests.RequestException as exc:
-        raise MercadoPagoError("Falha ao conectar com Mercado Pago.") from exc
+        raise MercadoPagoError(
+            "Falha ao conectar com Mercado Pago.",
+            code="provider_connection_error",
+            correlation_id=correlation_id,
+        ) from exc
 
     if response.status_code >= 400:
-        provider_error_code = get_provider_error_code(response)
+        provider_error_code, provider_cause = get_provider_error_details(response)
+        correlation_id = get_provider_correlation_id(response, correlation_id)
         current_app.logger.warning(
             json.dumps(
                 {
-                    "event": "mercado_pago_api_error",
-                    "method": method,
-                    "path": path,
-                    "status_code": response.status_code,
-                    "provider_error_code": provider_error_code,
+                    "status": response.status_code,
+                    "code": provider_error_code,
+                    "cause": provider_cause,
+                    "correlation_id": correlation_id,
                 },
                 ensure_ascii=False,
             )
@@ -371,6 +414,9 @@ def mercado_pago_request(
             message,
             provider_status=response.status_code,
             public_status=public_status,
+            provider_code=provider_error_code,
+            provider_cause=provider_cause,
+            correlation_id=correlation_id,
             retry_after=get_safe_retry_after(response),
         )
 
@@ -378,44 +424,98 @@ def mercado_pago_request(
         data = response.json()
     except ValueError as exc:
         raise MercadoPagoInvalidResponseError(
-            "Mercado Pago retornou uma resposta invalida."
+            "Mercado Pago retornou uma resposta invalida.",
+            code="provider_invalid_json",
+            correlation_id=get_provider_correlation_id(response, correlation_id),
         ) from exc
 
     if not isinstance(data, expected_response_types):
         raise MercadoPagoInvalidResponseError(
-            "Mercado Pago retornou uma resposta inesperada."
+            "Mercado Pago retornou uma resposta inesperada.",
+            code="provider_invalid_response",
+            correlation_id=get_provider_correlation_id(response, correlation_id),
         )
     return data
 
 
 def classify_provider_http_error(status_code: int) -> tuple[int, str]:
-    if status_code in {400, 422}:
-        return 422, "Mercado Pago recusou os dados do pagamento."
-    if status_code in {401, 403}:
-        return 502, "Mercado Pago recusou a autenticacao da integracao."
+    if status_code == 400:
+        return 400, "Mercado Pago recusou o payload do pagamento."
+    if status_code == 401:
+        return 502, "Mercado Pago recusou o Access Token da integracao."
+    if status_code == 403:
+        return 502, "A conta ou o recurso nao foi autorizado pelo Mercado Pago."
     if status_code == 409:
         return 409, "Mercado Pago informou conflito no pagamento."
     if status_code == 429:
         return 503, "Mercado Pago esta temporariamente limitando requisicoes."
+    if status_code == 422:
+        return 422, "Mercado Pago recusou o PIX ou os dados do pagamento."
     if status_code >= 500:
         return 503, "Mercado Pago esta temporariamente indisponivel."
     return 502, "Mercado Pago recusou a operacao."
 
 
-def get_provider_error_code(response: requests.Response) -> str:
+def get_provider_error_details(response: requests.Response) -> tuple[str, str]:
     try:
         payload = response.json()
     except ValueError:
-        return "unavailable"
+        return "unavailable", "Resposta de erro sem JSON valido."
     if not isinstance(payload, dict):
-        return "unavailable"
+        return "unavailable", "Resposta de erro em formato inesperado."
     value = payload.get("error") or payload.get("code") or payload.get("status")
-    if value is None:
-        cause = payload.get("cause")
-        if isinstance(cause, list) and cause and isinstance(cause[0], dict):
-            value = cause[0].get("code")
-    normalized = str(value or "unavailable").strip()
-    return normalized[:80]
+    cause = payload.get("cause")
+    cause_parts: list[str] = []
+    if isinstance(cause, list):
+        for item in cause[:5]:
+            if not isinstance(item, dict):
+                continue
+            item_code = sanitize_provider_detail(item.get("code"), 80)
+            item_description = sanitize_provider_detail(
+                item.get("description") or item.get("message"), 180
+            )
+            if value is None and item_code:
+                value = item_code
+            cause_parts.append(": ".join(part for part in (item_code, item_description) if part))
+    elif isinstance(cause, dict):
+        item_code = sanitize_provider_detail(cause.get("code"), 80)
+        item_description = sanitize_provider_detail(
+            cause.get("description") or cause.get("message"), 180
+        )
+        if value is None and item_code:
+            value = item_code
+        cause_parts.append(": ".join(part for part in (item_code, item_description) if part))
+    if not cause_parts:
+        message = sanitize_provider_detail(payload.get("message"), 200)
+        if message:
+            cause_parts.append(message)
+    code = sanitize_provider_detail(value, 80) or "unavailable"
+    provider_cause = "; ".join(part for part in cause_parts if part)
+    return code, provider_cause or "Causa nao informada pelo Mercado Pago."
+
+
+def get_provider_error_code(response: requests.Response) -> str:
+    return get_provider_error_details(response)[0]
+
+
+def sanitize_provider_detail(value: object, max_length: int) -> str:
+    normalized = " ".join(str(value or "").split())
+    normalized = re.sub(r"(?:TEST|APP_USR)-[A-Za-z0-9._-]+", "[credential]", normalized)
+    normalized = re.sub(r"[^\s@]+@[^\s@]+", "[email]", normalized)
+    return normalized[:max_length]
+
+
+def get_provider_correlation_id(
+    response: requests.Response,
+    fallback: str,
+) -> str:
+    value = (
+        response.headers.get("x-request-id")
+        or response.headers.get("x-correlation-id")
+        or response.headers.get("x-meli-trace-site")
+        or fallback
+    )
+    return sanitize_provider_detail(value, 120) or fallback
 
 
 def get_safe_retry_after(response: requests.Response) -> str | None:

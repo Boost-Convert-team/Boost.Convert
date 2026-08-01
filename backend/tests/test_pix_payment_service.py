@@ -10,7 +10,11 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from Blueprints.services.subscription.mercado_pago_payments_service import (
+    PayerValidationError,
     create_pix_payment,
+)
+from Blueprints.services.subscription.mercado_pago_service import (
+    MercadoPagoConfigurationError,
 )
 from extensions import db
 from models import Payment, Usuario
@@ -75,6 +79,15 @@ class PixPaymentServiceTests(unittest.TestCase):
             self.assertEqual(post_call[2]["json_payload"]["payment_method_id"], "pix")
             self.assertEqual(post_call[2]["json_payload"]["transaction_amount"], 19.90)
             self.assertEqual(
+                post_call[2]["json_payload"]["payer"],
+                {"email": "pix-create@example.com"},
+            )
+            self.assertEqual(
+                post_call[2]["json_payload"]["notification_url"],
+                "https://boostconvert.com.br/api/webhooks/mercadopago",
+            )
+            self.assertEqual(post_call[2]["json_payload"]["metadata"]["plan"], "pro")
+            self.assertEqual(
                 post_call[2]["json_payload"]["metadata"]["attempt_id"],
                 payment.attempt_id,
             )
@@ -114,16 +127,13 @@ class PixPaymentServiceTests(unittest.TestCase):
             user = self.create_user("pix-recovery@example.com")
             attempt = Payment(
                 user_id=user.id,
-                attempt_id="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
                 provider="mercado_pago",
                 idempotency_key="11111111-2222-4333-8444-555555555555",
                 external_reference=(
-                    f"boost:payment:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee:user:{user.id}"
+                    f"boost:payment:11111111-2222-4333-8444-555555555555:user:{user.id}"
                 ),
                 plan="BOOSTCONVERT_PRO",
                 payment_method="pix",
-                provider_payment_method_id="pix",
-                payment_type="pix",
                 status="creating",
                 amount="19.90",
                 currency="BRL",
@@ -152,6 +162,53 @@ class PixPaymentServiceTests(unittest.TestCase):
             self.assertEqual(result["payment_id"], "pay_recovered")
             self.assertEqual(request_payment.call_count, 1)
             self.assertEqual(request_payment.call_args.args[0], "GET")
+
+    def test_missing_access_token_fails_before_database_or_provider(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
+            user = self.create_user("pix-missing-token@example.com")
+            self.app.config["MERCADO_PAGO_ACCESS_TOKEN"] = None
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request"
+            ) as provider_request, self.assertRaises(MercadoPagoConfigurationError) as raised:
+                create_pix_payment(user, "11111111-2222-4333-8444-555555555555")
+            self.assertEqual(raised.exception.code, "payment_access_token_missing")
+            provider_request.assert_not_called()
+            self.assertEqual(Payment.query.count(), 0)
+
+    def test_missing_environment_uses_test_only_fallback(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
+            user = self.create_user("pix-test-fallback@example.com")
+            self.app.config.update(
+                MERCADO_PAGO_ENVIRONMENT="",
+                MERCADO_PAGO_PUBLIC_KEY="TEST-public-key",
+            )
+
+            def provider_request(method, path, **kwargs):
+                if path.startswith("/v1/payments/search?"):
+                    return {"results": []}
+                return self.provider_pix_data(
+                    "pay_test_fallback", kwargs["json_payload"], status="pending"
+                )
+
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
+                side_effect=provider_request,
+            ):
+                result = create_pix_payment(
+                    user, "11111111-2222-4333-8444-555555555555"
+                )
+            self.assertEqual(result["payment_id"], "pay_test_fallback")
+            self.assertTrue(result["qr_code"])
+            self.assertTrue(result["qr_code_base64"])
+
+    def test_invalid_payer_email_is_rejected_before_provider(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
+            user = self.create_user("invalid-email")
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request"
+            ) as provider_request, self.assertRaises(PayerValidationError):
+                create_pix_payment(user, "11111111-2222-4333-8444-555555555555")
+            provider_request.assert_not_called()
 
     def create_user(self, email: str) -> Usuario:
         user = Usuario(email=email, plano="free", status_assinatura="inactive")

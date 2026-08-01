@@ -168,6 +168,16 @@ def should_auto_create_db(app):
 def validate_mercado_pago_config(app):
     """Fail closed for a production payment configuration."""
     environment = str(app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
+    access_token = str(app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "").strip()
+    public_key = str(app.config.get("MERCADO_PAGO_PUBLIC_KEY") or "").strip()
+    if (
+        not environment
+        and app.config.get("APP_ENV") not in {"production", "prod"}
+        and access_token.startswith("TEST-")
+        and public_key.startswith("TEST-")
+    ):
+        environment = "test"
+        app.config["MERCADO_PAGO_ENVIRONMENT"] = environment
     if environment not in {"test", "production"}:
         message = "MERCADO_PAGO_ENVIRONMENT deve ser test ou production."
         if app.config.get("APP_ENV") in {"production", "prod"}:

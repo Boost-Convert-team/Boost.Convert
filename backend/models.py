@@ -1,7 +1,6 @@
 from flask_login import UserMixin
 from extensions import db
 from datetime import datetime, timezone
-from uuid import uuid4
 
 def utc_now(): return datetime.now(timezone.utc)
 
@@ -60,19 +59,6 @@ class Payment(db.Model):
             "idempotency_key",
             name="uq_payments_provider_idempotency_key",
         ),
-        db.UniqueConstraint(
-            "provider",
-            "attempt_id",
-            name="uq_payments_provider_attempt_id",
-        ),
-        db.Index(
-            "uq_payments_provider_attempt_external_reference",
-            "provider",
-            "external_reference",
-            unique=True,
-            postgresql_where=db.text("external_reference LIKE 'boost:payment:%'"),
-            sqlite_where=db.text("external_reference LIKE 'boost:payment:%'"),
-        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -80,13 +66,10 @@ class Payment(db.Model):
     provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
-    attempt_id = db.Column(db.String(36), nullable=False, default=lambda: str(uuid4()), index=True)
     external_reference = db.Column(db.String(255), nullable=True, index=True)
     plan = db.Column(db.String(50), nullable=True, index=True)
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     payment_method = db.Column(db.String(50), nullable=False, index=True)
-    provider_payment_method_id = db.Column(db.String(50), nullable=True, index=True)
-    payment_type = db.Column(db.String(50), nullable=True, index=True)
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     amount = db.Column(db.Numeric(10, 2), nullable=True)
     currency = db.Column(db.String(10), nullable=True)
@@ -98,9 +81,17 @@ class Payment(db.Model):
     pix_ticket_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
-    last_provider_sync_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
 
     user = db.relationship("Usuario", backref=db.backref("payments", lazy=True))
+
+    @property
+    def attempt_id(self):
+        """Compatibility alias: the stable UUID is persisted as idempotency_key."""
+        return self.idempotency_key
+
+    @attempt_id.setter
+    def attempt_id(self, value):
+        self.idempotency_key = value
 
 class PaymentWebhookEvent(db.Model):
     __tablename__ = "payment_webhook_events"

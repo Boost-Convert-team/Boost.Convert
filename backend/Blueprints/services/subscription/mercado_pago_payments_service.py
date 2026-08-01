@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 from uuid import UUID, uuid4
 
 from flask import current_app
@@ -14,6 +15,7 @@ from extensions import db
 from models import Payment, Subscription, Usuario
 from Blueprints.services.subscription.mercado_pago_service import (
     MercadoPagoError,
+    MercadoPagoConfigurationError,
     PROVIDER,
     PRO_PLAN_CODE,
     build_payment_external_reference,
@@ -35,6 +37,7 @@ from Blueprints.services.subscription.subscription_service import (
 
 
 PRO_PLAN_NAME = "BoostConvert PRO"
+PROVIDER_PRO_PLAN_CODE = "pro"
 ONE_TIME_ACCESS_DAYS = 30
 PIX_PAYMENT_METHOD = "pix"
 CREDIT_PAYMENT_METHOD = "credit_card"
@@ -68,19 +71,22 @@ class IdempotencyKeyValidationError(CardPaymentValidationError):
     """The card idempotency key is absent or not a UUID."""
 
 
+class PayerValidationError(MercadoPagoError):
+    """The authenticated payer data cannot be sent safely to the provider."""
+
+
 def create_pix_payment(
     usuario: Usuario,
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     """Create one isolated PIX attempt without granting access locally."""
     require_payment_environment()
+    validate_payer_email(usuario.email)
     normalized_key = normalize_idempotency_key(idempotency_key, required=False)
     payment = get_or_create_payment_attempt(
         usuario,
         normalized_key,
         payment_method=PIX_PAYMENT_METHOD,
-        provider_payment_method_id=PIX_PAYMENT_METHOD,
-        payment_type=PIX_PAYMENT_METHOD,
     )
     if has_complete_pix_checkout_data(payment):
         return build_pix_payment_response(payment)
@@ -106,6 +112,7 @@ def create_pix_payment(
         json_payload=payload,
         extra_headers={"X-Idempotency-Key": normalized_key},
     )
+    validate_provider_environment(data)
     payment = upsert_payment_from_provider_data(
         data,
         user=usuario,
@@ -135,8 +142,6 @@ def create_card_payment(
         usuario,
         normalized_key,
         payment_method=CREDIT_PAYMENT_METHOD,
-        provider_payment_method_id=get_string(method, "id"),
-        payment_type=CREDIT_PAYMENT_METHOD,
     )
     if payment.provider_payment_id:
         return build_card_payment_response(payment)
@@ -172,6 +177,7 @@ def create_card_payment(
         json_payload=payload,
         extra_headers={"X-Idempotency-Key": normalized_key},
     )
+    validate_provider_environment(data)
     payment = upsert_payment_from_provider_data(
         data,
         user=usuario,
@@ -276,8 +282,6 @@ def get_or_create_payment_attempt(
     idempotency_key: str,
     *,
     payment_method: str,
-    provider_payment_method_id: str,
-    payment_type: str,
 ) -> Payment:
     payment = Payment.query.filter_by(
         provider=PROVIDER,
@@ -287,17 +291,13 @@ def get_or_create_payment_attempt(
         validate_attempt_owner(payment, usuario, payment_method)
         return payment
 
-    attempt_id = str(uuid4())
     payment = Payment(
         user_id=usuario.id,
         provider=PROVIDER,
-        attempt_id=attempt_id,
-        external_reference=build_payment_external_reference(usuario.id, attempt_id),
+        external_reference=build_payment_external_reference(usuario.id, idempotency_key),
         plan=PRO_PLAN_CODE,
         idempotency_key=idempotency_key,
         payment_method=payment_method,
-        provider_payment_method_id=provider_payment_method_id,
-        payment_type=payment_type,
         status=CREATING_PAYMENT_STATUS,
         amount=get_plan_price(),
         currency="BRL",
@@ -336,6 +336,16 @@ def normalize_idempotency_key(value: str | None, *, required: bool) -> str:
     if required:
         raise IdempotencyKeyValidationError("X-Idempotency-Key UUID e obrigatorio.")
     return str(uuid4())
+
+
+def validate_payer_email(value: object) -> str:
+    email = str(value or "").strip().lower()
+    if (
+        len(email) > 200
+        or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)
+    ):
+        raise PayerValidationError("Email do pagador invalido.")
+    return email
 
 
 def recover_provider_payment_for_attempt(payment: Payment) -> Payment | None:
@@ -410,12 +420,15 @@ def reconcile_payment(payment: Payment, *, force: bool = False) -> Payment:
     minimum_interval = max(
         1, int(current_app.config.get("MERCADO_PAGO_RECONCILE_INTERVAL_SECONDS", 10))
     )
-    last_sync = as_utc(payment.last_provider_sync_at)
+    sync_times = current_app.extensions.setdefault(
+        "mercado_pago_reconcile_last_sync", {}
+    )
+    sync_key = f"{payment.provider}:{payment.id}"
+    last_sync = as_utc(sync_times.get(sync_key))
     if not force and last_sync and now - last_sync < timedelta(seconds=minimum_interval):
         return payment
 
-    payment.last_provider_sync_at = now
-    db.session.commit()
+    sync_times[sync_key] = now
     if payment.provider_payment_id:
         data = get_payment(payment.provider_payment_id)
     else:
@@ -462,7 +475,7 @@ def upsert_payment_from_provider_data(
     if attempt_id:
         attempt_payment = Payment.query.filter_by(
             provider=PROVIDER,
-            attempt_id=attempt_id,
+            idempotency_key=attempt_id,
         ).first()
     candidates = {
         item.id
@@ -503,13 +516,6 @@ def upsert_payment_from_provider_data(
     detected_payment_method = detect_payment_method(provider_data)
     if requested_payment_method and detected_payment_method != requested_payment_method:
         raise MercadoPagoError("Metodo retornado diverge do pagamento solicitado.")
-    provider_method_id = get_string(provider_data, "payment_method_id")
-    if (
-        payment.provider_payment_method_id
-        and provider_method_id
-        and provider_method_id != payment.provider_payment_method_id
-    ):
-        raise MercadoPagoError("Bandeira ou metodo diverge da tentativa criada.")
     if activate_access:
         validate_provider_environment(provider_data)
         if not get_string(provider_data, "preapproval_id"):
@@ -536,10 +542,6 @@ def upsert_payment_from_provider_data(
         payment.payment_method = requested_payment_method
     elif detected_payment_method != "unknown":
         payment.payment_method = detected_payment_method
-    payment.provider_payment_method_id = payment.provider_payment_method_id or provider_method_id
-    payment.payment_type = (
-        get_string(provider_data, "payment_type_id") or payment.payment_type
-    )
     if payment.amount is None:
         payment.amount = parse_decimal(provider_data.get("transaction_amount"))
     payment.currency = payment.currency or get_string(provider_data, "currency_id") or "BRL"
@@ -569,31 +571,90 @@ def validate_provider_identity(
     if external_user_id is not None and payment.user_id != external_user_id:
         raise MercadoPagoError("Referencia externa nao corresponde ao pagamento salvo.")
     attempt_id = extract_payment_attempt_id(provider_reference)
-    if attempt_id is not None and attempt_id != payment.attempt_id:
+    local_attempt_id = get_payment_attempt_id(payment)
+    if attempt_id is not None and attempt_id != local_attempt_id:
         raise MercadoPagoError("UUID da tentativa nao corresponde ao pagamento salvo.")
     metadata_attempt = get_provider_attempt_id(provider_data)
     metadata_user_id = get_provider_user_id(provider_data)
     if attempt_id is not None:
-        if metadata_attempt != payment.attempt_id:
+        if metadata_attempt != local_attempt_id:
             raise MercadoPagoError("UUID dos metadados nao corresponde a tentativa.")
         if metadata_user_id != payment.user_id:
             raise MercadoPagoError("Usuario dos metadados nao corresponde a tentativa.")
-    elif metadata_attempt and metadata_attempt != payment.attempt_id:
+    elif metadata_attempt and metadata_attempt != local_attempt_id:
         raise MercadoPagoError("UUID dos metadados nao corresponde a tentativa.")
 
 
 def require_payment_environment() -> str:
-    environment = str(current_app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
-    if environment not in {"test", "production"}:
-        raise MercadoPagoError("MERCADO_PAGO_ENVIRONMENT deve ser test ou production.")
-    access_token = str(current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "")
-    if environment == "test" and not access_token.startswith("TEST-"):
-        raise MercadoPagoError("Ambiente de teste exige credencial TEST.")
-    if environment == "production" and access_token.startswith("TEST-"):
-        raise MercadoPagoError("Credencial TEST nao pode processar pagamento de producao.")
     app_environment = str(current_app.config.get("APP_ENV") or "development").lower()
+    access_token = str(current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "").strip()
+    public_key = str(current_app.config.get("MERCADO_PAGO_PUBLIC_KEY") or "").strip()
+    environment = str(current_app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
+    if (
+        not environment
+        and app_environment not in {"production", "prod"}
+        and access_token.startswith("TEST-")
+        and public_key.startswith("TEST-")
+    ):
+        environment = "test"
+    if environment not in {"test", "production"}:
+        raise MercadoPagoConfigurationError(
+            "MERCADO_PAGO_ENVIRONMENT deve ser test ou production.",
+            code="payment_environment_not_configured",
+        )
+    if not access_token:
+        raise MercadoPagoConfigurationError(
+            "MERCADO_PAGO_ACCESS_TOKEN nao configurado.",
+            code="payment_access_token_missing",
+        )
+    if environment == "test" and not access_token.startswith("TEST-"):
+        raise MercadoPagoConfigurationError(
+            "Ambiente de teste exige credencial TEST.",
+            code="payment_test_credential_invalid",
+        )
+    if environment == "test" and public_key and not public_key.startswith("TEST-"):
+        raise MercadoPagoConfigurationError(
+            "Ambiente de teste exige chave publica TEST.",
+            code="payment_test_public_key_invalid",
+        )
+    if environment == "production" and access_token.startswith("TEST-"):
+        raise MercadoPagoConfigurationError(
+            "Credencial TEST nao pode processar pagamento de producao.",
+            code="payment_production_credential_invalid",
+        )
+    if environment == "production" and public_key.startswith("TEST-"):
+        raise MercadoPagoConfigurationError(
+            "Chave publica TEST nao pode ser usada em producao.",
+            code="payment_production_public_key_invalid",
+        )
     if environment == "production" and app_environment not in {"production", "prod"}:
-        raise MercadoPagoError("Pagamento real bloqueado fora do ambiente de producao.")
+        raise MercadoPagoConfigurationError(
+            "Pagamento real bloqueado fora do ambiente de producao.",
+            code="production_payment_blocked",
+        )
+    if (
+        environment == "production"
+        and not str(current_app.config.get("MERCADO_PAGO_COLLECTOR_ID") or "").strip()
+    ):
+        raise MercadoPagoConfigurationError(
+            "MERCADO_PAGO_COLLECTOR_ID nao configurado.",
+            code="payment_collector_missing",
+        )
+    notification_url = get_payment_notification_url()
+    parsed_notification_url = urlparse(notification_url)
+    is_local_test_url = (
+        app_environment not in {"production", "prod"}
+        and parsed_notification_url.scheme == "http"
+        and parsed_notification_url.hostname in {"localhost", "127.0.0.1", "::1"}
+    )
+    if (
+        not parsed_notification_url.netloc
+        or (parsed_notification_url.scheme != "https" and not is_local_test_url)
+    ):
+        raise MercadoPagoConfigurationError(
+            "BASE_URL HTTPS e obrigatoria para notificacoes de pagamento.",
+            code="payment_notification_url_invalid",
+        )
     return environment
 
 
@@ -607,8 +668,13 @@ def validate_provider_environment(provider_data: dict[str, Any]) -> None:
         current_app.config.get("MERCADO_PAGO_COLLECTOR_ID") or ""
     ).strip()
     collector_id = str(provider_data.get("collector_id") or "").strip()
-    if not expected_collector_id or collector_id != expected_collector_id:
+    if expected_collector_id and collector_id != expected_collector_id:
         raise MercadoPagoError("Recebedor do pagamento nao corresponde a aplicacao.")
+    if not expected_collector_id and environment == "production":
+        raise MercadoPagoConfigurationError(
+            "MERCADO_PAGO_COLLECTOR_ID nao configurado.",
+            code="payment_collector_missing",
+        )
 
 
 def apply_confirmed_payment_status(
@@ -667,7 +733,7 @@ def validate_one_time_provider_contract(
         raise MercadoPagoError("Moeda do pagamento nao corresponde ao plano PRO.")
 
     provider_plan = get_provider_plan(provider_data)
-    if provider_plan != PRO_PLAN_CODE:
+    if provider_plan not in {PRO_PLAN_CODE, PROVIDER_PRO_PLAN_CODE}:
         raise MercadoPagoError("Plano do pagamento nao corresponde ao BoostConvert PRO.")
 
 
@@ -768,10 +834,17 @@ def get_provider_user_id(provider_data: dict[str, Any]) -> int | None:
 def build_payment_metadata(payment: Payment) -> dict[str, Any]:
     return {
         "user_id": payment.user_id,
-        "plan": PRO_PLAN_CODE,
-        "attempt_id": payment.attempt_id,
+        "plan": PROVIDER_PRO_PLAN_CODE,
+        "attempt_id": get_payment_attempt_id(payment),
         "payment_method": payment.payment_method,
     }
+
+
+def get_payment_attempt_id(payment: Payment) -> str:
+    try:
+        return str(UUID(str(payment.idempotency_key or "").strip()))
+    except (ValueError, AttributeError):
+        return ""
 
 
 def get_payment_notification_url() -> str:
@@ -822,7 +895,7 @@ def build_pix_payment_response(payment: Payment) -> dict[str, Any]:
         "provider": PROVIDER,
         "plan": payment.plan or PRO_PLAN_CODE,
         "plan_name": PRO_PLAN_NAME,
-        "attempt_id": payment.attempt_id,
+        "attempt_id": get_payment_attempt_id(payment),
         "payment_id": payment.provider_payment_id,
         "status": payment.status,
         "amount": f"{amount:.2f}",
@@ -839,7 +912,7 @@ def build_card_payment_response(payment: Payment) -> dict[str, Any]:
         "provider": PROVIDER,
         "plan": payment.plan or PRO_PLAN_CODE,
         "plan_name": PRO_PLAN_NAME,
-        "attempt_id": payment.attempt_id,
+        "attempt_id": get_payment_attempt_id(payment),
         "payment_id": payment.provider_payment_id,
         "status": payment.status,
         "approved": (
@@ -856,7 +929,7 @@ def log_payment_event(event: str, payment: Payment) -> None:
             {
                 "event": event,
                 "user_id": payment.user_id,
-                "attempt_id": payment.attempt_id,
+                "attempt_id": get_payment_attempt_id(payment),
                 "provider_payment_id": payment.provider_payment_id,
                 "payment_method": payment.payment_method,
                 "status": payment.status,

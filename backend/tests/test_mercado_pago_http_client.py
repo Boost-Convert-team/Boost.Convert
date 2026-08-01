@@ -47,7 +47,7 @@ class MercadoPagoHttpClientTests(unittest.TestCase):
 
     def test_provider_statuses_have_safe_explicit_mapping(self) -> None:
         expected = {
-            400: 422,
+            400: 400,
             401: 502,
             403: 502,
             409: 409,
@@ -81,6 +81,36 @@ class MercadoPagoHttpClientTests(unittest.TestCase):
         ):
             with self.assertRaises(MercadoPagoInvalidResponseError):
                 mercado_pago_request("GET", "/v1/payments/1")
+
+    def test_provider_cause_and_correlation_are_sanitized(self) -> None:
+        with self.app.app_context(), patch(
+            "Blueprints.services.subscription.mercado_pago_service.requests.request",
+            return_value=FakeResponse(
+                422,
+                {
+                    "error": "bad_request",
+                    "cause": [
+                        {
+                            "code": "2034",
+                            "description": "Invalid users involved for buyer@example.com TEST-secret-value",
+                        }
+                    ],
+                },
+                headers={"x-request-id": "provider-correlation-123"},
+            ),
+        ), self.assertLogs(self.app.logger, level="WARNING") as logs:
+            with self.assertRaises(MercadoPagoHTTPError) as raised:
+                mercado_pago_request("POST", "/v1/payments", json_payload={})
+        error = raised.exception
+        self.assertEqual(error.provider_status, 422)
+        self.assertEqual(error.provider_code, "bad_request")
+        self.assertIn("2034", error.provider_cause)
+        self.assertIn("[email]", error.provider_cause)
+        self.assertIn("[credential]", error.provider_cause)
+        self.assertEqual(error.correlation_id, "provider-correlation-123")
+        combined_logs = " ".join(logs.output)
+        self.assertNotIn("buyer@example.com", combined_logs)
+        self.assertNotIn("TEST-secret-value", combined_logs)
 
         with self.app.app_context(), patch(
             "Blueprints.services.subscription.mercado_pago_service.requests.request",

@@ -19,12 +19,11 @@ import models  # noqa: F401 - registers the complete migration metadata
 
 
 class PaymentConfigAndMigrationTests(unittest.TestCase):
-    def test_payment_migration_is_the_single_head_after_c4(self) -> None:
+    def test_c4_is_the_single_migration_head(self) -> None:
         config = AlembicConfig(str(BACKEND_ROOT / "migrations" / "alembic.ini"))
         config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
         script = ScriptDirectory.from_config(config)
-        self.assertEqual(script.get_heads(), ["e2f7a9c4d1b6"])
-        self.assertEqual(script.get_revision("e2f7a9c4d1b6").down_revision, "c4a8e2f1b7d9")
+        self.assertEqual(script.get_heads(), ["c4a8e2f1b7d9"])
 
     def test_payment_migration_upgrades_and_downgrades_isolated_database(self) -> None:
         migrations_path = BACKEND_ROOT / "migrations"
@@ -40,34 +39,23 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
             with app.app_context():
                 upgrade(directory=str(migrations_path))
                 inspector = inspect(db.engine)
-                column_details = {
-                    column["name"]: column for column in inspector.get_columns("payments")
-                }
-                columns = set(column_details)
+                columns = {column["name"] for column in inspector.get_columns("payments")}
                 self.assertTrue(
-                    {"attempt_id", "provider_payment_method_id", "payment_type", "last_provider_sync_at"}
+                    {
+                        "idempotency_key",
+                        "external_reference",
+                        "pix_qr_code",
+                        "pix_qr_code_base64",
+                        "pix_ticket_url",
+                    }
                     <= columns
                 )
-                self.assertFalse(column_details["attempt_id"]["nullable"])
                 constraint_names = {
                     constraint["name"]
                     for constraint in inspector.get_unique_constraints("payments")
                 }
-                self.assertIn("uq_payments_provider_attempt_id", constraint_names)
-                indexes = {
-                    index["name"]: index for index in inspector.get_indexes("payments")
-                }
-                self.assertTrue(
-                    indexes["uq_payments_provider_attempt_external_reference"]["unique"]
-                )
-
-                downgrade(directory=str(migrations_path), revision="c4a8e2f1b7d9")
-                columns = {column["name"] for column in inspect(db.engine).get_columns("payments")}
+                self.assertIn("uq_payments_provider_idempotency_key", constraint_names)
                 self.assertNotIn("attempt_id", columns)
-
-                upgrade(directory=str(migrations_path))
-                columns = {column["name"] for column in inspect(db.engine).get_columns("payments")}
-                self.assertIn("attempt_id", columns)
                 db.session.remove()
                 db.engine.dispose()
 

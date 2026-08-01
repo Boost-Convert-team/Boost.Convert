@@ -72,6 +72,14 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+    def test_pix_endpoint_requires_authentication(self) -> None:
+        response = self.client.post(
+            "/api/payment/pix",
+            data={"pix_idempotency_key": "11111111-2222-4333-8444-555555555555"},
+            headers=self.csrf_headers(),
+        )
+        self.assertEqual(response.status_code, 401)
+
     def test_card_endpoint_requires_csrf_even_when_authenticated(self) -> None:
         self.login()
         with patch(
@@ -196,6 +204,9 @@ class PaymentRouteSecurityTests(unittest.TestCase):
             "Mercado Pago esta temporariamente limitando requisicoes.",
             provider_status=429,
             public_status=503,
+            provider_code="too_many_requests",
+            provider_cause="Request limit reached.",
+            correlation_id="correlation-rate-limit",
             retry_after="30",
         )
         with patch(
@@ -207,6 +218,10 @@ class PaymentRouteSecurityTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.headers["Retry-After"], "30")
+        self.assertEqual(response.json["provider_status"], 429)
+        self.assertEqual(response.json["code"], "too_many_requests")
+        self.assertEqual(response.json["cause"], "Request limit reached.")
+        self.assertEqual(response.json["correlation_id"], "correlation-rate-limit")
 
     def test_provider_timeout_422_5xx_and_invalid_json_are_mapped(self) -> None:
         self.login()
