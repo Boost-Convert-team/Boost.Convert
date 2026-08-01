@@ -133,7 +133,16 @@ class Config:
     MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
     MERCADO_PAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
     MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET")
+    MERCADO_PAGO_COLLECTOR_ID = os.getenv("MERCADO_PAGO_COLLECTOR_ID")
+    MERCADO_PAGO_ENVIRONMENT = (os.getenv("MERCADO_PAGO_ENVIRONMENT") or "").lower()
     MERCADO_PAGO_PLAN_PRICE = os.getenv("MERCADO_PAGO_PLAN_PRICE", "19.90")
+    MERCADO_PAGO_MAX_INSTALLMENTS = get_int_env("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
+    MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS = get_int_env(
+        "MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS", 300
+    )
+    MERCADO_PAGO_RECONCILE_INTERVAL_SECONDS = get_int_env(
+        "MERCADO_PAGO_RECONCILE_INTERVAL_SECONDS", 10
+    )
     # Public SEO origin.  This must not depend on the inbound Host or proxy
     # scheme because those values may vary behind nginx and during health
     # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
@@ -154,3 +163,48 @@ def should_auto_create_db(app):
     if os.getenv("AUTO_CREATE_DB") == "1": return True
     if os.getenv("AUTO_CREATE_DB") == "0": return False
     return False
+
+
+def validate_mercado_pago_config(app):
+    """Fail closed for a production payment configuration."""
+    environment = str(app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
+    if environment not in {"test", "production"}:
+        message = "MERCADO_PAGO_ENVIRONMENT deve ser test ou production."
+        if app.config.get("APP_ENV") in {"production", "prod"}:
+            raise RuntimeError(message)
+        app.logger.warning("mercado_pago_config_incomplete field=environment")
+        return
+
+    required = {
+        "MERCADO_PAGO_ACCESS_TOKEN": app.config.get("MERCADO_PAGO_ACCESS_TOKEN"),
+        "MERCADO_PAGO_PUBLIC_KEY": app.config.get("MERCADO_PAGO_PUBLIC_KEY"),
+        "MERCADO_PAGO_WEBHOOK_SECRET": app.config.get("MERCADO_PAGO_WEBHOOK_SECRET"),
+        "MERCADO_PAGO_COLLECTOR_ID": app.config.get("MERCADO_PAGO_COLLECTOR_ID"),
+    }
+    missing = sorted(name for name, value in required.items() if not str(value or "").strip())
+    is_production_app = app.config.get("APP_ENV") in {"production", "prod"}
+    if missing and is_production_app:
+        raise RuntimeError(
+            "Configuracao Mercado Pago ausente: " + ", ".join(missing)
+        )
+    if missing:
+        app.logger.warning(
+            "mercado_pago_config_incomplete fields=%s", ",".join(missing)
+        )
+        return
+
+    access_token = str(required["MERCADO_PAGO_ACCESS_TOKEN"])
+    public_key = str(required["MERCADO_PAGO_PUBLIC_KEY"])
+    uses_test_credentials = access_token.startswith("TEST-") or public_key.startswith("TEST-")
+    if environment == "production" and uses_test_credentials:
+        raise RuntimeError("Credenciais TEST nao podem ser usadas no ambiente Mercado Pago production.")
+    if environment == "test" and not (
+        access_token.startswith("TEST-") and public_key.startswith("TEST-")
+    ):
+        raise RuntimeError("Ambiente Mercado Pago test exige credenciais TEST.")
+    if is_production_app and environment != "production":
+        raise RuntimeError("Aplicacao em producao exige MERCADO_PAGO_ENVIRONMENT=production.")
+    if not is_production_app and environment == "production":
+        raise RuntimeError("Pagamentos reais sao bloqueados fora da aplicacao em producao.")
+    if is_production_app and not str(app.config.get("BASE_URL") or "").startswith("https://"):
+        raise RuntimeError("BASE_URL HTTPS e obrigatoria para pagamentos em producao.")

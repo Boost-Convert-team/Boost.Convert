@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Status do pagamento por cartão | BoostConvert PRO{% endblock %}
+{% block meta_description %}Acompanhe a confirmação do seu pagamento por cartão no BoostConvert.{% endblock %}
+
+{% block content %}
+<main class="checkout-page checkout-card-status-page"
+      data-card-status-page
+      data-payment-confirmed="{{ 'true' if is_confirmed else 'false' }}"
+      data-status-url="{{ url_for('checkout.card_payment_status', attempt_id=payment.attempt_id) }}">
+    <header class="checkout-heading reveal">
+        <span class="eyebrow"><i data-lucide="credit-card" aria-hidden="true"></i> Pagamento por cartão</span>
+        <h1>{{ plan_name }}</h1>
+        <p>Compra única de {{ price }} para 30 dias de acesso PRO.</p>
+    </header>
+
+    <section class="pix-payment-panel reveal" aria-labelledby="card-payment-status-title">
+        <h2 id="card-payment-status-title">Status do pagamento</h2>
+        <p class="pix-payment-status" data-card-payment-status data-status="{{ payment.status }}" aria-live="polite">
+            {% if is_confirmed %}
+            Pagamento confirmado. Seu BoostConvert PRO está ativo por 30 dias.
+            {% elif payment.status|lower in ['rejected', 'cancelled', 'canceled', 'expired', 'refunded', 'charged_back'] %}
+            O pagamento não foi aprovado ou deixou de ser válido.
+            {% else %}
+            <span class="pix-waiting-dot" aria-hidden="true"></span> Aguardando confirmação do Mercado Pago.
+            {% endif %}
+        </p>
+        <a class="button button-primary" href="{{ url_for('main.conta') }}" data-card-account-link {% if not is_confirmed %}hidden{% endif %}>Ir para minha conta</a>
+        <a class="button button-secondary" href="{{ url_for('checkout.checkout_pro_choice') }}">Voltar às formas de pagamento</a>
+        <p class="pix-security-note">Nenhum dado de cartão é armazenado pelo BoostConvert.</p>
+    </section>
+</main>
+{% endblock %}

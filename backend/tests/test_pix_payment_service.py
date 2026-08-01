@@ -10,7 +10,6 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from Blueprints.services.subscription.mercado_pago_payments_service import (
-    create_one_time_checkout_preference,
     create_pix_payment,
 )
 from extensions import db
@@ -26,6 +25,8 @@ class PixPaymentServiceTests(unittest.TestCase):
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             MERCADO_PAGO_ACCESS_TOKEN="TEST-token",
             MERCADO_PAGO_PLAN_PRICE="19.90",
+            MERCADO_PAGO_ENVIRONMENT="test",
+            MERCADO_PAGO_COLLECTOR_ID="123456",
             BASE_URL="https://boostconvert.com.br",
         )
         db.init_app(self.app)
@@ -37,35 +38,23 @@ class PixPaymentServiceTests(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def test_creating_pix_persists_qr_but_never_activates_pro(self) -> None:
+    def test_pix_has_unique_attempt_reference_and_does_not_activate_on_create(self) -> None:
         with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
-            user = Usuario(email="pix-create@example.com", plano="free", status_assinatura="inactive")
-            db.session.add(user)
-            db.session.commit()
-            provider_data = {
-                "id": "pay_pix_pending",
-                "external_reference": f"boost:user:{user.id}",
-                "status": "approved",
-                "payment_method_id": "pix",
-                "payment_type_id": "bank_transfer",
-                "transaction_amount": "19.90",
-                "currency_id": "BRL",
-                "date_created": "2026-07-31T10:15:00Z",
-                "metadata": {"user_id": user.id, "plan": "BOOSTCONVERT_PRO"},
-                "point_of_interaction": {
-                    "transaction_data": {
-                        "qr_code": "000201-pix-copy-code",
-                        "qr_code_base64": "cXItY29kZQ==",
-                        "ticket_url": "https://www.mercadopago.com.br/payments/pay_pix_pending/ticket",
-                    }
-                },
-            }
+            user = self.create_user("pix-create@example.com")
             idempotency_key = "11111111-2222-4333-8444-555555555555"
+            calls = []
+
+            def provider_request(method, path, **kwargs):
+                calls.append((method, path, kwargs))
+                if path.startswith("/v1/payments/search?"):
+                    return {"results": []}
+                payload = kwargs["json_payload"]
+                return self.provider_pix_data("pay_pix_pending", payload, status="approved")
 
             with patch(
                 "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
-                return_value=provider_data,
-            ) as request_payment:
+                side_effect=provider_request,
+            ):
                 result = create_pix_payment(user, idempotency_key)
                 repeated_result = create_pix_payment(user, idempotency_key)
 
@@ -73,65 +62,131 @@ class PixPaymentServiceTests(unittest.TestCase):
             self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
             self.assertIsNone(payment.premium_expires_at)
             self.assertIsNone(payment.approved_at)
+            self.assertEqual(payment.attempt_id, result["attempt_id"])
+            self.assertEqual(
+                payment.external_reference,
+                f"boost:payment:{payment.attempt_id}:user:{user.id}",
+            )
             self.assertEqual(payment.pix_qr_code, "000201-pix-copy-code")
-            self.assertEqual(
-                payment.pix_ticket_url,
-                provider_data["point_of_interaction"]["transaction_data"]["ticket_url"],
-            )
-            self.assertEqual(payment.external_reference, f"boost:user:{user.id}")
-            self.assertEqual(payment.plan, "BOOSTCONVERT_PRO")
-            self.assertEqual(payment.idempotency_key, idempotency_key)
-            self.assertIsNotNone(payment.payment_created_at)
-            self.assertEqual(result["payment_id"], "pay_pix_pending")
-            self.assertEqual(result["ticket_url"], payment.pix_ticket_url)
             self.assertEqual(repeated_result, result)
-            self.assertEqual(request_payment.call_count, 1)
-
-            _method, path = request_payment.call_args.args[:2]
-            kwargs = request_payment.call_args.kwargs
-            self.assertEqual(path, "/v1/payments")
-            self.assertEqual(kwargs["json_payload"]["payment_method_id"], "pix")
-            self.assertEqual(kwargs["json_payload"]["transaction_amount"], 19.90)
-            self.assertEqual(kwargs["json_payload"]["metadata"]["plan"], "BOOSTCONVERT_PRO")
-            self.assertEqual(kwargs["extra_headers"]["X-Idempotency-Key"], idempotency_key)
+            self.assertEqual(len(calls), 2)
+            post_call = calls[1]
+            self.assertEqual(post_call[0:2], ("POST", "/v1/payments"))
+            self.assertEqual(post_call[2]["json_payload"]["payment_method_id"], "pix")
+            self.assertEqual(post_call[2]["json_payload"]["transaction_amount"], 19.90)
             self.assertEqual(
-                kwargs["json_payload"]["notification_url"],
-                "https://boostconvert.com.br/api/webhooks/mercadopago",
+                post_call[2]["json_payload"]["metadata"]["attempt_id"],
+                payment.attempt_id,
+            )
+            self.assertEqual(
+                post_call[2]["extra_headers"]["X-Idempotency-Key"],
+                idempotency_key,
             )
 
-    def test_existing_card_checkout_pro_preference_is_preserved(self) -> None:
-        with self.app.app_context(), self.app.test_request_context("/checkout/pro", method="POST"):
-            user = Usuario(email="card@example.com", plano="free", status_assinatura="inactive")
-            db.session.add(user)
-            db.session.commit()
+    def test_two_pix_attempts_for_same_user_have_different_references(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
+            user = self.create_user("pix-race@example.com")
+            counter = 0
+
+            def provider_request(method, path, **kwargs):
+                nonlocal counter
+                if path.startswith("/v1/payments/search?"):
+                    return {"results": []}
+                counter += 1
+                return self.provider_pix_data(
+                    f"pay_pix_{counter}", kwargs["json_payload"], status="pending"
+                )
+
             with patch(
                 "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
-                return_value={
-                    "id": "pref_card_123",
-                    "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
-                },
-            ) as request_preference:
-                result = create_one_time_checkout_preference(user, credit_card_only=True)
+                side_effect=provider_request,
+            ):
+                create_pix_payment(user, "11111111-2222-4333-8444-555555555555")
+                create_pix_payment(user, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")
 
-            self.assertEqual(result["preference_id"], "pref_card_123")
-            self.assertIn("mercadopago.com.br", result["checkout_url"])
-            self.assertEqual(request_preference.call_args.args[:2], ("POST", "/checkout/preferences"))
-            excluded_types = request_preference.call_args.kwargs["json_payload"][
-                "payment_methods"
-            ]["excluded_payment_types"]
-            excluded_type_ids = {item["id"] for item in excluded_types}
-            self.assertEqual(
-                excluded_type_ids,
-                {
-                    "account_money",
-                    "atm",
-                    "bank_transfer",
-                    "debit_card",
-                    "digital_currency",
-                    "prepaid_card",
-                    "ticket",
-                },
+            payments = Payment.query.order_by(Payment.id).all()
+            self.assertEqual(len(payments), 2)
+            self.assertNotEqual(payments[0].attempt_id, payments[1].attempt_id)
+            self.assertNotEqual(payments[0].external_reference, payments[1].external_reference)
+
+    def test_recovery_search_prevents_second_provider_post(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/pix", method="POST"):
+            user = self.create_user("pix-recovery@example.com")
+            attempt = Payment(
+                user_id=user.id,
+                attempt_id="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                provider="mercado_pago",
+                idempotency_key="11111111-2222-4333-8444-555555555555",
+                external_reference=(
+                    f"boost:payment:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee:user:{user.id}"
+                ),
+                plan="BOOSTCONVERT_PRO",
+                payment_method="pix",
+                provider_payment_method_id="pix",
+                payment_type="pix",
+                status="creating",
+                amount="19.90",
+                currency="BRL",
             )
+            db.session.add(attempt)
+            db.session.commit()
+            recovered = self.provider_pix_data(
+                "pay_recovered",
+                {
+                    "external_reference": attempt.external_reference,
+                    "metadata": {
+                        "user_id": user.id,
+                        "plan": "BOOSTCONVERT_PRO",
+                        "attempt_id": attempt.attempt_id,
+                    },
+                },
+                status="pending",
+            )
+
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
+                return_value={"results": [recovered]},
+            ) as request_payment:
+                result = create_pix_payment(user, attempt.idempotency_key)
+
+            self.assertEqual(result["payment_id"], "pay_recovered")
+            self.assertEqual(request_payment.call_count, 1)
+            self.assertEqual(request_payment.call_args.args[0], "GET")
+
+    def create_user(self, email: str) -> Usuario:
+        user = Usuario(email=email, plano="free", status_assinatura="inactive")
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    def provider_pix_data(
+        self,
+        payment_id: str,
+        request_payload: dict,
+        *,
+        status: str,
+    ) -> dict:
+        metadata = dict(request_payload.get("metadata") or {})
+        return {
+            "id": payment_id,
+            "external_reference": request_payload["external_reference"],
+            "status": status,
+            "payment_method_id": "pix",
+            "payment_type_id": "bank_transfer",
+            "transaction_amount": "19.90",
+            "currency_id": "BRL",
+            "collector_id": 123456,
+            "live_mode": False,
+            "date_created": "2026-07-31T10:15:00Z",
+            "metadata": metadata,
+            "point_of_interaction": {
+                "transaction_data": {
+                    "qr_code": "000201-pix-copy-code",
+                    "qr_code_base64": "cXItY29kZQ==",
+                    "ticket_url": f"https://www.mercadopago.com.br/payments/{payment_id}/ticket",
+                }
+            },
+        }
 
 
 if __name__ == "__main__":

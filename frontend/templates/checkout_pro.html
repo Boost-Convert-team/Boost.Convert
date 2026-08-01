@@ -1,44 +1,59 @@
 {% extends "base.html" %}
 
 {% block title %}Escolha o pagamento do BoostConvert PRO{% endblock %}
-{% block meta_description %}Escolha entre cartão de crédito e Pix para assinar o BoostConvert PRO.{% endblock %}
+{% block meta_description %}Compre 30 dias de BoostConvert PRO com cartão de crédito ou PIX.{% endblock %}
 
 {% block content %}
 <main class="checkout-page">
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="shield-check" aria-hidden="true"></i> Pagamento seguro</span>
-        <h1>Assinar {{ plan_name }}</h1>
-        <p>Escolha como deseja pagar. O acesso PRO é liberado somente após a confirmação do Mercado Pago.</p>
-        <strong>{{ price }}</strong>
+        <h1>Comprar 30 dias de {{ plan_name }}</h1>
+        <p>Escolha uma forma de pagamento. É uma compra única, sem renovação automática. O acesso é liberado somente após a confirmação do Mercado Pago.</p>
+        <strong>{{ price }} por 30 dias</strong>
     </header>
 
     <section class="payment-choice-grid reveal" aria-label="Formas de pagamento">
-        <article class="payment-choice-card">
+        <article class="payment-choice-card payment-choice-card--card">
             <span class="payment-choice-icon"><i data-lucide="credit-card" aria-hidden="true"></i></span>
             <div>
-                <h2>Cartão</h2>
-                <p>Pagamento seguro com cartão de crédito pelo Mercado Pago.</p>
+                <h2>Pagar com cartão de crédito</h2>
+                <p>Pagamento único com cartão de crédito. Débito, pré-pago e saldo em conta não são aceitos.</p>
             </div>
-            <form action="{{ url_for('checkout.checkout_pro') }}" method="post" data-pro-checkout-form>
-                {% include "partials/csrf_field.html" %}
-                <button class="button button-primary" type="submit">Continuar com cartão</button>
-                <p class="checkout-message" data-pro-checkout-message aria-live="polite"></p>
-            </form>
+            {% if mercado_pago_public_key %}
+            <div id="cardPaymentBrick_container" class="card-payment-brick"></div>
+            <p class="checkout-message" data-card-payment-message aria-live="polite"></p>
+            <div
+                data-card-payment-config
+                data-public-key="{{ mercado_pago_public_key }}"
+                data-endpoint="{{ url_for('checkout.create_card_payment') }}"
+                data-csrf-token="{{ csrf_token() }}"
+                data-idempotency-key="{{ card_idempotency_key }}"
+                data-amount="{{ price_amount }}"
+                data-max-installments="{{ mercado_pago_max_installments }}"
+                data-payer-email="{{ payer_email }}"
+                hidden></div>
+            {% else %}
+            <p class="checkout-message">O pagamento por cartão está temporariamente indisponível.</p>
+            {% endif %}
         </article>
 
         <article class="payment-choice-card payment-choice-card--pix">
             <span class="payment-choice-icon"><i data-lucide="zap" aria-hidden="true"></i></span>
             <div>
-                <h2>Pix</h2>
-                <p>Pague instantaneamente usando o QR Code ou o código Pix Copia e Cola.</p>
+                <h2>PIX</h2>
+                <p>Pagamento único e independente usando QR Code ou PIX Copia e Cola.</p>
             </div>
             <form action="{{ url_for('checkout.create_pix_payment') }}" method="post" data-pix-payment-form>
                 {% include "partials/csrf_field.html" %}
                 <input type="hidden" name="pix_idempotency_key" value="{{ pix_idempotency_key }}">
-                <button class="button button-primary" type="submit">Pagar com Pix</button>
+                <button class="button button-primary" type="submit">Pagar com PIX</button>
                 <p class="checkout-message" data-pix-payment-message aria-live="polite"></p>
             </form>
         </article>
     </section>
 </main>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if mercado_pago_public_key %}<script src="https://sdk.mercadopago.com/js/v2"></script>{% endif %}
 {% endblock %}

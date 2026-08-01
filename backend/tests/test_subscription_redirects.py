@@ -13,9 +13,9 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from app import create_app
 from Blueprints.main.checkout_routes import (
     checkout,
-    checkout_credit_subscription,
-    checkout_pro,
+    create_card_payment as create_card_payment_route,
     create_pix_payment as create_pix_payment_route,
+    legacy_checkout_disabled,
 )
 from Blueprints.handlers.conversion_handlers import (
     handle_conversion_error,
@@ -51,60 +51,44 @@ class SubscriptionRedirectTests(unittest.TestCase):
 
         self.assertEqual(checkout_response.location, "/planos")
 
-    def test_credit_subscription_returns_mercado_pago_checkout_url(self) -> None:
-        mercado_pago_response = {
-            "checkout_url": "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=sub_123",
-            "subscription_id": "sub_123",
-            "status": "pending",
-            "plan_name": "BoostConvert PRO",
-        }
+    def test_credit_subscription_is_disabled(self) -> None:
         with self.app.test_request_context("/checkout/credit-subscription", method="POST"):
-            with patch(
-                "Blueprints.main.checkout_routes.create_monthly_subscription",
-                return_value=mercado_pago_response,
-            ):
-                checkout_response, status_code = checkout_credit_subscription.__wrapped__()
+            response, status_code = legacy_checkout_disabled.__wrapped__()
+        self.assertEqual(status_code, 410)
+        self.assertIn("desativado", response.json["error"])
 
-        self.assertEqual(status_code, 200)
-        self.assertEqual(checkout_response.json["provider"], "mercado_pago")
-        self.assertEqual(checkout_response.json["plan_name"], "BoostConvert PRO")
-        self.assertEqual(checkout_response.json["checkout_url"], mercado_pago_response["checkout_url"])
-
-    def test_credit_subscription_returns_json_error_when_mercado_pago_fails(self) -> None:
-        from Blueprints.services.subscription.mercado_pago_service import MercadoPagoError
-
-        with self.app.test_request_context("/checkout/credit-subscription", method="POST"):
-            with patch(
-                "Blueprints.main.checkout_routes.create_monthly_subscription",
-                side_effect=MercadoPagoError("MERCADO_PAGO_ACCESS_TOKEN nao configurado."),
-            ):
-                checkout_response = checkout_credit_subscription.__wrapped__()
-
-        response, status_code = checkout_response
-        self.assertEqual(status_code, 502)
-        self.assertFalse(response.json["ok"])
-
-    def test_pro_checkout_returns_hosted_mercado_pago_checkout_url(self) -> None:
+    def test_card_api_returns_local_status_redirect(self) -> None:
         mercado_pago_response = {
             "ok": True,
-            "provider": "mercado_pago",
-            "plan_name": "BoostConvert PRO",
-            "checkout_url": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
-            "preference_id": "pref_123",
-            "status": "created",
+            "attempt_id": "11111111-2222-4333-8444-555555555555",
+            "payment_id": "pay_card_123",
+            "status": "approved",
+            "approved": True,
         }
-        with self.app.test_request_context("/checkout/pro", method="POST"):
+        with self.app.test_request_context(
+            "/api/payment/card",
+            method="POST",
+            json={
+                "token": "token",
+                "payment_method_id": "visa",
+                "issuer_id": "1",
+                "installments": 1,
+                "payer": {"email": "card@example.com"},
+            },
+            headers={"X-Idempotency-Key": "11111111-2222-4333-8444-555555555555"},
+        ):
             with patch(
-                "Blueprints.main.checkout_routes.create_one_time_checkout_preference",
+                "Blueprints.main.checkout_routes.current_user",
+                SimpleNamespace(id=42, email="card@example.com"),
+            ), patch(
+                "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
                 return_value=mercado_pago_response,
             ):
-                response, status_code = checkout_pro.__wrapped__()
+                response, status_code = create_card_payment_route.__wrapped__()
 
-        self.assertEqual(status_code, 200)
-        self.assertEqual(response.json["plan_name"], "BoostConvert PRO")
-        self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
-        with self.app.test_request_context():
-            self.assertEqual(url_for("checkout.checkout_pro"), "/checkout/pro")
+        self.assertEqual(status_code, 201)
+        self.assertEqual(response.json["payment_id"], "pay_card_123")
+        self.assertIn("/checkout-card/status?attempt_id=", response.json["redirect_url"])
 
     def test_pix_api_returns_local_checkout_redirect(self) -> None:
         pix_response = {
@@ -128,41 +112,29 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertEqual(response.json["payment_id"], "pay_pix_123")
         self.assertEqual(response.json["redirect_url"], "/checkout-pix?payment_id=pay_pix_123")
 
-    def test_legacy_pix_and_debit_routes_use_same_hosted_checkout(self) -> None:
-        mercado_pago_response = {
-            "ok": True,
-            "provider": "mercado_pago",
-            "plan_name": "BoostConvert PRO",
-            "checkout_url": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123",
-            "preference_id": "pref_123",
-            "status": "created",
-        }
-        for path in ("/checkout/pix", "/checkout/debit"):
+    def test_legacy_hosted_checkout_routes_are_disabled(self) -> None:
+        for path in ("/checkout/pix", "/checkout/debit", "/checkout/pro"):
             with self.subTest(path=path):
                 with self.app.test_request_context(path, method="POST"):
-                    with patch(
-                        "Blueprints.main.checkout_routes.create_one_time_checkout_preference",
-                        return_value=mercado_pago_response,
-                    ):
-                        response, status_code = checkout_pro.__wrapped__()
-
-                self.assertEqual(status_code, 200)
-                self.assertEqual(response.json["checkout_url"], mercado_pago_response["checkout_url"])
+                    response, status_code = legacy_checkout_disabled.__wrapped__()
+                self.assertEqual(status_code, 410)
 
     def test_planos_pro_button_opens_payment_choice(self) -> None:
-        template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text()
-        choice_template = (BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html").read_text()
+        template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text(encoding="utf-8")
+        choice_template = (BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html").read_text(encoding="utf-8")
 
         self.assertIn("url_for('checkout.checkout_pro_choice')", template)
         self.assertIn("BoostConvert PRO", template)
-        self.assertIn('data-pro-checkout-form', choice_template)
-        self.assertIn("url_for('checkout.checkout_pro')", choice_template)
+        self.assertIn('id="cardPaymentBrick_container"', choice_template)
+        self.assertIn("url_for('checkout.create_card_payment')", choice_template)
+        self.assertIn("sdk.mercadopago.com/js/v2", choice_template)
         self.assertIn('data-pix-payment-form', choice_template)
         self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
         self.assertIn('name="pix_idempotency_key"', choice_template)
+        self.assertIn("sem renovação automática", choice_template)
         pix_template = (
             BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pix.html"
-        ).read_text()
+        ).read_text(encoding="utf-8")
         self.assertIn("payment.pix_ticket_url", pix_template)
         self.assertNotIn('href="https://pay.', template)
 

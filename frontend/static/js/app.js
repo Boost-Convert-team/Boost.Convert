@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.BoostForms?.initUploadZones();
     window.BoostForms?.initHeroUpload();
     window.BoostForms?.initLoadingForms();
-    window.BoostForms?.initProCheckoutForms();
     window.BoostForms?.initAuthToggle();
     initFaqAccordion();
     initConversionStatusPage();

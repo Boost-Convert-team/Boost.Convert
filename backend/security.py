@@ -14,7 +14,7 @@ CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_EXEMPT_ENDPOINTS = {
-    "webhook.webhook",
+    "webhook.legacy_webhook_disabled",
     "webhook.receive_mercado_pago_webhook",
 }
 
@@ -31,9 +31,10 @@ AUTH_RATE_LIMITS = {
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
-    "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
-    "checkout.checkout_pro": RateLimitRule(10, 60),
     "checkout.create_pix_payment": RateLimitRule(5, 60),
+    "checkout.create_card_payment": RateLimitRule(5, 60),
+    "checkout.pix_payment_status": RateLimitRule(30, 60),
+    "checkout.card_payment_status": RateLimitRule(30, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
@@ -231,11 +232,12 @@ def should_noindex_response(response: Response) -> bool:
 def build_content_security_policy() -> str:
     directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://unpkg.com",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com https://http2.mlstatic.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-        "img-src 'self' data:",
+        "img-src 'self' data: https://*.mercadopago.com https://*.mercadolibre.com",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self'",
+        "connect-src 'self' https://*.mercadopago.com https://*.mercadolibre.com",
+        "frame-src https://*.mercadopago.com https://*.mercadolibre.com",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

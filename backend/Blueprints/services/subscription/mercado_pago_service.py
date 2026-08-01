@@ -3,14 +3,17 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urljoin
+from uuid import UUID
 
 import requests
 from flask import current_app, request
+from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 from models import PaymentWebhookEvent, Subscription, Usuario
@@ -25,6 +28,7 @@ from Blueprints.services.subscription.subscription_service import (
 MERCADO_PAGO_API_BASE_URL = "https://api.mercadopago.com"
 PROVIDER = "mercado_pago"
 EXTERNAL_REFERENCE_PREFIX = "boost:user:"
+PAYMENT_EXTERNAL_REFERENCE_PREFIX = "boost:payment:"
 PRO_PLAN_NAME = "BoostConvert PRO"
 PRO_PLAN_CODE = "BOOSTCONVERT_PRO"
 INACTIVE_SUBSCRIPTION_STATUSES = {
@@ -47,6 +51,31 @@ FAILED_PAYMENT_STATUSES = {
 
 class MercadoPagoError(RuntimeError):
     """Raised when Mercado Pago cannot create or confirm a payment."""
+
+
+class MercadoPagoTimeoutError(MercadoPagoError):
+    """Raised when the provider did not answer within the configured timeout."""
+
+
+class MercadoPagoHTTPError(MercadoPagoError):
+    """Provider HTTP error with a safe application status and optional retry hint."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider_status: int,
+        public_status: int,
+        retry_after: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.provider_status = provider_status
+        self.public_status = public_status
+        self.retry_after = retry_after
+
+
+class MercadoPagoInvalidResponseError(MercadoPagoError):
+    """Raised when the provider response cannot be safely interpreted."""
 
 
 @dataclass(frozen=True)
@@ -109,16 +138,24 @@ def process_mercado_pago_webhook(payload: dict[str, Any]) -> MercadoPagoWebhookR
     if event_id and is_duplicate_webhook_event(event_id):
         return MercadoPagoWebhookResult("duplicate", event_type, resource_id, duplicate=True)
 
-    if not event_type or not resource_id:
-        result = MercadoPagoWebhookResult("ignored", event_type, resource_id)
+    try:
+        result = (
+            MercadoPagoWebhookResult("ignored", event_type, resource_id)
+            if not event_type or not resource_id
+            else dispatch_mercado_pago_webhook(payload, event_type, resource_id)
+        )
         record_webhook_event(payload, event_id, result)
         db.session.commit()
         return result
-
-    result = dispatch_mercado_pago_webhook(payload, event_type, resource_id)
-    record_webhook_event(payload, event_id, result)
-    db.session.commit()
-    return result
+    except IntegrityError:
+        # A unique provider event ID is the final concurrency guard when two
+        # workers receive the same notification at the same time.
+        db.session.rollback()
+        if event_id and is_duplicate_webhook_event(event_id):
+            return MercadoPagoWebhookResult(
+                "duplicate", event_type, resource_id, duplicate=True
+            )
+        raise
 
 
 def dispatch_mercado_pago_webhook(
@@ -190,7 +227,15 @@ def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
         return False
     if payload_resource_id and payload_resource_id != data_id:
         return False
-    return validate_signature_parts(x_signature, x_request_id, data_id, secret)
+    return validate_signature_parts(
+        x_signature,
+        x_request_id,
+        data_id,
+        secret,
+        tolerance_seconds=int(
+            current_app.config.get("MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS", 300)
+        ),
+    )
 
 
 def validate_signature_parts(
@@ -198,11 +243,20 @@ def validate_signature_parts(
     x_request_id: str,
     data_id: str,
     secret: str,
+    tolerance_seconds: int | None = None,
+    now_timestamp: int | None = None,
 ) -> bool:
     signature_parts = parse_signature_header(x_signature)
     ts = signature_parts.get("ts", "")
     received_hash = signature_parts.get("v1", "")
     if not ts or not received_hash:
+        return False
+
+    if tolerance_seconds is not None and not is_webhook_timestamp_fresh(
+        ts,
+        tolerance_seconds,
+        now_timestamp=now_timestamp,
+    ):
         return False
 
     manifest = build_webhook_manifest(data_id, x_request_id, ts)
@@ -212,6 +266,22 @@ def validate_signature_parts(
         hashlib.sha256,
     ).hexdigest()
     return hmac.compare_digest(expected_hash, received_hash)
+
+
+def is_webhook_timestamp_fresh(
+    timestamp: str,
+    tolerance_seconds: int,
+    *,
+    now_timestamp: int | None = None,
+) -> bool:
+    try:
+        parsed_timestamp = int(timestamp)
+    except (TypeError, ValueError):
+        return False
+    if parsed_timestamp <= 0 or tolerance_seconds < 0:
+        return False
+    now_timestamp = int(time.time()) if now_timestamp is None else int(now_timestamp)
+    return abs(now_timestamp - parsed_timestamp) <= tolerance_seconds
 
 
 def parse_signature_header(x_signature: str) -> dict[str, str]:
@@ -255,7 +325,8 @@ def mercado_pago_request(
     path: str,
     json_payload: dict[str, Any] | None = None,
     extra_headers: dict[str, str] | None = None,
-) -> dict[str, Any]:
+    expected_response_types: tuple[type, ...] = (dict,),
+) -> Any:
     access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
     if not access_token:
         raise MercadoPagoError("MERCADO_PAGO_ACCESS_TOKEN nao configurado.")
@@ -276,10 +347,13 @@ def mercado_pago_request(
             json=json_payload,
             timeout=15,
         )
+    except requests.Timeout as exc:
+        raise MercadoPagoTimeoutError("Mercado Pago demorou para responder.") from exc
     except requests.RequestException as exc:
         raise MercadoPagoError("Falha ao conectar com Mercado Pago.") from exc
 
     if response.status_code >= 400:
+        provider_error_code = get_provider_error_code(response)
         current_app.logger.warning(
             json.dumps(
                 {
@@ -287,21 +361,68 @@ def mercado_pago_request(
                     "method": method,
                     "path": path,
                     "status_code": response.status_code,
-                    "response": response.text[:500],
+                    "provider_error_code": provider_error_code,
                 },
                 ensure_ascii=False,
             )
         )
-        raise MercadoPagoError("Mercado Pago recusou a operacao.")
+        public_status, message = classify_provider_http_error(response.status_code)
+        raise MercadoPagoHTTPError(
+            message,
+            provider_status=response.status_code,
+            public_status=public_status,
+            retry_after=get_safe_retry_after(response),
+        )
 
     try:
         data = response.json()
     except ValueError as exc:
-        raise MercadoPagoError("Mercado Pago retornou uma resposta invalida.") from exc
+        raise MercadoPagoInvalidResponseError(
+            "Mercado Pago retornou uma resposta invalida."
+        ) from exc
 
-    if not isinstance(data, dict):
-        raise MercadoPagoError("Mercado Pago retornou uma resposta inesperada.")
+    if not isinstance(data, expected_response_types):
+        raise MercadoPagoInvalidResponseError(
+            "Mercado Pago retornou uma resposta inesperada."
+        )
     return data
+
+
+def classify_provider_http_error(status_code: int) -> tuple[int, str]:
+    if status_code in {400, 422}:
+        return 422, "Mercado Pago recusou os dados do pagamento."
+    if status_code in {401, 403}:
+        return 502, "Mercado Pago recusou a autenticacao da integracao."
+    if status_code == 409:
+        return 409, "Mercado Pago informou conflito no pagamento."
+    if status_code == 429:
+        return 503, "Mercado Pago esta temporariamente limitando requisicoes."
+    if status_code >= 500:
+        return 503, "Mercado Pago esta temporariamente indisponivel."
+    return 502, "Mercado Pago recusou a operacao."
+
+
+def get_provider_error_code(response: requests.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return "unavailable"
+    if not isinstance(payload, dict):
+        return "unavailable"
+    value = payload.get("error") or payload.get("code") or payload.get("status")
+    if value is None:
+        cause = payload.get("cause")
+        if isinstance(cause, list) and cause and isinstance(cause[0], dict):
+            value = cause[0].get("code")
+    normalized = str(value or "unavailable").strip()
+    return normalized[:80]
+
+
+def get_safe_retry_after(response: requests.Response) -> str | None:
+    value = str(response.headers.get("Retry-After") or "").strip()
+    if not value.isdigit():
+        return None
+    return str(min(int(value), 3600))
 
 
 def upsert_subscription_from_provider_data(
@@ -413,9 +534,27 @@ def record_webhook_event(
             event_type=result.event_type or "unknown",
             resource_id=result.resource_id or None,
             status=result.status,
-            payload=payload,
+            payload=sanitize_webhook_payload(payload),
         )
     )
+
+
+def sanitize_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Persist delivery metadata only, never an arbitrary provider payload."""
+    data = payload.get("data")
+    return {
+        "id": str(payload.get("id") or "")[:120],
+        "type": str(payload.get("type") or payload.get("topic") or "")[:80],
+        "action": str(payload.get("action") or "")[:80],
+        "data": {
+            "id": str(data.get("id") or "")[:120]
+            if isinstance(data, dict)
+            else ""
+        },
+        "live_mode": payload.get("live_mode")
+        if isinstance(payload.get("live_mode"), bool)
+        else None,
+    }
 
 
 def is_duplicate_webhook_event(event_id: str) -> bool:
@@ -446,7 +585,9 @@ def extract_webhook_resource_id(payload: dict[str, Any]) -> str:
 
 
 def extract_webhook_event_id(payload: dict[str, Any]) -> str:
-    event_id = request.headers.get("x-request-id", "") or payload.get("id")
+    # The notification ID is stable across delivery retries. x-request-id
+    # identifies one HTTP delivery and therefore is only a fallback.
+    event_id = payload.get("id") or request.headers.get("x-request-id", "")
     return str(event_id).strip() if event_id else ""
 
 
@@ -454,8 +595,40 @@ def build_external_reference(user_id: int) -> str:
     return f"{EXTERNAL_REFERENCE_PREFIX}{user_id}"
 
 
+def build_payment_external_reference(user_id: int, attempt_id: str) -> str:
+    normalized_attempt_id = str(UUID(str(attempt_id).strip()))
+    return f"{PAYMENT_EXTERNAL_REFERENCE_PREFIX}{normalized_attempt_id}:user:{user_id}"
+
+
+def extract_payment_attempt_id(value: object) -> str | None:
+    if not isinstance(value, str) or not value.startswith(
+        PAYMENT_EXTERNAL_REFERENCE_PREFIX
+    ):
+        return None
+    attempt_value, separator, user_part = value.removeprefix(
+        PAYMENT_EXTERNAL_REFERENCE_PREFIX
+    ).partition(":user:")
+    if not separator or not user_part.isdigit():
+        return None
+    try:
+        return str(UUID(attempt_value))
+    except (ValueError, AttributeError):
+        return None
+
+
 def extract_user_id_from_external_reference(value: object) -> int | None:
-    if not isinstance(value, str) or not value.startswith(EXTERNAL_REFERENCE_PREFIX):
+    if not isinstance(value, str):
+        return None
+    if value.startswith(PAYMENT_EXTERNAL_REFERENCE_PREFIX):
+        attempt_id = extract_payment_attempt_id(value)
+        if attempt_id is None:
+            return None
+        _, _, user_part = value.rpartition(":user:")
+        try:
+            return int(user_part)
+        except ValueError:
+            return None
+    if not value.startswith(EXTERNAL_REFERENCE_PREFIX):
         return None
     try:
         return int(value.removeprefix(EXTERNAL_REFERENCE_PREFIX))

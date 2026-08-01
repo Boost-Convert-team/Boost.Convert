@@ -17,11 +17,16 @@ jobs:
           port: 22
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            set -e
+            set -euo pipefail
 
             APP_PATH="${{ secrets.APP_PATH }}"
+            HEALTHCHECK_URL="${{ secrets.HEALTHCHECK_URL }}"
+            HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:5001/health}"
 
-            echo "APP_PATH=$APP_PATH"
+            if [ -z "$APP_PATH" ]; then
+              echo "APP_PATH não configurado"
+              exit 1
+            fi
 
             mkdir -p "$APP_PATH"
 
@@ -37,12 +42,38 @@ jobs:
 
             cd "$APP_PATH"
 
-            echo "Reiniciando serviço..."
-            if systemctl list-units --type=service --all | grep -q "boostconvert.service"; then
-              sudo systemctl restart boostconvert.service
-              sudo systemctl status boostconvert.service --no-pager
+            echo "Selecionando o virtualenv da aplicação..."
+            if [ -x "$APP_PATH/venv/bin/python" ]; then
+              VENV_PATH="$APP_PATH/venv"
+            elif [ -x "$APP_PATH/.venv/bin/python" ]; then
+              VENV_PATH="$APP_PATH/.venv"
             else
-              echo "boostconvert.service não encontrado"
+              echo "Virtualenv da aplicação não encontrado"
+              exit 1
             fi
+            source "$VENV_PATH/bin/activate"
+
+            echo "Instalando dependências no virtualenv..."
+            python -m pip install --disable-pip-version-check -r "$APP_PATH/backend/requirements.txt"
+
+            echo "Aplicando migrações do banco antes do restart..."
+            cd "$APP_PATH/backend"
+            python -m flask --app app:create_app db upgrade
+            python -m flask --app app:create_app db current
+            cd "$APP_PATH"
+
+            echo "Validando serviço..."
+            if ! systemctl list-unit-files --type=service | grep -q '^boostconvert.service'; then
+              echo "boostconvert.service não encontrado"
+              exit 1
+            fi
+            sudo systemctl restart boostconvert.service
+            sudo systemctl is-active --quiet boostconvert.service
+            sudo systemctl status boostconvert.service --no-pager
+
+            echo "Executando health check..."
+            curl --fail --silent --show-error \
+              --retry 10 --retry-delay 3 --retry-connrefused \
+              --max-time 5 "$HEALTHCHECK_URL"
 
             echo "Deploy finalizado."

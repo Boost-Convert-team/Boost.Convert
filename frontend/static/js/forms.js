@@ -167,73 +167,6 @@
         });
     }
 
-    function initProCheckoutForms() {
-        document.querySelectorAll("[data-pro-checkout-form]").forEach((form) => {
-            form.addEventListener("submit", handleProCheckoutSubmit);
-        });
-    }
-
-    async function handleProCheckoutSubmit(event) {
-        event.preventDefault();
-
-        const form = event.currentTarget;
-        const button = form.querySelector('button[type="submit"]');
-        const message = form.querySelector("[data-pro-checkout-message]");
-
-        setProCheckoutMessage(message, "");
-        setProCheckoutLoading(button, true);
-
-        try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                body: new FormData(form),
-                headers: { Accept: "application/json" },
-                credentials: "same-origin"
-            });
-
-            if (response.redirected) {
-                window.location.assign(response.url);
-                return;
-            }
-
-            const payload = await readCheckoutResponse(response);
-            if (!response.ok) {
-                throw new Error(payload.error || "Nao foi possivel iniciar o pagamento.");
-            }
-
-            if (payload.checkout_url) {
-                window.location.assign(payload.checkout_url);
-                return;
-            }
-
-            throw new Error(payload.error || "Mercado Pago nao retornou a URL do checkout.");
-        } catch (error) {
-            setProCheckoutLoading(button, false);
-            setProCheckoutMessage(message, error.message || "Nao foi possivel iniciar o pagamento.");
-        } finally {
-            setProCheckoutLoading(button, false);
-        }
-    }
-
-    async function readCheckoutResponse(response) {
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) return {};
-        return response.json();
-    }
-
-    function setProCheckoutLoading(button, isLoading) {
-        if (!button) return;
-        button.disabled = isLoading;
-        button.classList.toggle("is-loading", isLoading);
-        button.setAttribute("aria-busy", String(isLoading));
-    }
-
-    function setProCheckoutMessage(message, text, state) {
-        if (!message) return;
-        message.textContent = text || "";
-        message.dataset.state = state || "";
-    }
-
     function initHeroUpload() {
         const form = document.querySelector("[data-hero-upload-form]");
         if (!form) return;
@@ -470,7 +403,6 @@
         initHeroUpload,
         initAuthToggle,
         initLoadingForms,
-        initProCheckoutForms,
         initUploadZones,
         getFileExtension,
         getSameExtensionFiles

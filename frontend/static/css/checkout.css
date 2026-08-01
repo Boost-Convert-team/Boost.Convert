@@ -101,6 +101,15 @@ body:has(.checkout-page) {
     margin-top: auto;
 }
 
+.payment-choice-card--card {
+    min-height: 520px;
+}
+
+.card-payment-brick {
+    width: 100%;
+    margin-top: auto;
+}
+
 .payment-choice-card .button {
     justify-content: center;
     width: 100%;
@@ -200,6 +209,12 @@ body:has(.checkout-page) {
     font-size: 13px;
     line-height: 1.55;
     text-align: center;
+}
+
+.checkout-card-status-page .pix-payment-panel .button {
+    justify-content: center;
+    width: 100%;
+    margin-top: 14px;
 }
 
 @keyframes pixWaitingPulse {

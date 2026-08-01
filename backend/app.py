@@ -2,13 +2,15 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()
 
 from flask_migrate import Migrate
 import pip_system_certs.wrapt_requests
-from config import Config
+from config import Config, validate_mercado_pago_config
 from error_pages import register_error_handlers
 from extensions import db, lm, oauth
 from models import Usuario
@@ -36,6 +38,7 @@ def create_app() -> Flask:
     )
     app.config.from_object(Config)
     app.secret_key = app.config["SECRET_KEY"]
+    validate_mercado_pago_config(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -106,6 +109,15 @@ def create_app() -> Flask:
             max_age=86400,
         )
         return response
+
+    @app.get("/health")
+    def health():
+        try:
+            db.session.execute(text("SELECT attempt_id FROM payments LIMIT 1"))
+        except SQLAlchemyError:
+            db.session.rollback()
+            return jsonify({"status": "unavailable"}), 503
+        return jsonify({"status": "ok"}), 200
 
     @app.get("/google8d88adeac885fa39.html")
     def google_search_console_verification():
