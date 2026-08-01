@@ -43,15 +43,12 @@ AUTH_RATE_LIMITS = {
 }
 ENDPOINT_RATE_LIMITS = {
     "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
-    "checkout.create_pix_payment": RateLimitRule(5, 60),
     "checkout.create_card_payment": RateLimitRule(5, 60),
-    "checkout.pix_payment_status": RateLimitRule(30, 60),
     "checkout.card_payment_status": RateLimitRule(30, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
 PAYMENT_CREATION_ENDPOINTS = {
-    "checkout.create_pix_payment",
     "checkout.create_card_payment",
 }
 PAYMENT_CREATION_RAW_LIMIT = RateLimitRule(30, 60)
@@ -65,7 +62,6 @@ NOINDEX_PATH_PREFIXES = (
     "/cadastro",
     "/checkout",
     "/checkout-pro",
-    "/checkout-pix",
     "/conta",
     "/convert/",
     "/conversions/",
@@ -255,11 +251,7 @@ def get_recent_raw_rate_limit_hits(
 def get_payment_idempotency_token() -> str | None:
     if request.endpoint not in PAYMENT_CREATION_ENDPOINTS:
         return None
-    raw_token = (
-        request.form.get("pix_idempotency_key")
-        or request.headers.get("X-Idempotency-Key")
-        or ""
-    ).strip()
+    raw_token = (request.headers.get("X-Idempotency-Key") or "").strip()
     try:
         return str(UUID(raw_token))
     except (ValueError, AttributeError):

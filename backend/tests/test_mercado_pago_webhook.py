@@ -54,25 +54,8 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def test_approved_pix_grants_30_days_only_after_provider_get(self) -> None:
-        user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
-        provider_data = self.provider_data(user_id, payment_id, "approved", "pix", "bank_transfer")
-        with patch(
-            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
-            return_value=provider_data,
-        ) as get_payment:
-            response = self.post_payment_event(1001, payment_id)
-
-        self.assertEqual(response.status_code, 200)
-        get_payment.assert_called_once_with(payment_id)
-        with self.app.app_context():
-            payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
-            user = db.session.get(Usuario, user_id)
-            self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
-            self.assertEqual(payment.premium_expires_at - payment.approved_at, timedelta(days=30))
-
     def test_approved_credit_card_grants_30_days(self) -> None:
-        user_id, payment_id = self.create_attempt("credit_card", "visa", "credit_card")
+        user_id, payment_id = self.create_credit_attempt()
         provider_data = self.provider_data(
             user_id, payment_id, "approved", "visa", "credit_card"
         )
@@ -84,6 +67,12 @@ class MercadoPagoWebhookTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.user_state(user_id), ("pro", "active"))
+        with self.app.app_context():
+            payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
+            self.assertEqual(
+                payment.premium_expires_at - payment.approved_at,
+                timedelta(days=30),
+            )
 
     def test_pending_or_rejected_payment_never_grants_access(self) -> None:
         for index, status in enumerate(("pending", "in_process", "rejected"), start=1):
@@ -91,9 +80,9 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 with self.app.app_context():
                     db.drop_all()
                     db.create_all()
-                user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
+                user_id, payment_id = self.create_credit_attempt()
                 provider_data = self.provider_data(
-                    user_id, payment_id, status, "pix", "bank_transfer"
+                    user_id, payment_id, status, "visa", "credit_card"
                 )
                 with patch(
                     "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
@@ -104,14 +93,14 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 self.assertEqual(self.user_state(user_id), ("free", "inactive"))
 
     def test_webhook_before_create_response_correlates_original_attempt(self) -> None:
-        user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
+        user_id, payment_id = self.create_credit_attempt()
         with self.app.app_context():
             payment = Payment.query.one()
             payment.provider_payment_id = None
             db.session.commit()
             original_local_id = payment.id
         provider_data = self.provider_data(
-            user_id, payment_id, "approved", "pix", "bank_transfer"
+            user_id, payment_id, "approved", "visa", "credit_card"
         )
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
@@ -154,7 +143,9 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             "amount": lambda data: data.update(transaction_amount="0.01"),
             "currency": lambda data: data.update(currency_id="USD"),
             "plan": lambda data: data["metadata"].update(plan="OTHER"),
-            "method": lambda data: data.update(payment_method_id="pix", payment_type_id="bank_transfer"),
+            "method": lambda data: data.update(
+                payment_method_id="master", payment_type_id="debit_card"
+            ),
             "collector": lambda data: data.update(collector_id=999999),
             "live_mode": lambda data: data.update(live_mode=True),
             "attempt_metadata": lambda data: data["metadata"].update(attempt_id="ffffffff-ffff-4fff-8fff-ffffffffffff"),
@@ -165,9 +156,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 with self.app.app_context():
                     db.drop_all()
                     db.create_all()
-                user_id, payment_id = self.create_attempt(
-                    "credit_card", "visa", "credit_card"
-                )
+                user_id, payment_id = self.create_credit_attempt()
                 provider_data = self.provider_data(
                     user_id, payment_id, "approved", "visa", "credit_card"
                 )
@@ -181,8 +170,10 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 self.assertEqual(self.user_state(user_id), ("free", "inactive"))
 
     def test_duplicate_notification_id_is_idempotent_across_request_ids(self) -> None:
-        user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
-        provider_data = self.provider_data(user_id, payment_id, "approved", "pix", "bank_transfer")
+        user_id, payment_id = self.create_credit_attempt()
+        provider_data = self.provider_data(
+            user_id, payment_id, "approved", "visa", "credit_card"
+        )
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
             return_value=provider_data,
@@ -198,7 +189,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             self.assertEqual(PaymentWebhookEvent.query.count(), 1)
 
     def test_refund_removes_only_refunded_access(self) -> None:
-        user_id, payment_id = self.create_attempt("credit_card", "visa", "credit_card")
+        user_id, payment_id = self.create_credit_attempt()
         approved = self.provider_data(user_id, payment_id, "approved", "visa", "credit_card")
         refunded = self.provider_data(user_id, payment_id, "refunded", "visa", "credit_card")
         with patch(
@@ -213,15 +204,35 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
             self.assertEqual(payment.status, "refunded")
 
+    def test_chargeback_removes_card_access(self) -> None:
+        user_id, payment_id = self.create_credit_attempt()
+        approved = self.provider_data(
+            user_id, payment_id, "approved", "visa", "credit_card"
+        )
+        charged_back = self.provider_data(
+            user_id, payment_id, "charged_back", "visa", "credit_card"
+        )
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            side_effect=[approved, charged_back],
+        ):
+            self.assertEqual(self.post_payment_event(4101, payment_id).status_code, 200)
+            self.assertEqual(self.post_payment_event(4102, payment_id).status_code, 200)
+
+        self.assertEqual(self.user_state(user_id), ("free", "inactive"))
+        with self.app.app_context():
+            payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
+            self.assertEqual(payment.status, "charged_back")
+
     def test_refund_preserves_access_from_another_valid_payment(self) -> None:
-        user_id, payment_id = self.create_attempt("credit_card", "visa", "credit_card")
+        user_id, payment_id = self.create_credit_attempt()
         with self.app.app_context():
             db.session.add(
                 Payment(
                     user_id=user_id,
                     provider_payment_id="pay_other",
                     external_reference=f"boost:user:{user_id}",
-                    payment_method="pix",
+                    payment_method="credit_card",
                     status="approved",
                     amount="19.90",
                     currency="BRL",
@@ -244,7 +255,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self.assertEqual(self.user_state(user_id), ("pro", "active"))
 
     def test_stale_or_invalid_signature_is_rejected_before_provider_get(self) -> None:
-        user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
+        _user_id, payment_id = self.create_credit_attempt()
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment"
         ) as get_payment:
@@ -263,8 +274,10 @@ class MercadoPagoWebhookTests(unittest.TestCase):
         self.assertEqual(response.status_code, 410)
 
     def test_persisted_webhook_payload_is_sanitized(self) -> None:
-        user_id, payment_id = self.create_attempt("pix", "pix", "bank_transfer")
-        provider_data = self.provider_data(user_id, payment_id, "pending", "pix", "bank_transfer")
+        user_id, payment_id = self.create_credit_attempt()
+        provider_data = self.provider_data(
+            user_id, payment_id, "pending", "visa", "credit_card"
+        )
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
             return_value=provider_data,
@@ -276,18 +289,17 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             self.assertNotIn("token", stored)
             self.assertNotIn("must-not-persist", repr(stored))
 
-    def create_attempt(
-        self,
-        payment_method: str,
-        provider_method: str,
-        payment_type: str,
-    ) -> tuple[int, str]:
+    def create_credit_attempt(self) -> tuple[int, str]:
         with self.app.app_context():
-            user = Usuario(email=f"{payment_method}@example.com", plano="free", status_assinatura="inactive")
+            user = Usuario(
+                email="credit-card@example.com",
+                plano="free",
+                status_assinatura="inactive",
+            )
             db.session.add(user)
             db.session.flush()
             attempt_id = "11111111-2222-4333-8444-555555555555"
-            payment_id = f"pay_{payment_method}"
+            payment_id = "pay_credit_card"
             db.session.add(
                 Payment(
                     user_id=user.id,
@@ -296,7 +308,7 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                     external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
                     plan="BOOSTCONVERT_PRO",
                     idempotency_key=attempt_id,
-                    payment_method=payment_method,
+                    payment_method="credit_card",
                     status="pending",
                     amount="19.90",
                     currency="BRL",

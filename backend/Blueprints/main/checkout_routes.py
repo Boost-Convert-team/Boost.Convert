@@ -29,13 +29,10 @@ from Blueprints.services.subscription.mercado_pago_service import (
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     APPROVED_PAYMENT_STATUSES,
     CREDIT_PAYMENT_METHOD,
-    PIX_PAYMENT_METHOD,
-    PayerValidationError,
     PRO_PLAN_NAME,
     CardPaymentValidationError,
     IdempotencyKeyValidationError,
     create_card_payment as create_mercado_pago_card_payment,
-    create_pix_payment as create_mercado_pago_pix_payment,
     get_payment_attempt_id,
     reconcile_payment,
 )
@@ -54,7 +51,7 @@ def checkout() -> Response:
 @checkout_bp.get("/checkout-pro")
 @login_required
 def checkout_pro_choice() -> Response:
-    """Display two independent one-time payment flows."""
+    """Display the credit-card one-time payment flow."""
     return render_template(
         "checkout_pro.html",
         plan_name=PRO_PLAN_NAME,
@@ -65,33 +62,8 @@ def checkout_pro_choice() -> Response:
             current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
         ),
         payer_email=current_user.email,
-        pix_idempotency_key=str(uuid4()),
         card_idempotency_key=str(uuid4()),
     )
-
-
-@checkout_bp.post("/api/payment/pix")
-@login_required
-def create_pix_payment() -> tuple[Response, int]:
-    """Create a pending PIX payment; access remains locked until confirmation."""
-    try:
-        payment = create_mercado_pago_pix_payment(
-            current_user,
-            request.form.get("pix_idempotency_key")
-            or request.headers.get("X-Idempotency-Key"),
-        )
-    except PayerValidationError as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 422
-    except SQLAlchemyError as exc:
-        return handle_payment_database_error("pix_create", exc)
-    except MercadoPagoError as exc:
-        return handle_provider_error("pix_create", exc)
-
-    payment["redirect_url"] = url_for(
-        "checkout.checkout_pix_page",
-        payment_id=payment["payment_id"],
-    )
-    return jsonify(payment), 201
 
 
 @checkout_bp.post("/api/payment/card")
@@ -130,26 +102,6 @@ def create_card_payment() -> tuple[Response, int]:
         payment["error"] = "Pagamento recusado. Revise os dados ou use outro cartao."
         return jsonify(payment), 422
     return jsonify(payment), 201 if payment.get("approved") else 202
-
-
-@checkout_bp.get("/checkout-pix")
-@login_required
-def checkout_pix_page() -> Response:
-    payment = get_user_pix_payment_or_404(request.args.get("payment_id", ""))
-    return render_template(
-        "checkout_pix.html",
-        payment=payment,
-        plan_name=PRO_PLAN_NAME,
-        price=format_brl(payment.amount or get_plan_price()),
-        is_confirmed=is_payment_confirmed(payment),
-    )
-
-
-@checkout_bp.get("/api/payment/pix/<payment_id>/status")
-@login_required
-def pix_payment_status(payment_id: str) -> tuple[Response, int]:
-    payment = get_user_pix_payment_or_404(payment_id)
-    return build_reconciled_status_response(payment, "pix_status")
 
 
 @checkout_bp.get("/checkout-card/status")
@@ -198,7 +150,6 @@ def checkout_credit_subscription() -> tuple[Response, int]:
     ), 200
 
 
-@checkout_bp.post("/checkout/pix")
 @checkout_bp.post("/checkout/debit")
 @checkout_bp.post("/checkout/pro")
 @login_required
@@ -207,7 +158,7 @@ def legacy_checkout_disabled() -> tuple[Response, int]:
     return jsonify(
         {
             "ok": False,
-            "error": "Checkout antigo desativado. Escolha PIX ou cartao no checkout atual.",
+            "error": "Checkout antigo desativado. Use o cartao de credito no checkout atual.",
             "checkout_url": url_for("checkout.checkout_pro_choice"),
         }
     ), 410
@@ -232,21 +183,6 @@ def build_reconciled_status_response(
             "approved": is_payment_confirmed(payment),
         }
     ), 200
-
-
-def get_user_pix_payment_or_404(payment_id: str) -> Payment:
-    normalized_id = str(payment_id or "").strip()
-    if not normalized_id or len(normalized_id) > 120:
-        abort(404)
-    payment = Payment.query.filter_by(
-        user_id=current_user.id,
-        provider=PROVIDER,
-        provider_payment_id=normalized_id,
-        payment_method=PIX_PAYMENT_METHOD,
-    ).first()
-    if payment is None:
-        abort(404)
-    return payment
 
 
 def get_user_card_attempt_or_404(attempt_id: str) -> Payment:

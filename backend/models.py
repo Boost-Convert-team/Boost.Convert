@@ -76,9 +76,6 @@ class Payment(db.Model):
     premium_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
     payment_created_at = db.Column(db.DateTime(timezone=True), nullable=True)
     approved_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    pix_qr_code = db.Column(db.Text, nullable=True)
-    pix_qr_code_base64 = db.Column(db.Text, nullable=True)
-    pix_ticket_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 

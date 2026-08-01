@@ -10,6 +10,7 @@ from models import Payment, Subscription
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
 APPROVED_PAYMENT_STATUSES = {"approved"}
+CREDIT_PAYMENT_METHOD = "credit_card"
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",
@@ -132,6 +133,7 @@ def find_active_paid_payment(user_id: int, now: datetime) -> Payment | None:
     return (
         Payment.query.filter(
             Payment.user_id == user_id,
+            Payment.payment_method == CREDIT_PAYMENT_METHOD,
             Payment.status.in_(APPROVED_PAYMENT_STATUSES),
             Payment.premium_expires_at.isnot(None),
             Payment.premium_expires_at > now,

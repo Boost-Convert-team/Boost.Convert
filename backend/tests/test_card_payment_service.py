@@ -221,7 +221,6 @@ class CardPaymentServiceTests(unittest.TestCase):
                 payment = get_or_create_payment_attempt(
                     user,
                     key,
-                    payment_method="credit_card",
                 )
             self.assertEqual(payment.attempt_id, winner_attempt_id)
             self.assertEqual(Payment.query.count(), 1)

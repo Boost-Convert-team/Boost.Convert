@@ -14,21 +14,33 @@ class PaymentFrontendContractTests(unittest.TestCase):
         cls.javascript = (PROJECT_ROOT / "frontend/static/js/payments.js").read_text(
             encoding="utf-8"
         )
+        cls.styles = (PROJECT_ROOT / "frontend/static/css/checkout.css").read_text(
+            encoding="utf-8"
+        )
         cls.app_javascript = (PROJECT_ROOT / "frontend/static/js/app.js").read_text(
             encoding="utf-8"
         )
 
-    def test_pix_and_card_are_independent_options(self) -> None:
-        self.assertIn("<h2>Cartão</h2>", self.template)
-        self.assertIn("Pagar com Pix", self.template)
+    def test_checkout_has_one_centered_credit_card_panel(self) -> None:
+        self.assertIn("<h1>Cartão de crédito</h1>", self.template)
+        self.assertIn(
+            "Pagamento seguro com cartão de crédito pelo Mercado Pago.",
+            self.template,
+        )
+        self.assertEqual(self.template.count('class="card-checkout-panel reveal"'), 1)
         self.assertEqual(self.template.count('id="cardPaymentBrick_container"'), 1)
-        pix_section = self.template.split("payment-choice-card--pix", 1)[1]
-        self.assertNotIn("cardPaymentBrick_container", pix_section)
-        self.assertIn("data-pix-payment-form", pix_section)
+        self.assertNotIn("payment-choice-grid", self.template)
+
+    def test_removed_payment_method_has_no_frontend_artifacts(self) -> None:
+        removed_method = "".join(("p", "i", "x"))
+        combined = f"{self.template}\n{self.javascript}\n{self.styles}".lower()
+        self.assertNotIn(removed_method, combined)
+        self.assertNotIn("qr" + "_code", combined)
+        self.assertNotIn("copia e " + "cola", combined)
 
     def test_card_brick_is_created_once_with_credit_only_customization(self) -> None:
         self.assertEqual(self.javascript.count('bricksBuilder.create("cardPayment"'), 1)
-        self.assertIn('["debit_card", "prepaid_card"]', self.javascript)
+        self.assertIn('types: { excluded: ["debit_card", "prepaid_card"] }', self.javascript)
         self.assertIn("cardBrickInitializing", self.javascript)
         self.assertIn("cardBrickController.unmount()", self.javascript)
 
@@ -40,8 +52,7 @@ class PaymentFrontendContractTests(unittest.TestCase):
         self.assertEqual(
             self.app_javascript.count("window.BoostPayments?.initPayments()"), 1
         )
-        self.assertIn('form.dataset.paymentInitialized === "true"', self.javascript)
-        self.assertIn('form.dataset.submissionInFlight === "true"', self.javascript)
+        self.assertIn("if (cardSubmissionInFlight) return", self.javascript)
         self.assertIn('page.dataset.paymentPollingInitialized === "true"', self.javascript)
 
     def test_card_sdk_loads_before_the_local_payment_initialization(self) -> None:
@@ -81,7 +92,14 @@ class PaymentFrontendContractTests(unittest.TestCase):
         for raw_field in ("card_number", "security_code", "expiration_date"):
             self.assertNotIn(raw_field, self.javascript)
 
-    def test_original_commercial_copy_is_preserved(self) -> None:
+    def test_checkout_is_responsive_without_horizontal_overflow(self) -> None:
+        self.assertIn("width: min(720px, 100%);", self.styles)
+        self.assertIn("overflow-x: clip;", self.styles)
+        self.assertIn("@media (max-width: 760px)", self.styles)
+        self.assertIn("@media (max-width: 480px)", self.styles)
+        self.assertIn("min-width: 0;", self.styles)
+
+    def test_original_commercial_terms_are_preserved(self) -> None:
         templates = "\n".join(
             (PROJECT_ROOT / path).read_text(encoding="utf-8")
             for path in (
@@ -91,7 +109,7 @@ class PaymentFrontendContractTests(unittest.TestCase):
                 "frontend/templates/planos.html",
             )
         )
-        self.assertIn("Assinar {{ plan_name }}", self.template)
+        self.assertIn("{{ price }}", self.template)
         self.assertIn("Assinar BoostConvert PRO", templates)
         self.assertIn("/ m&ecirc;s", templates)
         for forbidden_copy in (

@@ -450,7 +450,7 @@ def classify_provider_http_error(status_code: int) -> tuple[int, str]:
     if status_code == 429:
         return 503, "Mercado Pago esta temporariamente limitando requisicoes."
     if status_code == 422:
-        return 422, "Mercado Pago recusou o PIX ou os dados do pagamento."
+        return 422, "Mercado Pago recusou os dados do pagamento."
     if status_code >= 500:
         return 503, "Mercado Pago esta temporariamente indisponivel."
     return 502, "Mercado Pago recusou a operacao."

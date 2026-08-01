@@ -72,34 +72,12 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
-    def test_pix_endpoint_requires_authentication(self) -> None:
-        response = self.client.post(
-            "/api/payment/pix",
-            data={"pix_idempotency_key": "11111111-2222-4333-8444-555555555555"},
-            headers=self.csrf_headers(),
-        )
-        self.assertEqual(response.status_code, 401)
-
     def test_card_endpoint_requires_csrf_even_when_authenticated(self) -> None:
         self.login()
         with patch(
             "Blueprints.main.checkout_routes.create_mercado_pago_card_payment"
         ) as service:
             response = self.client.post("/api/payment/card", json=self.card_payload())
-        self.assertEqual(response.status_code, 400)
-        service.assert_not_called()
-
-    def test_pix_endpoint_requires_csrf_even_when_authenticated(self) -> None:
-        self.login()
-        with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment"
-        ) as service:
-            response = self.client.post(
-                "/api/payment/pix",
-                data={
-                    "pix_idempotency_key": "11111111-2222-4333-8444-555555555555"
-                },
-            )
         self.assertEqual(response.status_code, 400)
         service.assert_not_called()
 
@@ -318,90 +296,55 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         self.assertGreaterEqual(int(responses[-1].headers["Retry-After"]), 1)
         self.assertEqual(service.call_count, 5)
 
-    def test_pix_endpoint_rate_limit_blocks_sixth_attempt(self) -> None:
+    def test_card_idempotent_replay_does_not_consume_new_attempt_slots(self) -> None:
         self.login()
         response_data = {
             "ok": True,
             "attempt_id": "11111111-2222-4333-8444-555555555555",
-            "payment_id": "pay_pix_rate_limited",
-            "status": "pending",
-            "approved": False,
-        }
-        with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
-            return_value=response_data,
-        ) as service:
-            responses = [
-                self.client.post(
-                    "/api/payment/pix",
-                    data=self.pix_form(self.idempotency_key(index)),
-                    environ_overrides={"REMOTE_ADDR": "203.0.113.10"},
-                )
-                for index in range(6)
-            ]
-        self.assertEqual(responses[-1].status_code, 429)
-        self.assertGreaterEqual(int(responses[-1].headers["Retry-After"]), 1)
-        self.assertEqual(service.call_count, 5)
-
-    def test_pix_first_legitimate_request_is_not_rate_limited(self) -> None:
-        self.login()
-        response_data = {
-            "ok": True,
-            "attempt_id": self.idempotency_key(1),
-            "payment_id": "pay_pix_first_request",
-            "status": "pending",
-            "approved": False,
-        }
-        with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
-            return_value=response_data,
-        ) as service:
-            response = self.client.post(
-                "/api/payment/pix",
-                data=self.pix_form(self.idempotency_key(1)),
-            )
-        self.assertEqual(response.status_code, 201)
-        self.assertNotIn("Retry-After", response.headers)
-        service.assert_called_once()
-
-    def test_pix_idempotent_replay_does_not_consume_new_attempt_slots(self) -> None:
-        self.login()
-        response_data = {
-            "ok": True,
-            "attempt_id": "11111111-2222-4333-8444-555555555555",
-            "payment_id": "pay_pix_replayed",
+            "payment_id": "pay_card_replayed",
             "status": "pending",
             "approved": False,
         }
         same_key = self.idempotency_key(1)
         with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
-            return_value=response_data,
-        ) as service:
-            responses = [
-                self.client.post("/api/payment/pix", data=self.pix_form(same_key))
-                for _index in range(6)
-            ]
-        self.assertTrue(all(response.status_code == 201 for response in responses))
-        self.assertEqual(service.call_count, 6)
-
-    def test_pix_idempotent_replay_keeps_a_raw_abuse_ceiling(self) -> None:
-        self.login()
-        response_data = {
-            "ok": True,
-            "attempt_id": "11111111-2222-4333-8444-555555555555",
-            "payment_id": "pay_pix_raw_ceiling",
-            "status": "pending",
-            "approved": False,
-        }
-        with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+            "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
             return_value=response_data,
         ) as service:
             responses = [
                 self.client.post(
-                    "/api/payment/pix",
-                    data=self.pix_form(self.idempotency_key(1)),
+                    "/api/payment/card",
+                    json=self.card_payload(),
+                    headers={
+                        **self.csrf_headers(),
+                        "X-Idempotency-Key": same_key,
+                    },
+                )
+                for _index in range(6)
+            ]
+        self.assertTrue(all(response.status_code == 202 for response in responses))
+        self.assertEqual(service.call_count, 6)
+
+    def test_card_idempotent_replay_keeps_a_raw_abuse_ceiling(self) -> None:
+        self.login()
+        response_data = {
+            "ok": True,
+            "attempt_id": "11111111-2222-4333-8444-555555555555",
+            "payment_id": "pay_card_raw_ceiling",
+            "status": "pending",
+            "approved": False,
+        }
+        with patch(
+            "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
+            return_value=response_data,
+        ) as service:
+            responses = [
+                self.client.post(
+                    "/api/payment/card",
+                    json=self.card_payload(),
+                    headers={
+                        **self.csrf_headers(),
+                        "X-Idempotency-Key": self.idempotency_key(1),
+                    },
                 )
                 for _index in range(31)
             ]
@@ -409,10 +352,11 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         self.assertIn("Retry-After", responses[-1].headers)
         self.assertEqual(service.call_count, 30)
 
-    def test_pix_status_polling_has_a_separate_rate_limit_bucket(self) -> None:
+    def test_card_status_polling_has_a_separate_rate_limit_bucket(self) -> None:
         self.login()
+        missing_attempt = self.idempotency_key(99)
         status_responses = [
-            self.client.get("/api/payment/pix/missing/status")
+            self.client.get(f"/api/payment/card/{missing_attempt}/status")
             for _index in range(31)
         ]
         self.assertEqual(status_responses[-1].status_code, 429)
@@ -420,22 +364,26 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         response_data = {
             "ok": True,
             "attempt_id": self.idempotency_key(1),
-            "payment_id": "pay_pix_after_polling",
+            "payment_id": "pay_card_after_polling",
             "status": "pending",
             "approved": False,
         }
         with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+            "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
             return_value=response_data,
         ) as service:
             creation_response = self.client.post(
-                "/api/payment/pix",
-                data=self.pix_form(self.idempotency_key(1)),
+                "/api/payment/card",
+                json=self.card_payload(),
+                headers={
+                    **self.csrf_headers(),
+                    "X-Idempotency-Key": self.idempotency_key(1),
+                },
             )
-        self.assertEqual(creation_response.status_code, 201)
+        self.assertEqual(creation_response.status_code, 202)
         service.assert_called_once()
 
-    def test_authenticated_users_do_not_share_pix_rate_limit_by_ip(self) -> None:
+    def test_authenticated_users_do_not_share_card_rate_limit_by_ip(self) -> None:
         with self.app.app_context():
             other = Usuario(
                 email="second-rate-user@example.com",
@@ -449,32 +397,40 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         response_data = {
             "ok": True,
             "attempt_id": "11111111-2222-4333-8444-555555555555",
-            "payment_id": "pay_pix_shared_ip",
+            "payment_id": "pay_card_shared_ip",
             "status": "pending",
             "approved": False,
         }
         with patch(
-            "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
+            "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
             return_value=response_data,
         ) as service:
             self.login()
             first_user_responses = [
                 self.client.post(
-                    "/api/payment/pix",
-                    data=self.pix_form(self.idempotency_key(index)),
+                    "/api/payment/card",
+                    json=self.card_payload(),
+                    headers={
+                        **self.csrf_headers(),
+                        "X-Idempotency-Key": self.idempotency_key(index),
+                    },
                     environ_overrides={"REMOTE_ADDR": "203.0.113.20"},
                 )
                 for index in range(5)
             ]
             self.login(other_user_id)
             second_user_response = self.client.post(
-                "/api/payment/pix",
-                data=self.pix_form(self.idempotency_key(6)),
+                "/api/payment/card",
+                json={**self.card_payload(), "payer": {"email": "second-rate-user@example.com"}},
+                headers={
+                    **self.csrf_headers(),
+                    "X-Idempotency-Key": self.idempotency_key(6),
+                },
                 environ_overrides={"REMOTE_ADDR": "203.0.113.20"},
             )
 
-        self.assertTrue(all(response.status_code == 201 for response in first_user_responses))
-        self.assertEqual(second_user_response.status_code, 201)
+        self.assertTrue(all(response.status_code == 202 for response in first_user_responses))
+        self.assertEqual(second_user_response.status_code, 202)
         self.assertEqual(service.call_count, 6)
 
     def login(self, user_id: int | None = None) -> None:
@@ -496,15 +452,6 @@ class PaymentRouteSecurityTests(unittest.TestCase):
             "issuer_id": "123",
             "installments": 1,
             "payer": {"email": "route-card@example.com"},
-        }
-
-    def pix_form(self, idempotency_key: str | None = None) -> dict[str, str]:
-        token = "test-csrf-token-with-enough-length-123"
-        with self.client.session_transaction() as session:
-            session[CSRF_SESSION_KEY] = token
-        return {
-            "_csrf_token": token,
-            "pix_idempotency_key": idempotency_key or self.idempotency_key(1),
         }
 
     @staticmethod

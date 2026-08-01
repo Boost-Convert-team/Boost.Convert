@@ -4,9 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from flask import url_for
-
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -16,7 +13,6 @@ from Blueprints.main.checkout_routes import (
     checkout_credit_subscription,
     checkout_pro_choice,
     create_card_payment as create_card_payment_route,
-    create_pix_payment as create_pix_payment_route,
     legacy_checkout_disabled,
 )
 from Blueprints.handlers.conversion_handlers import (
@@ -106,36 +102,14 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertEqual(response.json["payment_id"], "pay_card_123")
         self.assertIn("/checkout-card/status?attempt_id=", response.json["redirect_url"])
 
-    def test_pix_api_returns_local_checkout_redirect(self) -> None:
-        pix_response = {
-            "ok": True,
-            "payment_id": "pay_pix_123",
-            "status": "pending",
-            "qr_code": "000201-code",
-            "qr_code_base64": "cXI=",
-        }
-        with self.app.test_request_context("/api/payment/pix", method="POST"):
-            with patch(
-                "Blueprints.main.checkout_routes.current_user",
-                SimpleNamespace(id=42, email="pix@example.com"),
-            ), patch(
-                "Blueprints.main.checkout_routes.create_mercado_pago_pix_payment",
-                return_value=pix_response,
-            ):
-                response, status_code = create_pix_payment_route.__wrapped__()
-
-        self.assertEqual(status_code, 201)
-        self.assertEqual(response.json["payment_id"], "pay_pix_123")
-        self.assertEqual(response.json["redirect_url"], "/checkout-pix?payment_id=pay_pix_123")
-
     def test_legacy_hosted_checkout_routes_are_disabled(self) -> None:
-        for path in ("/checkout/pix", "/checkout/debit", "/checkout/pro"):
+        for path in ("/checkout/debit", "/checkout/pro"):
             with self.subTest(path=path):
                 with self.app.test_request_context(path, method="POST"):
-                    response, status_code = legacy_checkout_disabled.__wrapped__()
+                    _response, status_code = legacy_checkout_disabled.__wrapped__()
                 self.assertEqual(status_code, 410)
 
-    def test_planos_pro_button_opens_payment_choice(self) -> None:
+    def test_planos_pro_button_opens_credit_card_checkout(self) -> None:
         template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text(encoding="utf-8")
         choice_template = (BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html").read_text(encoding="utf-8")
 
@@ -144,17 +118,33 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertIn('id="cardPaymentBrick_container"', choice_template)
         self.assertIn("url_for('checkout.create_card_payment')", choice_template)
         self.assertIn("sdk.mercadopago.com/js/v2", choice_template)
-        self.assertIn('data-pix-payment-form', choice_template)
-        self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
-        self.assertIn('name="pix_idempotency_key"', choice_template)
-        self.assertIn("Assinar {{ plan_name }}", choice_template)
+        self.assertIn("Cartão de crédito", choice_template)
+        self.assertIn('class="card-checkout-panel reveal"', choice_template)
         self.assertNotIn("sem renovação automática", choice_template)
         self.assertNotIn("30 dias", choice_template)
-        pix_template = (
-            BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pix.html"
-        ).read_text(encoding="utf-8")
-        self.assertIn("payment.pix_ticket_url", pix_template)
         self.assertNotIn('href="https://pay.', template)
+
+    def test_removed_payment_routes_return_404_and_are_not_registered(self) -> None:
+        removed_method = "".join(("p", "i", "x"))
+        paths = (
+            f"/api/payment/{removed_method}",
+            f"/api/payment/{removed_method}/missing/status",
+            f"/checkout-{removed_method}",
+            f"/checkout/{removed_method}",
+        )
+        registered_rules = {rule.rule for rule in self.app.url_map.iter_rules()}
+        self.assertTrue(all(path not in registered_rules for path in paths))
+
+        self.assertEqual(self.client.get(paths[2]).status_code, 404)
+        self.assertEqual(self.client.get(paths[1]).status_code, 404)
+        self.assertEqual(
+            self.client.post(paths[0], data=self.csrf_data()).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.post(paths[3], data=self.csrf_data()).status_code,
+            404,
+        )
 
     def test_checkout_template_receives_only_the_public_mercado_pago_key(self) -> None:
         public_key = "TEST-public-key-visible-in-browser"

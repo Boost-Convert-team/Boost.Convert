@@ -18,7 +18,6 @@ PRIVATE_PATH_PREFIXES = (
     "/cadastro",
     "/checkout",
     "/checkout-pro",
-    "/checkout-pix",
     "/conta",
     "/convert/",
     "/conversions/",

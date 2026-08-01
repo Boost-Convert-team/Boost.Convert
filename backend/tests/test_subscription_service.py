@@ -45,12 +45,12 @@ class SubscriptionServiceTests(unittest.TestCase):
         expires_at = approved_at + timedelta(days=30)
         with self.app.app_context():
             db.create_all()
-            user = self.create_user("pix-30-days@example.com", "free", "inactive")
+            user = self.create_user("card-30-days@example.com", "free", "inactive")
             db.session.add(
                 Payment(
                     user_id=user.id,
                     provider_payment_id="pay_30_days",
-                    payment_method="pix",
+                    payment_method="credit_card",
                     status="approved",
                     approved_at=approved_at,
                     premium_expires_at=expires_at,
@@ -76,7 +76,7 @@ class SubscriptionServiceTests(unittest.TestCase):
                 Payment(
                     user_id=user.id,
                     provider_payment_id="pay_expired",
-                    payment_method="pix",
+                    payment_method="credit_card",
                     status="approved",
                     approved_at=datetime.now(timezone.utc) - timedelta(days=31),
                     premium_expires_at=datetime.now(timezone.utc) - timedelta(days=1),
@@ -110,6 +110,25 @@ class SubscriptionServiceTests(unittest.TestCase):
 
             self.assertTrue(has_active_pro_subscription(user))
             self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
+
+    def test_non_credit_payment_record_never_grants_access(self) -> None:
+        with self.app.app_context():
+            db.create_all()
+            user = self.create_user("non-credit@example.com", "free", "inactive")
+            db.session.add(
+                Payment(
+                    user_id=user.id,
+                    provider_payment_id="pay_non_credit",
+                    payment_method="debit_card",
+                    status="approved",
+                    approved_at=datetime.now(timezone.utc),
+                    premium_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+                )
+            )
+            db.session.commit()
+
+            self.assertFalse(has_active_pro_subscription(user))
+            self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
 
     def test_authorized_subscription_without_approved_invoice_has_no_access(self) -> None:
         with self.app.app_context():

@@ -14,20 +14,20 @@
         <p>Acompanhe a confirmação do pagamento pelo Mercado Pago.</p>
     </header>
 
-    <section class="pix-payment-panel reveal" aria-labelledby="card-payment-status-title">
+    <section class="payment-status-panel reveal" aria-labelledby="card-payment-status-title">
         <h2 id="card-payment-status-title">Status do pagamento</h2>
-        <p class="pix-payment-status" data-card-payment-status data-status="{{ payment.status }}" aria-live="polite">
+        <p class="payment-status" data-card-payment-status data-status="{{ payment.status }}" aria-live="polite">
             {% if is_confirmed %}
             Pagamento confirmado. Seu BoostConvert PRO está ativo.
             {% elif payment.status|lower in ['rejected', 'cancelled', 'canceled', 'expired', 'refunded', 'charged_back'] %}
             O pagamento não foi aprovado ou deixou de ser válido.
             {% else %}
-            <span class="pix-waiting-dot" aria-hidden="true"></span> Aguardando confirmação do Mercado Pago.
+            <span class="payment-waiting-dot" aria-hidden="true"></span> Aguardando confirmação do Mercado Pago.
             {% endif %}
         </p>
         <a class="button button-primary" href="{{ url_for('main.conta') }}" data-card-account-link {% if not is_confirmed %}hidden{% endif %}>Ir para minha conta</a>
-        <a class="button button-secondary" href="{{ url_for('checkout.checkout_pro_choice') }}">Voltar às formas de pagamento</a>
-        <p class="pix-security-note">Nenhum dado de cartão é armazenado pelo BoostConvert.</p>
+        <a class="button button-secondary" href="{{ url_for('checkout.checkout_pro_choice') }}">Voltar ao cartão</a>
+        <p class="payment-security-note">Nenhum dado de cartão é armazenado pelo BoostConvert.</p>
     </section>
 </main>
 {% endblock %}

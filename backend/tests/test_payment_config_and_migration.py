@@ -19,11 +19,11 @@ import models  # noqa: F401 - registers the complete migration metadata
 
 
 class PaymentConfigAndMigrationTests(unittest.TestCase):
-    def test_c4_is_the_single_migration_head(self) -> None:
+    def test_cleanup_revision_is_the_single_migration_head(self) -> None:
         config = AlembicConfig(str(BACKEND_ROOT / "migrations" / "alembic.ini"))
         config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
         script = ScriptDirectory.from_config(config)
-        self.assertEqual(script.get_heads(), ["c4a8e2f1b7d9"])
+        self.assertEqual(script.get_heads(), ["f5a1c9d3e7b2"])
 
     def test_payment_migration_upgrades_and_downgrades_isolated_database(self) -> None:
         migrations_path = BACKEND_ROOT / "migrations"
@@ -40,22 +40,39 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                 upgrade(directory=str(migrations_path))
                 inspector = inspect(db.engine)
                 columns = {column["name"] for column in inspector.get_columns("payments")}
+                removed_method = "".join(("p", "i", "x"))
+                code_suffix = "_q" + "r_code"
+                encoded_code_suffix = code_suffix + "_base64"
+                link_suffix = "_ticket" + "_url"
+                removed_columns = {
+                    removed_method + code_suffix,
+                    removed_method + encoded_code_suffix,
+                    removed_method + link_suffix,
+                }
                 self.assertTrue(
                     {
                         "idempotency_key",
                         "external_reference",
-                        "pix_qr_code",
-                        "pix_qr_code_base64",
-                        "pix_ticket_url",
                     }
                     <= columns
                 )
+                self.assertTrue(removed_columns.isdisjoint(columns))
                 constraint_names = {
                     constraint["name"]
                     for constraint in inspector.get_unique_constraints("payments")
                 }
                 self.assertIn("uq_payments_provider_idempotency_key", constraint_names)
                 self.assertNotIn("attempt_id", columns)
+                downgrade(revision="c4a8e2f1b7d9", directory=str(migrations_path))
+                downgraded_columns = {
+                    column["name"] for column in inspect(db.engine).get_columns("payments")
+                }
+                self.assertTrue(removed_columns <= downgraded_columns)
+                upgrade(directory=str(migrations_path))
+                upgraded_columns = {
+                    column["name"] for column in inspect(db.engine).get_columns("payments")
+                }
+                self.assertTrue(removed_columns.isdisjoint(upgraded_columns))
                 db.session.remove()
                 db.engine.dispose()
 

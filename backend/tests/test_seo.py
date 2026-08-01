@@ -55,7 +55,6 @@ PRIVATE_PATH_PREFIXES = (
     "/cadastro",
     "/checkout",
     "/checkout-pro",
-    "/checkout-pix",
     "/conta",
     "/convert/",
     "/conversions/",
@@ -325,7 +324,6 @@ class SeoContractTests(unittest.TestCase):
             "/login",
             "/dashboard",
             "/checkout-pro",
-            "/checkout-pix",
             "/api/conversion-options?extension=pdf",
         )
         for path in private_paths:
