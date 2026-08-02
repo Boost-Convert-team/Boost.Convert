@@ -520,8 +520,13 @@ def upsert_payment_from_provider_data(
     previous_payment_method = payment.payment_method
     detected_payment_method = detect_payment_method(provider_data)
 
-    if requested_payment_method and detected_payment_method != requested_payment_method:
-        raise MercadoPagoError("Metodo retornado diverge do pagamento solicitado.")
+    if requested_payment_method:
+        detected_type = provider_data.get("payment_type_id")
+
+        if detected_type and detected_type != requested_payment_method:
+            raise MercadoPagoError(
+                "Metodo retornado diverge do pagamento solicitado."
+            )
     
     if activate_access:
         validate_provider_environment(provider_data)
