@@ -259,11 +259,11 @@ def get_or_create_payment_attempt(
         external_reference=build_payment_external_reference(usuario.id, idempotency_key),
         plan=PRO_PLAN_CODE,
         idempotency_key=idempotency_key,
+        attempt_id=idempotency_key,
         payment_method="pending_card",
         status=CREATING_PAYMENT_STATUS,
         amount=get_plan_price(),
         currency="BRL",
-        attempt_id=idempotency_key,
     )
 
     db.session.add(payment)
