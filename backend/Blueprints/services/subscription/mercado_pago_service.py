@@ -338,7 +338,7 @@ def parse_signature_header(x_signature: str) -> dict[str, str]:
 def build_webhook_manifest(data_id: str, x_request_id: str, ts: str) -> str:
     manifest = ""
     if data_id:
-        manifest += f"id:{data_id.lower()};"
+        manifest += f"id:{data_id};"
     if x_request_id:
         manifest += f"request-id:{x_request_id};"
     if ts:
