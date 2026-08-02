@@ -219,24 +219,40 @@ def get_card_payment_method(payment_method_id: str) -> dict[str, Any]:
             item
             for item in methods
             if isinstance(item, dict)
-            and get_string(item, "id").lower() == payment_method_id
+            and get_string(item, "id").lower() == payment_method_id.lower()
         ),
         None,
-
     )
 
     if method is None:
         raise CardPaymentValidationError("Bandeira do cartao nao reconhecida.")
-    
+
+
+    current_app.logger.warning(
+        "DEBUG MP METHOD ID RECEBIDO: %s",
+        payment_method_id
+    )
+
+    current_app.logger.warning(
+        "DEBUG MP METHOD COMPLETO: %s",
+        method
+    )
+
+    current_app.logger.warning(
+        "DEBUG PAYMENT TYPE: %s",
+        get_string(method, "payment_type_id")
+    )
+
+    current_app.logger.warning(
+        "DEBUG ALLOWED TYPES: %s",
+        ALLOWED_CARD_PAYMENT_TYPES
+    )
+
+
     if get_string(method, "payment_type_id") not in ALLOWED_CARD_PAYMENT_TYPES:
         raise CardPaymentValidationError(
             "Apenas cartao de credito ou debito sao aceitos nesta opcao."
         )
-    
-    if get_string(method, "status").lower() not in {"", "active"}:
-        raise CardPaymentValidationError("Esta bandeira nao esta disponivel.")
-    
-    return method
 
 
 def get_or_create_payment_attempt(
