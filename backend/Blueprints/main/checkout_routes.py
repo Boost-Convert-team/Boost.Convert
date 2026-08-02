@@ -224,8 +224,8 @@ def handle_payment_database_error(
     
     db.session.rollback()
 
-    current_app.logger.error(
-        "payment_database_unavailable operation=%s error_type=%s",
+    current_app.logger.exception(
+        "PAYMENT DATABASE ERROR REAL operation=%s error_type=%s",
         operation,
         type(exc).__name__,
     )
