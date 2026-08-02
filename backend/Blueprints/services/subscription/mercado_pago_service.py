@@ -439,20 +439,13 @@ def mercado_pago_request(
 
 
 def classify_provider_http_error(status_code: int) -> tuple[int, str]:
-    if status_code == 400:
-        return 400, "Mercado Pago recusou o payload do pagamento."
-    if status_code == 401:
-        return 502, "Mercado Pago recusou o Access Token da integracao."
-    if status_code == 403:
-        return 502, "A conta ou o recurso nao foi autorizado pelo Mercado Pago."
-    if status_code == 409:
-        return 409, "Mercado Pago informou conflito no pagamento."
-    if status_code == 429:
-        return 503, "Mercado Pago esta temporariamente limitando requisicoes."
-    if status_code == 422:
-        return 422, "Mercado Pago recusou os dados do pagamento."
-    if status_code >= 500:
-        return 503, "Mercado Pago esta temporariamente indisponivel."
+    if status_code == 400: return 400, "Mercado Pago recusou o payload do pagamento."
+    if status_code == 401: return 502, "Mercado Pago recusou o Access Token da integracao."
+    if status_code == 403: return 502, "A conta ou o recurso nao foi autorizado pelo Mercado Pago."
+    if status_code == 409: return 409, "Mercado Pago informou conflito no pagamento."
+    if status_code == 429: return 503, "Mercado Pago esta temporariamente limitando requisicoes."
+    if status_code == 422: return 422, "Mercado Pago recusou os dados do pagamento."
+    if status_code >= 500: return 503, "Mercado Pago esta temporariamente indisponivel."
     return 502, "Mercado Pago recusou a operacao."
 
 

@@ -11,6 +11,7 @@ from flask import (
     request,
     url_for,
 )
+
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
@@ -26,9 +27,9 @@ from Blueprints.services.subscription.mercado_pago_service import (
     create_monthly_subscription,
     get_plan_price,
 )
+
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     APPROVED_PAYMENT_STATUSES,
-    CREDIT_PAYMENT_METHOD,
     PRO_PLAN_NAME,
     CardPaymentValidationError,
     IdempotencyKeyValidationError,
@@ -51,7 +52,9 @@ def checkout() -> Response:
 @checkout_bp.get("/checkout-pro")
 @login_required
 def checkout_pro_choice() -> Response:
-    """Display the credit-card one-time payment flow."""
+
+    """Display the card one-time payment flow."""
+
     return render_template(
         "checkout_pro.html",
         plan_name=PRO_PLAN_NAME,
@@ -61,6 +64,7 @@ def checkout_pro_choice() -> Response:
         mercado_pago_max_installments=int(
             current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
         ),
+
         payer_email=current_user.email,
         card_idempotency_key=str(uuid4()),
     )
@@ -69,9 +73,11 @@ def checkout_pro_choice() -> Response:
 @checkout_bp.post("/api/payment/card")
 @login_required
 def create_card_payment() -> tuple[Response, int]:
+
     """Accept only Card Payment Brick tokenized JSON for a one-time charge."""
     if not request.is_json:
         return jsonify({"ok": False, "error": "Content-Type application/json e obrigatorio."}), 415
+    
     try:
         payload = request.get_json()
     except (BadRequest, UnsupportedMediaType):
@@ -96,11 +102,14 @@ def create_card_payment() -> tuple[Response, int]:
         "checkout.checkout_card_status_page",
         attempt_id=payment["attempt_id"],
     )
+
     status = str(payment.get("status") or "").lower()
+
     if status in {"rejected", "cancelled", "canceled"}:
         payment["ok"] = False
         payment["error"] = "Pagamento recusado. Revise os dados ou use outro cartao."
         return jsonify(payment), 422
+    
     return jsonify(payment), 201 if payment.get("approved") else 202
 
 
@@ -108,6 +117,7 @@ def create_card_payment() -> tuple[Response, int]:
 @login_required
 def checkout_card_status_page() -> Response:
     payment = get_user_card_attempt_or_404(request.args.get("attempt_id", ""))
+
     return render_template(
         "checkout_card_status.html",
         payment=payment,
@@ -120,6 +130,7 @@ def checkout_card_status_page() -> Response:
 @checkout_bp.get("/api/payment/card/<attempt_id>/status")
 @login_required
 def card_payment_status(attempt_id: str) -> tuple[Response, int]:
+
     payment = get_user_card_attempt_or_404(attempt_id)
     return build_reconciled_status_response(payment, "card_status")
 
@@ -158,7 +169,7 @@ def legacy_checkout_disabled() -> tuple[Response, int]:
     return jsonify(
         {
             "ok": False,
-            "error": "Checkout antigo desativado. Use o cartao de credito no checkout atual.",
+            "error": "Checkout antigo desativado. Use o cartao de credito ou debito no checkout atual.",
             "checkout_url": url_for("checkout.checkout_pro_choice"),
         }
     ), 410
@@ -168,6 +179,7 @@ def build_reconciled_status_response(
     payment: Payment,
     operation: str,
 ) -> tuple[Response, int]:
+    
     try:
         payment = reconcile_payment(payment)
     except SQLAlchemyError as exc:
@@ -190,14 +202,18 @@ def get_user_card_attempt_or_404(attempt_id: str) -> Payment:
         normalized_attempt_id = str(UUID(str(attempt_id).strip()))
     except (ValueError, AttributeError):
         abort(404)
+
     payment = Payment.query.filter_by(
         user_id=current_user.id,
         provider=PROVIDER,
         idempotency_key=normalized_attempt_id,
-        payment_method=CREDIT_PAYMENT_METHOD,
+    ).filter(
+        Payment.payment_method.in_(["credit_card", "debit_card"])
     ).first()
+
     if payment is None:
         abort(404)
+
     return payment
 
 
@@ -205,12 +221,15 @@ def handle_payment_database_error(
     operation: str,
     exc: SQLAlchemyError,
 ) -> tuple[Response, int]:
+    
     db.session.rollback()
+
     current_app.logger.error(
         "payment_database_unavailable operation=%s error_type=%s",
         operation,
         type(exc).__name__,
     )
+
     return jsonify(
         {
             "ok": False,
@@ -231,6 +250,7 @@ def handle_provider_error(
         getattr(exc, "cause", type(exc).__name__),
         getattr(exc, "correlation_id", "unavailable"),
     )
+
     if isinstance(exc, MercadoPagoHTTPError):
         response = jsonify(
             {
@@ -244,13 +264,13 @@ def handle_provider_error(
         )
         if exc.retry_after:
             response.headers["Retry-After"] = exc.retry_after
+    
         return response, exc.public_status
-    if isinstance(exc, MercadoPagoTimeoutError):
-        return jsonify(build_safe_payment_error(exc)), 503
-    if isinstance(exc, MercadoPagoInvalidResponseError):
-        return jsonify(build_safe_payment_error(exc)), 502
-    if isinstance(exc, MercadoPagoConfigurationError):
-        return jsonify(build_safe_payment_error(exc)), 503
+    
+    if isinstance(exc, MercadoPagoTimeoutError): return jsonify(build_safe_payment_error(exc)), 503
+    if isinstance(exc, MercadoPagoInvalidResponseError): return jsonify(build_safe_payment_error(exc)), 502
+    if isinstance(exc, MercadoPagoConfigurationError): return jsonify(build_safe_payment_error(exc)), 503
+
     return jsonify({"ok": False, "error": "Nao foi possivel processar o pagamento."}), 502
 
 

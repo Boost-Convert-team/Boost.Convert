@@ -138,9 +138,11 @@ def create_card_payment(
 
 
 def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]:
+
     if not isinstance(card_data, dict):
         raise CardPaymentValidationError("Envie os dados do cartao em JSON.")
     unexpected = set(card_data) - CARD_REQUEST_KEYS - IGNORED_CLIENT_PAYMENT_KEYS
+
     if unexpected:
         raise CardPaymentValidationError("O pagamento contem campos nao permitidos.")
 
@@ -148,13 +150,16 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     method_id = normalize_limited_string(
         card_data.get("payment_method_id"), "payment_method_id", 50
     ).lower()
+
     issuer_id = str(card_data.get("issuer_id") or "").strip()
     if len(issuer_id) > 50:
         raise CardPaymentValidationError("Campo issuer_id invalido.")
+    
     try:
         installments = int(card_data.get("installments"))
     except (TypeError, ValueError):
         installments = 0
+
     max_installments = int(current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12))
     if installments < 1 or installments > max_installments:
         raise CardPaymentValidationError("Quantidade de parcelas invalida.")
@@ -162,6 +167,7 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     payer_data = card_data.get("payer")
     if not isinstance(payer_data, dict) or set(payer_data) - CARD_PAYER_KEYS:
         raise CardPaymentValidationError("Dados do pagador invalidos.")
+    
     email = normalize_limited_string(payer_data.get("email"), "payer.email", 200).lower()
     if email != str(usuario.email).strip().lower():
         raise CardPaymentValidationError("O email do pagador nao corresponde ao usuario.")
@@ -174,6 +180,7 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
             or set(identification) - CARD_IDENTIFICATION_KEYS
         ):
             raise CardPaymentValidationError("Identificacao do pagador invalida.")
+        
         payer["identification"] = {
             "type": normalize_limited_string(
                 identification.get("type"), "payer.identification.type", 10
@@ -194,8 +201,9 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
 
 def normalize_limited_string(value: object, field: str, max_length: int) -> str:
     normalized = str(value or "").strip()
-    if not normalized or len(normalized) > max_length:
-        raise CardPaymentValidationError(f"Campo {field} invalido.")
+
+    if not normalized or len(normalized) > max_length: raise CardPaymentValidationError(f"Campo {field} invalido.")
+    
     return normalized
 
 
@@ -205,6 +213,7 @@ def get_card_payment_method(payment_method_id: str) -> dict[str, Any]:
         "/v1/payment_methods",
         expected_response_types=(list,),
     )
+
     method = next(
         (
             item
@@ -213,7 +222,9 @@ def get_card_payment_method(payment_method_id: str) -> dict[str, Any]:
             and get_string(item, "id").lower() == payment_method_id
         ),
         None,
+
     )
+
     if method is None:
         raise CardPaymentValidationError("Bandeira do cartao nao reconhecida.")
     
@@ -236,8 +247,10 @@ def get_or_create_payment_attempt(
         provider=PROVIDER,
         idempotency_key=idempotency_key,
     ).first()
+
     if payment is not None:
         validate_attempt_owner(payment, usuario)
+
         return payment
 
     payment = Payment(
@@ -251,7 +264,9 @@ def get_or_create_payment_attempt(
         amount=get_plan_price(),
         currency="BRL",
     )
+
     db.session.add(payment)
+
     try:
         db.session.commit()
         return payment
@@ -321,6 +336,7 @@ def search_payment_by_external_reference(
             "limit": "10",
         }
     )
+
     result = mercado_pago_request("GET", f"/v1/payments/search?{query}")
     entries = result.get("results")
 
@@ -349,8 +365,7 @@ def search_payment_by_external_reference(
 def get_payment(payment_id: str) -> dict[str, Any]:
     normalized_id = str(payment_id or "").strip()
 
-    if not normalized_id or len(normalized_id) > 120:
-        raise MercadoPagoError("ID de pagamento invalido.")
+    if not normalized_id or len(normalized_id) > 120: raise MercadoPagoError("ID de pagamento invalido.")
     
     return mercado_pago_request("GET", f"/v1/payments/{normalized_id}")
 
@@ -383,10 +398,12 @@ def reconcile_payment(payment: Payment, *, force: bool = False) -> Payment:
         return payment
 
     sync_times[sync_key] = now
+
     if payment.provider_payment_id:
         data = get_payment(payment.provider_payment_id)
     else:
         data = search_payment_by_external_reference(payment.external_reference)
+
         if data is None:
             return payment
 
@@ -418,6 +435,7 @@ def upsert_payment_from_provider_data(
         provider=PROVIDER,
         provider_payment_id=provider_payment_id,
     ).first()
+
     if (
         provider_payment is not None
         and existing_payment is not None
@@ -427,6 +445,7 @@ def upsert_payment_from_provider_data(
 
     attempt_id = extract_payment_attempt_id(provider_data.get("external_reference"))
     attempt_payment = None
+
     if attempt_id:
         attempt_payment = Payment.query.filter_by(
             provider=PROVIDER,
@@ -446,6 +465,7 @@ def upsert_payment_from_provider_data(
     external_user_id = extract_user_id_from_external_reference(
         provider_data.get("external_reference")
     )
+
     if payment is not None:
         validate_provider_identity(payment, provider_data, external_user_id)
 
@@ -457,10 +477,12 @@ def upsert_payment_from_provider_data(
         raise MercadoPagoError("Usuario do pagamento nao encontrado.")
     
     if payment is None:
+        
         # One-time payments must originate from a persisted local attempt. This
         # prevents an arbitrary valid Mercado Pago payment from granting access.
         if not get_string(provider_data, "preapproval_id"):
             raise MercadoPagoError("Tentativa local do pagamento nao encontrada.")
+        
         payment = Payment(
             user_id=user.id,
             provider=PROVIDER,
@@ -538,23 +560,32 @@ def validate_provider_identity(
     provider_data: dict[str, Any],
     external_user_id: int | None,
 ) -> None:
+    
     provider_reference = get_string(provider_data, "external_reference")
     if not provider_reference or provider_reference != payment.external_reference:
         raise MercadoPagoError("Referencia externa nao corresponde a tentativa salva.")
+    
     if external_user_id is not None and payment.user_id != external_user_id:
         raise MercadoPagoError("Referencia externa nao corresponde ao pagamento salvo.")
+    
     attempt_id = extract_payment_attempt_id(provider_reference)
     local_attempt_id = get_payment_attempt_id(payment)
+
     if attempt_id is not None and attempt_id != local_attempt_id:
         raise MercadoPagoError("UUID da tentativa nao corresponde ao pagamento salvo.")
+    
     metadata_attempt = get_provider_attempt_id(provider_data)
     metadata_user_id = get_provider_user_id(provider_data)
+
     if attempt_id is not None:
-        if metadata_attempt != local_attempt_id:
+        if metadata_attempt != local_attempt_id: 
             raise MercadoPagoError("UUID dos metadados nao corresponde a tentativa.")
+        
         if metadata_user_id != payment.user_id:
             raise MercadoPagoError("Usuario dos metadados nao corresponde a tentativa.")
+        
     elif metadata_attempt and metadata_attempt != local_attempt_id:
+
         raise MercadoPagoError("UUID dos metadados nao corresponde a tentativa.")
 
 
@@ -563,6 +594,7 @@ def require_payment_environment() -> str:
     access_token = str(current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "").strip()
     public_key = str(current_app.config.get("MERCADO_PAGO_PUBLIC_KEY") or "").strip()
     environment = str(current_app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
+
     if (
         not environment
         and app_environment not in {"production", "prod"}
@@ -570,41 +602,49 @@ def require_payment_environment() -> str:
         and public_key.startswith("TEST-")
     ):
         environment = "test"
+
     if environment not in {"test", "production"}:
         raise MercadoPagoConfigurationError(
             "MERCADO_PAGO_ENVIRONMENT deve ser test ou production.",
             code="payment_environment_not_configured",
         )
+    
     if not access_token:
         raise MercadoPagoConfigurationError(
             "MERCADO_PAGO_ACCESS_TOKEN nao configurado.",
             code="payment_access_token_missing",
         )
+    
     if environment == "test" and not access_token.startswith("TEST-"):
         raise MercadoPagoConfigurationError(
             "Ambiente de teste exige credencial TEST.",
             code="payment_test_credential_invalid",
         )
+    
     if environment == "test" and public_key and not public_key.startswith("TEST-"):
         raise MercadoPagoConfigurationError(
             "Ambiente de teste exige chave publica TEST.",
             code="payment_test_public_key_invalid",
         )
+    
     if environment == "production" and access_token.startswith("TEST-"):
         raise MercadoPagoConfigurationError(
             "Credencial TEST nao pode processar pagamento de producao.",
             code="payment_production_credential_invalid",
         )
+    
     if environment == "production" and public_key.startswith("TEST-"):
         raise MercadoPagoConfigurationError(
             "Chave publica TEST nao pode ser usada em producao.",
             code="payment_production_public_key_invalid",
         )
+    
     if environment == "production" and app_environment not in {"production", "prod"}:
         raise MercadoPagoConfigurationError(
             "Pagamento real bloqueado fora do ambiente de producao.",
             code="production_payment_blocked",
         )
+    
     if (
         environment == "production"
         and not str(current_app.config.get("MERCADO_PAGO_COLLECTOR_ID") or "").strip()
@@ -613,13 +653,16 @@ def require_payment_environment() -> str:
             "MERCADO_PAGO_COLLECTOR_ID nao configurado.",
             code="payment_collector_missing",
         )
+    
     notification_url = get_payment_notification_url()
     parsed_notification_url = urlparse(notification_url)
+
     is_local_test_url = (
         app_environment not in {"production", "prod"}
         and parsed_notification_url.scheme == "http"
         and parsed_notification_url.hostname in {"localhost", "127.0.0.1", "::1"}
     )
+
     if (
         not parsed_notification_url.netloc
         or (parsed_notification_url.scheme != "https" and not is_local_test_url)
@@ -640,9 +683,12 @@ def validate_provider_environment(provider_data: dict[str, Any]) -> None:
     expected_collector_id = str(
         current_app.config.get("MERCADO_PAGO_COLLECTOR_ID") or ""
     ).strip()
+
     collector_id = str(provider_data.get("collector_id") or "").strip()
+
     if expected_collector_id and collector_id != expected_collector_id:
         raise MercadoPagoError("Recebedor do pagamento nao corresponde a aplicacao.")
+    
     if not expected_collector_id and environment == "production":
         raise MercadoPagoConfigurationError(
             "MERCADO_PAGO_COLLECTOR_ID nao configurado.",
@@ -670,12 +716,16 @@ def apply_confirmed_payment_status(
             or payment.approved_at
             or utc_now()
         )
+
         paid_through_at = get_payment_paid_through_at(subscription, payment.approved_at)
         current_expiry = as_utc(payment.premium_expires_at)
+
         if current_expiry is None or current_expiry < paid_through_at:
             payment.premium_expires_at = paid_through_at
+
         if subscription is not None:
             current_paid_through = as_utc(subscription.paid_through_at)
+
             if current_paid_through is None or current_paid_through < paid_through_at:
                 subscription.paid_through_at = paid_through_at
 
@@ -795,9 +845,11 @@ def get_provider_attempt_id(provider_data: dict[str, Any]) -> str:
     metadata = provider_data.get("metadata")
     if not isinstance(metadata, dict):
         return ""
+    
     value = get_string(metadata, "attempt_id")
     if not value:
         return ""
+    
     try:
         return str(UUID(value))
     except (ValueError, AttributeError):
@@ -808,6 +860,7 @@ def get_provider_user_id(provider_data: dict[str, Any]) -> int | None:
     metadata = provider_data.get("metadata")
     if not isinstance(metadata, dict):
         return None
+    
     try:
         return int(metadata.get("user_id"))
     except (TypeError, ValueError):
