@@ -251,12 +251,24 @@ def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
 
     x_signature = request.headers.get("x-signature", "")
     x_request_id = request.headers.get("x-request-id", "")
+
     data_id = get_signature_data_id(payload)
     payload_resource_id = extract_webhook_resource_id(payload)
+
     if not x_signature or not x_request_id or not data_id:
         return False
+    
     if payload_resource_id and payload_resource_id != data_id:
         return False
+
+    current_app.logger.warning(
+        "DEBUG MP SIGNATURE => x_signature=%s | x_request_id=%s | data_id=%s | secret=%s",
+        x_signature,
+        x_request_id,
+        data_id,
+        secret[:10],
+    )
+    
     return validate_signature_parts(
         x_signature,
         x_request_id,
