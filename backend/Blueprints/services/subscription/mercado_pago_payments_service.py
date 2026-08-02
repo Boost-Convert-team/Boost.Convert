@@ -41,6 +41,7 @@ ONE_TIME_ACCESS_DAYS = 30
 ALLOWED_CARD_PAYMENT_TYPES = {
     "credit_card",
     "debit_card",
+    "prepaid_card",
 }
 FAILED_PAYMENT_STATUSES = {
     "cancelled",
