@@ -71,6 +71,7 @@ class Payment(db.Model):
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     attempt_id = db.Column(db.String(64), nullable=False, index=True)
     payment_method = db.Column(db.String(50), nullable=False, index=True)
+    payment_method = db.Column(db.String(50), nullable=False, index=True)
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     amount = db.Column(db.Numeric(10, 2), nullable=True)
     currency = db.Column(db.String(10), nullable=True)
