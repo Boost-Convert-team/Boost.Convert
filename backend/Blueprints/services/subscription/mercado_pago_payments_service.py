@@ -263,6 +263,7 @@ def get_or_create_payment_attempt(
         status=CREATING_PAYMENT_STATUS,
         amount=get_plan_price(),
         currency="BRL",
+        attempt_id=idempotency_key,
     )
 
     db.session.add(payment)
