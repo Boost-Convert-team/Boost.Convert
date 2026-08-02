@@ -270,7 +270,12 @@ def get_or_create_payment_attempt(
     try:
         db.session.commit()
         return payment
-    except IntegrityError:
+    except IntegrityError as exc:
+        current_app.logger.exception(
+            "ERRO INTEGRITY PAYMENT: %s",
+            exc
+        )
+
         db.session.rollback()
         payment = Payment.query.filter_by(
             provider=PROVIDER,
