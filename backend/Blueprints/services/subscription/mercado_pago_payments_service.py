@@ -521,9 +521,13 @@ def upsert_payment_from_provider_data(
     detected_payment_method = detect_payment_method(provider_data)
 
     if requested_payment_method:
-        detected_type = provider_data.get("payment_type_id")
+        allowed_methods = {
+            "credit_card",
+            "debit_card",
+            "prepaid_card"
+        }
 
-        if detected_type and detected_type != requested_payment_method:
+        if detected_payment_method not in allowed_methods:
             raise MercadoPagoError(
                 "Metodo retornado diverge do pagamento solicitado."
             )
