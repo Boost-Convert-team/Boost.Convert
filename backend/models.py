@@ -69,6 +69,7 @@ class Payment(db.Model):
     external_reference = db.Column(db.String(255), nullable=True, index=True)
     plan = db.Column(db.String(50), nullable=True, index=True)
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)
+    attempt_id = db.Column(db.String(64), nullable=False, index=True)
     payment_method = db.Column(db.String(50), nullable=False, index=True)
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     amount = db.Column(db.Numeric(10, 2), nullable=True)
@@ -81,14 +82,6 @@ class Payment(db.Model):
 
     user = db.relationship("Usuario", backref=db.backref("payments", lazy=True))
 
-    @property
-    def attempt_id(self):
-        """Compatibility alias: the stable UUID is persisted as idempotency_key."""
-        return self.idempotency_key
-
-    @attempt_id.setter
-    def attempt_id(self, value):
-        self.idempotency_key = value
 
 class PaymentWebhookEvent(db.Model):
     __tablename__ = "payment_webhook_events"
