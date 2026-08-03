@@ -773,54 +773,75 @@ def validate_one_time_provider_contract(
     previous_payment_method: str,
 ) -> None:
 
+    current_app.logger.warning(
+        "DEBUG METODO PAGAMENTO previous=%s detected=%s",
+        previous_payment_method,
+        detected_method,
+    )
+
+    # Aceita somente meios de cartão
     if detected_method not in ALLOWED_CARD_PAYMENT_TYPES:
         raise MercadoPagoError(
             "Apenas cartao de credito e aceito para o plano PRO."
         )
 
-    if previous_payment_method not in {"", "unknown"}:
+    # Mercado Pago pode transformar cartão em prepaid/debit dependendo do emissor.
+    # Não bloquear por diferença entre tipos de cartão.
+    allowed_payment_family = {
+        "credit_card",
+        "debit_card",
+        "prepaid_card",
+    }
+
+    if previous_payment_method not in {"", "unknown", None}:
         if (
-            previous_payment_method != detected_method
-            and not {
-                previous_payment_method,
-                detected_method,
-            }.issubset(
-                {
-                    "credit_card",
-                    "debit_card",
-                    "prepaid_card",
-                }
-            )
+            previous_payment_method not in allowed_payment_family
+            or detected_method not in allowed_payment_family
         ):
             raise MercadoPagoError(
-                "Metodo do pagamento diverge da tentativa criada."
+                "Metodo do pagamento invalido para o plano PRO."
             )
 
-    provider_reference = get_string(provider_data, "external_reference")
+    provider_reference = get_string(
+        provider_data,
+        "external_reference",
+    )
+
     if provider_reference != payment.external_reference:
         raise MercadoPagoError(
             "Referencia externa do pagamento invalida."
         )
 
-    amount = parse_decimal(provider_data.get("transaction_amount"))
+    amount = parse_decimal(
+        provider_data.get("transaction_amount")
+    )
+
     if amount is None or amount != get_expected_payment_amount(payment):
         raise MercadoPagoError(
             "Valor do pagamento nao corresponde ao plano PRO."
         )
 
-    if get_string(provider_data, "currency_id").upper() != "BRL":
+    currency = get_string(
+        provider_data,
+        "currency_id",
+    ).upper()
+
+    if currency != "BRL":
         raise MercadoPagoError(
             "Moeda do pagamento nao corresponde ao plano PRO."
         )
 
     provider_plan = get_provider_plan(provider_data)
 
-    if provider_plan not in {PRO_PLAN_CODE, PROVIDER_PRO_PLAN_CODE}:
+    if provider_plan not in {
+        PRO_PLAN_CODE,
+        PROVIDER_PRO_PLAN_CODE,
+    }:
         raise MercadoPagoError(
             "Plano do pagamento nao corresponde ao BoostConvert PRO."
         )
 
-
+    
 def get_expected_payment_amount(payment: Payment) -> Decimal:
     if payment.amount is not None:
         return Decimal(payment.amount).quantize(Decimal("0.01"))
