@@ -780,18 +780,25 @@ def validate_one_time_provider_contract(
     )
 
     # Aceita somente meios de cartão
-    if detected_method not in ALLOWED_CARD_PAYMENT_TYPES:
-        raise MercadoPagoError(
-            "Apenas cartao de credito e aceito para o plano PRO."
-        )
-
-    # Mercado Pago pode transformar cartão em prepaid/debit dependendo do emissor.
-    # Não bloquear por diferença entre tipos de cartão.
-    allowed_payment_family = {
+    if detected_method not in {
         "credit_card",
         "debit_card",
         "prepaid_card",
-    }
+        "elo",
+        "master",
+        "visa",
+    }:
+
+    # Mercado Pago pode transformar cartão em prepaid/debit dependendo do emissor.
+    # Não bloquear por diferença entre tipos de cartão.
+        allowed_payment_family = {
+            "credit_card",
+            "debit_card",
+            "prepaid_card",
+            "elo",
+            "master",
+            "visa",
+        }
 
     if previous_payment_method not in {"", "unknown", None}:
         if (
