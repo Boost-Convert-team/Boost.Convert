@@ -779,28 +779,25 @@ def validate_one_time_provider_contract(
         detected_method,
     )
 
-    # Aceita somente meios de cartão
-    if detected_method not in {
+    allowed_payment_family = {
         "credit_card",
         "debit_card",
         "prepaid_card",
         "elo",
         "master",
         "visa",
-    }:
+    }
 
-    # Mercado Pago pode transformar cartão em prepaid/debit dependendo do emissor.
-    # Não bloquear por diferença entre tipos de cartão.
-        allowed_payment_family = {
-            "credit_card",
-            "debit_card",
-            "prepaid_card",
-            "elo",
-            "master",
-            "visa",
-        }
+    # Aceita somente pagamentos de cartão
+    if detected_method not in allowed_payment_family:
+        raise MercadoPagoError(
+            "Metodo de pagamento invalido para o plano PRO."
+        )
 
+    # Mercado Pago pode retornar métodos diferentes dependendo do emissor
+    # (ex: Elo, Mastercard, Visa, prepaid/debit). Não bloquear variação de cartão.
     if previous_payment_method not in {"", "unknown", None}:
+
         if (
             previous_payment_method not in allowed_payment_family
             or detected_method not in allowed_payment_family
@@ -847,7 +844,6 @@ def validate_one_time_provider_contract(
         raise MercadoPagoError(
             "Plano do pagamento nao corresponde ao BoostConvert PRO."
         )
-
     
 def get_expected_payment_amount(payment: Payment) -> Decimal:
     if payment.amount is not None:

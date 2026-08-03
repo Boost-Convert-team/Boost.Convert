@@ -375,8 +375,10 @@ def mercado_pago_request(
     extra_headers: dict[str, str] | None = None,
     expected_response_types: tuple[type, ...] = (dict,),
 ) -> Any:
+    
     correlation_id = str(uuid4())
     access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
+
     if not access_token:
         raise MercadoPagoConfigurationError(
             "MERCADO_PAGO_ACCESS_TOKEN nao configurado.",
@@ -385,11 +387,13 @@ def mercado_pago_request(
         )
 
     url = f"{MERCADO_PAGO_API_BASE_URL}{path}"
+
     try:
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
+
         if extra_headers:
             headers.update(extra_headers)
 
@@ -400,12 +404,14 @@ def mercado_pago_request(
             json=json_payload,
             timeout=15,
         )
+
     except requests.Timeout as exc:
         raise MercadoPagoTimeoutError(
             "Mercado Pago demorou para responder.",
             code="provider_timeout",
             correlation_id=correlation_id,
         ) from exc
+    
     except requests.RequestException as exc:
         raise MercadoPagoError(
             "Falha ao conectar com Mercado Pago.",
@@ -427,6 +433,7 @@ def mercado_pago_request(
                 ensure_ascii=False,
             )
         )
+
         public_status, message = classify_provider_http_error(response.status_code)
         raise MercadoPagoHTTPError(
             message,
@@ -440,6 +447,7 @@ def mercado_pago_request(
 
     try:
         data = response.json()
+
     except ValueError as exc:
         raise MercadoPagoInvalidResponseError(
             "Mercado Pago retornou uma resposta invalida.",
@@ -453,6 +461,7 @@ def mercado_pago_request(
             code="provider_invalid_response",
             correlation_id=get_provider_correlation_id(response, correlation_id),
         )
+    
     return data
 
 
