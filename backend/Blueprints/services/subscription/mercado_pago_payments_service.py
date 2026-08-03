@@ -773,69 +773,109 @@ def validate_one_time_provider_contract(
     previous_payment_method: str,
 ) -> None:
 
-    current_app.logger.warning(
-        "DEBUG METODO PAGAMENTO previous=%s detected=%s",
-        previous_payment_method,
-        detected_method,
+    def normalize_payment_method(method: str | None) -> str:
+        if not method:
+            return ""
+
+        method = method.lower().strip()
+
+        # Bandeiras de cartão não são métodos diferentes
+        if method in {
+            "elo",
+            "master",
+            "mastercard",
+            "visa",
+            "amex",
+            "hipercard",
+        }:
+            return "credit_card"
+
+        return method
+
+
+    normalized_detected_method = normalize_payment_method(
+        detected_method
     )
 
-    allowed_payment_family = {
+    normalized_previous_method = normalize_payment_method(
+        previous_payment_method
+    )
+
+
+    current_app.logger.warning(
+        "DEBUG METODO PAGAMENTO previous=%s detected=%s normalized_previous=%s normalized_detected=%s",
+        previous_payment_method,
+        detected_method,
+        normalized_previous_method,
+        normalized_detected_method,
+    )
+
+
+    allowed_payment_types = {
         "credit_card",
         "debit_card",
         "prepaid_card",
-        "elo",
-        "master",
-        "visa",
     }
 
-    # Aceita somente pagamentos de cartão
-    if detected_method not in allowed_payment_family:
+
+    # Aceita somente cartões
+    if normalized_detected_method not in allowed_payment_types:
         raise MercadoPagoError(
             "Metodo de pagamento invalido para o plano PRO."
         )
 
-    # Mercado Pago pode retornar métodos diferentes dependendo do emissor
-    # (ex: Elo, Mastercard, Visa, prepaid/debit). Não bloquear variação de cartão.
-    if previous_payment_method not in {"", "unknown", None}:
 
-        if (
-            previous_payment_method not in allowed_payment_family
-            or detected_method not in allowed_payment_family
-        ):
+    # Evita bloquear quando Mercado Pago troca bandeira/tipo interno
+    if normalized_previous_method not in {
+        "",
+        "unknown",
+        None,
+    }:
+
+        if normalized_previous_method != normalized_detected_method:
+
             raise MercadoPagoError(
-                "Metodo do pagamento invalido para o plano PRO."
+                "Metodo do pagamento diverge da tentativa criada."
             )
+
 
     provider_reference = get_string(
         provider_data,
         "external_reference",
     )
 
+
     if provider_reference != payment.external_reference:
         raise MercadoPagoError(
             "Referencia externa do pagamento invalida."
         )
 
+
     amount = parse_decimal(
         provider_data.get("transaction_amount")
     )
+
 
     if amount is None or amount != get_expected_payment_amount(payment):
         raise MercadoPagoError(
             "Valor do pagamento nao corresponde ao plano PRO."
         )
 
+
     currency = get_string(
         provider_data,
         "currency_id",
     ).upper()
+
 
     if currency != "BRL":
         raise MercadoPagoError(
             "Moeda do pagamento nao corresponde ao plano PRO."
         )
 
+
     provider_plan = get_provider_plan(provider_data)
+
 
     if provider_plan not in {
         PRO_PLAN_CODE,
@@ -844,6 +884,7 @@ def validate_one_time_provider_contract(
         raise MercadoPagoError(
             "Plano do pagamento nao corresponde ao BoostConvert PRO."
         )
+
     
 def get_expected_payment_amount(payment: Payment) -> Decimal:
     if payment.amount is not None:
