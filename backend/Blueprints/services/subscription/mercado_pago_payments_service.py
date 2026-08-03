@@ -825,18 +825,11 @@ def validate_one_time_provider_contract(
         )
 
 
-    # Evita bloquear quando Mercado Pago troca bandeira/tipo interno
-    if normalized_previous_method not in {
-        "",
-        "unknown",
-        None,
-    }:
+    # Temporariamente ignorando divergência de método/bandeira do Mercado Pago.
+    # O MP pode retornar elo/master/visa/prepaid_card/credit_card
+    # dependendo do emissor do cartão.
 
-        if normalized_previous_method != normalized_detected_method:
-
-            raise MercadoPagoError(
-                "Metodo do pagamento diverge da tentativa criada."
-            )
+    pass
 
 
     provider_reference = get_string(
