@@ -207,15 +207,12 @@ def get_user_card_attempt_or_404(attempt_id: str) -> Payment:
         user_id=current_user.id,
         provider=PROVIDER,
         idempotency_key=normalized_attempt_id,
-    ).filter(
-        Payment.payment_method.in_(["credit_card", "debit_card"])
     ).first()
 
     if payment is None:
         abort(404)
 
     return payment
-
 
 def handle_payment_database_error(
     operation: str,
