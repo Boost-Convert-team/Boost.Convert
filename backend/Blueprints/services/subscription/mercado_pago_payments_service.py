@@ -778,18 +778,23 @@ def validate_one_time_provider_contract(
             "Apenas cartao de credito e aceito para o plano PRO."
         )
 
-    allowed_methods = {
-        "",
-        "unknown",
-        "credit_card",
-        "debit_card",
-        "prepaid_card",
-    }
-
-    if previous_payment_method not in allowed_methods:
-        raise MercadoPagoError(
-            "Metodo do pagamento diverge da tentativa criada."
-        )
+    if previous_payment_method not in {"", "unknown"}:
+        if (
+            previous_payment_method != detected_method
+            and not {
+                previous_payment_method,
+                detected_method,
+            }.issubset(
+                {
+                    "credit_card",
+                    "debit_card",
+                    "prepaid_card",
+                }
+            )
+        ):
+            raise MercadoPagoError(
+                "Metodo do pagamento diverge da tentativa criada."
+            )
 
     provider_reference = get_string(provider_data, "external_reference")
     if provider_reference != payment.external_reference:
