@@ -193,9 +193,11 @@ def dispatch_mercado_pago_webhook(
     event_type: str,
     resource_id: str,
 ) -> MercadoPagoWebhookResult:
+    
     if event_type == "subscription_preapproval":
         subscription_data = get_subscription(resource_id)
         upsert_subscription_from_provider_data(subscription_data)
+        
         return MercadoPagoWebhookResult("processed", event_type, resource_id)
 
     if event_type == "subscription_authorized_payment":
@@ -207,6 +209,7 @@ def dispatch_mercado_pago_webhook(
         if preapproval_id:
             subscription_data = get_subscription(preapproval_id)
             subscription = upsert_subscription_from_provider_data(subscription_data, payment_id)
+
             if payment_id:
                 from Blueprints.services.subscription.mercado_pago_payments_service import (
                     process_confirmed_payment,
@@ -214,11 +217,13 @@ def dispatch_mercado_pago_webhook(
 
                 confirmed_payment = process_confirmed_payment(payment_id)
                 apply_payment_status(subscription, confirmed_payment.status)
+
             else:
                 subscription.latest_payment_status = (
                     get_string(payment, "status") or "pending"
                 )
                 synchronize_user_pro_status(subscription.user, persist=False)
+
             return MercadoPagoWebhookResult("processed", event_type, resource_id)
 
     if event_type == "payment":
@@ -240,6 +245,7 @@ def dispatch_mercado_pago_webhook(
             ensure_ascii=False,
         )
     )
+
     return MercadoPagoWebhookResult("ignored", event_type, resource_id)
 
 

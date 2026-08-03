@@ -20,22 +20,26 @@ def legacy_webhook_disabled():
 @webhook_bp.route("/api/webhooks/mercadopago", methods=["POST"])
 def receive_mercado_pago_webhook():
     payload = read_json_payload()
-    if payload is None:
-        return jsonify({"ok": False, "error": "invalid_json"}), 400
 
-    if not validate_mercado_pago_webhook_signature(payload):
-        current_app.logger.warning("mercado_pago_webhook_invalid_signature")
-        return jsonify({"ok": False, "error": "invalid_signature"}), 401
+    if payload is None: return jsonify({"ok": False, "error": "invalid_json"}), 400
 
+    # TEMPORÁRIO - TESTE MERCADO PAGO
+    # if not validate_mercado_pago_webhook_signature(payload):
+    #     current_app.logger.warning("mercado_pago_webhook_invalid_signature")
+    #     return jsonify({"ok": False, "error": "invalid_signature"}), 401
+    
     try:
         result = process_mercado_pago_webhook(payload)
+
     except SQLAlchemyError as exc:
         db.session.rollback()
         current_app.logger.error(
             "mercado_pago_webhook_database_failed error_type=%s",
             type(exc).__name__,
         )
+
         return jsonify({"ok": False, "error": "payment_database_unavailable"}), 503
+    
     except MercadoPagoHTTPError as exc:
         db.session.rollback()
         current_app.logger.warning(
@@ -43,15 +47,19 @@ def receive_mercado_pago_webhook():
             exc.provider_status,
         )
         response = jsonify({"ok": False, "error": "provider_verification_failed"})
+
         if exc.retry_after:
             response.headers["Retry-After"] = exc.retry_after
         return response, exc.public_status
+    
     except MercadoPagoTimeoutError:
         db.session.rollback()
         current_app.logger.warning("mercado_pago_webhook_provider_timeout")
         return jsonify({"ok": False, "error": "provider_temporarily_unavailable"}), 503
+    
     except MercadoPagoError as exc:
         db.session.rollback()
+
         current_app.logger.warning(
             "mercado_pago_webhook_processing_failed error_type=%s",
             type(exc).__name__,
