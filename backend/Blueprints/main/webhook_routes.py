@@ -27,7 +27,7 @@ def receive_mercado_pago_webhook():
     # if not validate_mercado_pago_webhook_signature(payload):
     #     current_app.logger.warning("mercado_pago_webhook_invalid_signature")
     #     return jsonify({"ok": False, "error": "invalid_signature"}), 401
-    
+
     try:
         result = process_mercado_pago_webhook(payload)
 
@@ -60,9 +60,11 @@ def receive_mercado_pago_webhook():
     except MercadoPagoError as exc:
         db.session.rollback()
 
-        current_app.logger.warning(
-            "mercado_pago_webhook_processing_failed error_type=%s",
-            type(exc).__name__,
+        current_app.logger.exception(
+            "mercado_pago_webhook_processing_failed message=%s code=%s cause=%s",
+            str(exc),
+            exc.code,
+            exc.cause,
         )
         return jsonify({"ok": False, "error": "provider_verification_failed"}), 502
 
