@@ -114,32 +114,6 @@ body:has(.checkout-page) {
     font-size: 14px;
 }
 
-.payment-choice-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: 1.25rem;
-    width: min(1080px, 100%);
-    margin-inline: auto;
-}
-
-.payment-choice-grid .card-checkout-panel {
-    width: 100%;
-}
-
-.pix-qr-code {
-    display: block;
-    width: min(280px, 100%);
-    height: auto;
-    margin: 0 auto 1rem;
-}
-
-[data-pix-copy-code] {
-    width: 100%;
-    min-height: 7rem;
-    resize: vertical;
-    overflow-wrap: anywhere;
-}
-
 .payment-status-panel {
     display: flex;
     align-items: center;

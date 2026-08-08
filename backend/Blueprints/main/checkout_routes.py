@@ -2,7 +2,6 @@ from uuid import UUID, uuid4
 
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     APPROVED_PAYMENT_STATUSES,
-    PIX_PAYMENT_METHOD,
     PRO_PLAN_NAME,
     CardPaymentValidationError,
     IdempotencyKeyValidationError,
@@ -11,9 +10,6 @@ from Blueprints.services.subscription.mercado_pago_payments_service import (
 )
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     create_card_payment as create_mercado_pago_card_payment,
-)
-from Blueprints.services.subscription.mercado_pago_payments_service import (
-    create_pix_payment as create_mercado_pago_pix_payment,
 )
 from Blueprints.services.subscription.mercado_pago_service import (
     PROVIDER,
@@ -54,7 +50,7 @@ def checkout() -> Response:
 @checkout_bp.get("/checkout-pro")
 @login_required
 def checkout_pro_choice() -> Response:
-    """Display the card and PIX one-time payment flows."""
+    """Display the card one-time payment flow."""
 
     return render_template(
         "checkout_pro.html",
@@ -63,35 +59,11 @@ def checkout_pro_choice() -> Response:
         price_amount=f"{get_plan_price():.2f}",
         mercado_pago_public_key=current_app.config.get("MERCADO_PAGO_PUBLIC_KEY") or "",
         mercado_pago_max_installments=int(
-            current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
+            current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS") or 12
         ),
         payer_email=current_user.email,
-        pix_idempotency_key=str(uuid4()),
         card_idempotency_key=str(uuid4()),
     )
-
-
-@checkout_bp.post("/api/payment/pix")
-@login_required
-def create_pix_payment() -> tuple[Response, int]:
-    try:
-        payment = create_mercado_pago_pix_payment(
-            current_user,
-            request.form.get("pix_idempotency_key")
-            or request.headers.get("X-Idempotency-Key"),
-        )
-    except IdempotencyKeyValidationError as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 400
-    except SQLAlchemyError as exc:
-        return handle_payment_database_error("pix_create", exc)
-    except MercadoPagoError as exc:
-        return handle_provider_error("pix_create", exc)
-
-    payment["redirect_url"] = url_for(
-        "checkout.checkout_pix_page",
-        payment_id=payment["payment_id"],
-    )
-    return jsonify(payment), 201 if payment.get("approved") else 202
 
 
 @checkout_bp.post("/api/payment/card")
@@ -154,26 +126,6 @@ def checkout_card_status_page() -> Response:
     )
 
 
-@checkout_bp.get("/checkout-pix")
-@login_required
-def checkout_pix_page() -> Response:
-    payment = get_user_pix_payment_or_404(request.args.get("payment_id", ""))
-    return render_template(
-        "checkout_pix.html",
-        payment=payment,
-        plan_name=PRO_PLAN_NAME,
-        price=format_brl(payment.amount or get_plan_price()),
-        is_confirmed=is_payment_confirmed(payment),
-    )
-
-
-@checkout_bp.get("/api/payment/pix/<payment_id>/status")
-@login_required
-def pix_payment_status(payment_id: str) -> tuple[Response, int]:
-    payment = get_user_pix_payment_or_404(payment_id)
-    return build_reconciled_status_response(payment, "pix_status")
-
-
 @checkout_bp.get("/api/payment/card/<attempt_id>/status")
 @login_required
 def card_payment_status(attempt_id: str) -> tuple[Response, int]:
@@ -209,7 +161,6 @@ def checkout_credit_subscription() -> tuple[Response, int]:
 
 
 @checkout_bp.post("/checkout/debit")
-@checkout_bp.post("/checkout/pix")
 @checkout_bp.post("/checkout/pro")
 @login_required
 def legacy_checkout_disabled() -> tuple[Response, int]:
@@ -272,21 +223,6 @@ def get_user_card_attempt_or_404(attempt_id: str) -> Payment:
     return payment
 
 
-def get_user_pix_payment_or_404(payment_id: str) -> Payment:
-    normalized_id = str(payment_id or "").strip()
-    if not normalized_id or len(normalized_id) > 120:
-        abort(404)
-    payment = Payment.query.filter_by(
-        user_id=current_user.id,
-        provider=PROVIDER,
-        provider_payment_id=normalized_id,
-        payment_method=PIX_PAYMENT_METHOD,
-    ).first()
-    if payment is None:
-        abort(404)
-    return payment
-
-
 def handle_payment_database_error(
     operation: str,
     exc: SQLAlchemyError,
@@ -295,7 +231,7 @@ def handle_payment_database_error(
     db.session.rollback()
 
     current_app.logger.exception(
-        "PAYMENT DATABASE ERROR REAL operation=%s error_type=%s",
+        "DATABASE_ERROR component=payment operation=%s error_type=%s",
         operation,
         type(exc).__name__,
     )

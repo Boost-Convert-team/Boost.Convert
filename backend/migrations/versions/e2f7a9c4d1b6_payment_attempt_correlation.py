@@ -7,9 +7,8 @@ Create Date: 2026-07-31
 
 from uuid import NAMESPACE_URL, uuid5
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "e2f7a9c4d1b6"
 down_revision = "c4a8e2f1b7d9"

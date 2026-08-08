@@ -1,13 +1,15 @@
 import os
 import secrets
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from sqlalchemy.engine import URL
 
-
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_DATABASE_URI = f"sqlite:///{(BASE_DIR / 'instance' / 'boost_converter_dev.sqlite').as_posix()}"
+DEFAULT_DATABASE_URI = (
+    f"sqlite:///{(BASE_DIR / 'instance' / 'boost_converter_dev.sqlite').as_posix()}"
+)
 
 
 def normalize_database_uri(uri):
@@ -64,7 +66,11 @@ def get_database_uri():
         or os.getenv("SQLALCHEMY_DATABASE_URI")
         or build_postgres_uri_from_env()
     )
-    return normalize_database_uri(configured_uri) if configured_uri else DEFAULT_DATABASE_URI
+    return (
+        normalize_database_uri(configured_uri)
+        if configured_uri
+        else DEFAULT_DATABASE_URI
+    )
 
 
 def get_sqlalchemy_engine_options(database_uri):
@@ -92,7 +98,9 @@ def get_secret_key():
     environment = get_app_environment()
     if secret_key:
         if is_weak_secret_key(secret_key):
-            raise RuntimeError("SECRET_KEY insegura: valor fraco; esperado segredo aleatorio com pelo menos 32 caracteres.")
+            raise RuntimeError(
+                "SECRET_KEY insegura: valor fraco; esperado segredo aleatorio com pelo menos 32 caracteres."
+            )
         return secret_key
     if environment in {"production", "prod"}:
         raise RuntimeError("SECRET_KEY precisa ser configurado em producao.")
@@ -124,9 +132,13 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
     SESSION_COOKIE_SECURE = get_bool_env("SESSION_COOKIE_SECURE", FORCE_HTTPS)
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=get_int_env("SESSION_LIFETIME_MINUTES", 120))
+    PERMANENT_SESSION_LIFETIME = timedelta(
+        minutes=get_int_env("SESSION_LIFETIME_MINUTES", 120)
+    )
     SESSION_PERMANENT = get_bool_env("SESSION_PERMANENT", True)
-    TRUST_PROXY_HEADERS = get_bool_env("TRUST_PROXY_HEADERS", is_production_environment())
+    TRUST_PROXY_HEADERS = get_bool_env(
+        "TRUST_PROXY_HEADERS", is_production_environment()
+    )
     CSRF_ENABLED = get_bool_env("CSRF_ENABLED", True)
     RATE_LIMIT_ENABLED = get_bool_env("RATE_LIMIT_ENABLED", True)
     HSTS_MAX_AGE_SECONDS = get_int_env("HSTS_MAX_AGE_SECONDS", 31536000)
@@ -135,8 +147,8 @@ class Config:
     MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET")
     MERCADO_PAGO_COLLECTOR_ID = os.getenv("MERCADO_PAGO_COLLECTOR_ID")
     MERCADO_PAGO_ENVIRONMENT = (os.getenv("MERCADO_PAGO_ENVIRONMENT") or "").lower()
-    MERCADO_PAGO_PLAN_PRICE = os.getenv("MERCADO_PAGO_PLAN_PRICE", "19.90")
-    MERCADO_PAGO_MAX_INSTALLMENTS = get_int_env("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
+    MERCADO_PAGO_PLAN_PRICE = os.getenv("MERCADO_PAGO_PLAN_PRICE")
+    MERCADO_PAGO_MAX_INSTALLMENTS = os.getenv("MERCADO_PAGO_MAX_INSTALLMENTS")
     MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS = get_int_env(
         "MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS", 300
     )
@@ -146,11 +158,18 @@ class Config:
     # Public SEO origin.  This must not depend on the inbound Host or proxy
     # scheme because those values may vary behind nginx and during health
     # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
-    BASE_URL = (os.getenv("BASE_URL") or "https://boostconvert.com.br").rstrip("/")
+    BASE_URL = (
+        os.getenv("BASE_URL")
+        or ("" if is_production_environment() else "https://boostconvert.com.br")
+    ).rstrip("/")
     SEND_FILE_MAX_AGE_DEFAULT = timedelta(days=365)
-    CONVERSION_FILE_RETENTION_MINUTES = get_int_env("CONVERSION_FILE_RETENTION_MINUTES", 15)
+    CONVERSION_FILE_RETENTION_MINUTES = get_int_env(
+        "CONVERSION_FILE_RETENTION_MINUTES", 15
+    )
     AI_TRANSCRIPT_RETENTION_MINUTES = get_int_env("AI_TRANSCRIPT_RETENTION_MINUTES", 15)
-    CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env("CONVERSION_CLEANUP_INTERVAL_MINUTES", 5)
+    CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env(
+        "CONVERSION_CLEANUP_INTERVAL_MINUTES", 5
+    )
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
     GOOGLE_REDIRECT_URI = os.getenv(
@@ -160,8 +179,10 @@ class Config:
 
 
 def should_auto_create_db(app):
-    if os.getenv("AUTO_CREATE_DB") == "1": return True
-    if os.getenv("AUTO_CREATE_DB") == "0": return False
+    if os.getenv("AUTO_CREATE_DB") == "1":
+        return True
+    if os.getenv("AUTO_CREATE_DB") == "0":
+        return False
     return False
 
 
@@ -190,13 +211,17 @@ def validate_mercado_pago_config(app):
         "MERCADO_PAGO_PUBLIC_KEY": app.config.get("MERCADO_PAGO_PUBLIC_KEY"),
         "MERCADO_PAGO_WEBHOOK_SECRET": app.config.get("MERCADO_PAGO_WEBHOOK_SECRET"),
         "MERCADO_PAGO_COLLECTOR_ID": app.config.get("MERCADO_PAGO_COLLECTOR_ID"),
+        "MERCADO_PAGO_PLAN_PRICE": app.config.get("MERCADO_PAGO_PLAN_PRICE"),
+        "MERCADO_PAGO_MAX_INSTALLMENTS": app.config.get(
+            "MERCADO_PAGO_MAX_INSTALLMENTS"
+        ),
     }
-    missing = sorted(name for name, value in required.items() if not str(value or "").strip())
+    missing = sorted(
+        name for name, value in required.items() if not str(value or "").strip()
+    )
     is_production_app = app.config.get("APP_ENV") in {"production", "prod"}
     if missing and is_production_app:
-        raise RuntimeError(
-            "Configuracao Mercado Pago ausente: " + ", ".join(missing)
-        )
+        raise RuntimeError("Configuracao Mercado Pago ausente: " + ", ".join(missing))
     if missing:
         app.logger.warning(
             "mercado_pago_config_incomplete fields=%s", ",".join(missing)
@@ -205,16 +230,40 @@ def validate_mercado_pago_config(app):
 
     access_token = str(required["MERCADO_PAGO_ACCESS_TOKEN"])
     public_key = str(required["MERCADO_PAGO_PUBLIC_KEY"])
-    uses_test_credentials = access_token.startswith("TEST-") or public_key.startswith("TEST-")
+    uses_test_credentials = access_token.startswith("TEST-") or public_key.startswith(
+        "TEST-"
+    )
     if environment == "production" and uses_test_credentials:
-        raise RuntimeError("Credenciais TEST nao podem ser usadas no ambiente Mercado Pago production.")
+        raise RuntimeError(
+            "Credenciais TEST nao podem ser usadas no ambiente Mercado Pago production."
+        )
     if environment == "test" and not (
         access_token.startswith("TEST-") and public_key.startswith("TEST-")
     ):
         raise RuntimeError("Ambiente Mercado Pago test exige credenciais TEST.")
     if is_production_app and environment != "production":
-        raise RuntimeError("Aplicacao em producao exige MERCADO_PAGO_ENVIRONMENT=production.")
+        raise RuntimeError(
+            "Aplicacao em producao exige MERCADO_PAGO_ENVIRONMENT=production."
+        )
     if not is_production_app and environment == "production":
-        raise RuntimeError("Pagamentos reais sao bloqueados fora da aplicacao em producao.")
-    if is_production_app and not str(app.config.get("BASE_URL") or "").startswith("https://"):
+        raise RuntimeError(
+            "Pagamentos reais sao bloqueados fora da aplicacao em producao."
+        )
+    if is_production_app and not str(app.config.get("BASE_URL") or "").startswith(
+        "https://"
+    ):
         raise RuntimeError("BASE_URL HTTPS e obrigatoria para pagamentos em producao.")
+
+    try:
+        plan_price = Decimal(str(required["MERCADO_PAGO_PLAN_PRICE"]))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise RuntimeError("MERCADO_PAGO_PLAN_PRICE invalido.") from exc
+    if plan_price <= 0:
+        raise RuntimeError("MERCADO_PAGO_PLAN_PRICE precisa ser maior que zero.")
+
+    try:
+        max_installments = int(str(required["MERCADO_PAGO_MAX_INSTALLMENTS"]))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("MERCADO_PAGO_MAX_INSTALLMENTS invalido.") from exc
+    if max_installments < 1 or max_installments > 24:
+        raise RuntimeError("MERCADO_PAGO_MAX_INSTALLMENTS deve estar entre 1 e 24.")

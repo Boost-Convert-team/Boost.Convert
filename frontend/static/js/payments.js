@@ -7,10 +7,7 @@
 
     function initPayments() {
         initCardPaymentBrick();
-        initPixCreationForm();
-        initPixCopyButton();
         initCardPaymentStatusPolling();
-        initPixPaymentStatusPolling();
     }
 
     async function initCardPaymentBrick() {
@@ -167,91 +164,10 @@
         }, 3000);
     }
 
-    function initPixCreationForm() {
-        const form = document.querySelector("[data-pix-payment-form]");
-        if (!form || form.dataset.paymentInitialized === "true") return;
-        form.dataset.paymentInitialized = "true";
-        const button = form.querySelector('button[type="submit"]');
-        const message = form.querySelector("[data-pix-payment-message]");
-        form.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            if (form.dataset.submissionInFlight === "true") return;
-            form.dataset.submissionInFlight = "true";
-            setButtonLoading(button, true);
-            setMessage(message, "Criando pagamento Pix...");
-            try {
-                const response = await fetch(form.action, {
-                    method: "POST",
-                    body: new FormData(form),
-                    headers: { Accept: "application/json" },
-                    credentials: "same-origin"
-                });
-                const payload = await readJson(response);
-                if (!response.ok) throw new Error(payload.error || "Não foi possível criar o Pix.");
-                if (!payload.redirect_url) throw new Error("Pagamento criado sem página de destino.");
-                window.location.assign(payload.redirect_url);
-            } catch (error) {
-                setMessage(message, error.message || "Não foi possível criar o Pix.");
-                form.dataset.submissionInFlight = "false";
-                setButtonLoading(button, false);
-            }
-        });
-    }
-
-    function initPixCopyButton() {
-        const button = document.querySelector("[data-copy-pix-code]");
-        const field = document.querySelector("[data-pix-copy-code]");
-        if (!button || !field || button.dataset.copyInitialized === "true") return;
-        button.dataset.copyInitialized = "true";
-        button.addEventListener("click", async () => {
-            try {
-                await navigator.clipboard.writeText(field.value);
-            } catch (_) {
-                field.focus();
-                field.select();
-                document.execCommand("copy");
-            }
-            button.textContent = "Código Pix copiado";
-        });
-    }
-
-    function initPixPaymentStatusPolling() {
-        const page = document.querySelector("[data-pix-status-page]");
-        const status = page?.querySelector("[data-pix-payment-status]");
-        if (!page || !status || !page.dataset.statusUrl) return;
-        if (page.dataset.paymentPollingInitialized === "true") return;
-        page.dataset.paymentPollingInitialized = "true";
-        if (page.dataset.paymentConfirmed === "true") {
-            renderApprovedStatus(page, status);
-            return;
-        }
-        const interval = window.setInterval(async () => {
-            try {
-                const response = await fetch(page.dataset.statusUrl, {
-                    headers: { Accept: "application/json" },
-                    credentials: "same-origin"
-                });
-                if (!response.ok) return;
-                const payload = await response.json();
-                if (payload.approved) {
-                    window.clearInterval(interval);
-                    renderApprovedStatus(page, status);
-                } else if (["rejected", "cancelled", "canceled", "expired"].includes(payload.status)) {
-                    window.clearInterval(interval);
-                    status.textContent = "O pagamento Pix não foi aprovado ou expirou.";
-                }
-            } catch (_) {
-                return;
-            }
-        }, 3000);
-    }
-
     function renderApprovedStatus(page, status) {
         status.dataset.status = "approved";
         status.textContent = "Pagamento confirmado. Seu BoostConvert PRO está ativo.";
-        const accountLink = page.querySelector(
-            "[data-card-account-link], [data-pix-account-link]"
-        );
+        const accountLink = page.querySelector("[data-card-account-link]");
         if (accountLink) accountLink.hidden = false;
     }
 
@@ -273,12 +189,6 @@
 
     function setMessage(message, text) {
         if (message) message.textContent = text || "";
-    }
-
-    function setButtonLoading(button, loading) {
-        if (!button) return;
-        button.disabled = loading;
-        button.setAttribute("aria-busy", String(loading));
     }
 
     function reportCardPaymentError(stage, error) {

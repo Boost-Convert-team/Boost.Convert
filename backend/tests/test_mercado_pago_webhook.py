@@ -4,7 +4,7 @@ import json
 import sys
 import time
 import unittest
-from datetime import timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -72,31 +72,6 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 timedelta(days=30),
             )
 
-    def test_approved_pix_webhook_grants_access_once(self) -> None:
-        user_id, payment_id = self.create_pix_attempt()
-        provider_data = self.provider_data(
-            user_id, payment_id, "approved", "pix", "bank_transfer"
-        )
-        with patch(
-            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
-            return_value=provider_data,
-        ) as get_payment:
-            first = self.post_payment_event(1003, payment_id)
-            duplicate = self.post_payment_event(1003, payment_id)
-
-        self.assertEqual(first.status_code, 200)
-        self.assertEqual(duplicate.status_code, 200)
-        self.assertTrue(duplicate.json["duplicate"])
-        self.assertEqual(get_payment.call_count, 1)
-        self.assertEqual(self.user_state(user_id), ("pro", "active"))
-        with self.app.app_context():
-            payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
-            self.assertEqual(payment.payment_method, "pix")
-            self.assertEqual(
-                payment.premium_expires_at - payment.approved_at,
-                timedelta(days=30),
-            )
-
     def test_pending_or_rejected_payment_never_grants_access(self) -> None:
         for index, status in enumerate(("pending", "in_process", "rejected"), start=1):
             with self.subTest(status=status):
@@ -138,6 +113,58 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             self.assertEqual(payment.id, original_local_id)
             self.assertEqual(payment.provider_payment_id, payment_id)
             self.assertIsNotNone(payment.premium_expires_at)
+
+    def test_pending_then_repeated_approved_webhook_grants_exactly_once(self) -> None:
+        user_id, payment_id = self.create_credit_attempt()
+        provider_data = self.provider_data(
+            user_id, payment_id, "approved", "visa", "credit_card"
+        )
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            first = self.post_payment_event(1202, payment_id)
+            with self.app.app_context():
+                first_expiry = Payment.query.one().premium_expires_at
+            repeated = self.post_payment_event(1203, payment_id)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(repeated.status_code, 200)
+        self.assertEqual(self.user_state(user_id), ("pro", "active"))
+        with self.app.app_context():
+            payment = Payment.query.one()
+            self.assertEqual(payment.premium_expires_at, first_expiry)
+            self.assertEqual(
+                payment.premium_expires_at - payment.approved_at,
+                timedelta(days=30),
+            )
+
+    def test_immediate_approval_plus_webhook_does_not_add_another_30_days(self) -> None:
+        user_id, payment_id = self.create_credit_attempt()
+        with self.app.app_context():
+            payment = Payment.query.one()
+            payment.status = "approved"
+            payment.approved_at = utc_now()
+            payment.premium_expires_at = payment.approved_at + timedelta(days=30)
+            payment.user.plano = "pro"
+            payment.user.status_assinatura = "active"
+            original_expiry = payment.premium_expires_at
+            db.session.commit()
+        provider_data = self.provider_data(
+            user_id, payment_id, "approved", "visa", "credit_card"
+        )
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ):
+            response = self.post_payment_event(1204, payment_id)
+
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            persisted_expiry = Payment.query.one().premium_expires_at.replace(
+                tzinfo=timezone.utc
+            )
+            self.assertEqual(persisted_expiry, original_expiry)
 
     def test_concurrent_duplicate_event_integrity_error_reloads_winner(self) -> None:
         payload = {"id": 1301, "type": "payment", "data": {"id": "pay_race"}}
@@ -361,38 +388,6 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                     status="pending",
                     amount="19.90",
                     currency="BRL",
-                )
-            )
-            db.session.commit()
-            return user.id, payment_id
-
-    def create_pix_attempt(self) -> tuple[int, str]:
-        with self.app.app_context():
-            user = Usuario(
-                email="pix-webhook@example.com",
-                plano="free",
-                status_assinatura="inactive",
-            )
-            db.session.add(user)
-            db.session.flush()
-            attempt_id = "11111111-2222-4333-8444-555555555555"
-            payment_id = "pay_pix"
-            db.session.add(
-                Payment(
-                    user_id=user.id,
-                    provider_payment_id=payment_id,
-                    external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
-                    plan="BOOSTCONVERT_PRO",
-                    idempotency_key=attempt_id,
-                    payment_method="pix",
-                    payment_type_id="bank_transfer",
-                    provider_payment_method_id="pix",
-                    status="pending",
-                    amount="19.90",
-                    currency="BRL",
-                    pix_qr_code="000201-pix-copy-code",
-                    pix_qr_code_base64="cXItY29kZQ==",
-                    pix_ticket_url="https://example.test/pix-ticket",
                 )
             )
             db.session.commit()

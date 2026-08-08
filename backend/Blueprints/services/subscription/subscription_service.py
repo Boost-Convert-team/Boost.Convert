@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
 APPROVED_PAYMENT_STATUSES = {"approved"}
-ACTIVE_ONE_TIME_PAYMENT_METHODS = {"credit_card", "debit_card", "pix"}
+ACTIVE_ONE_TIME_PAYMENT_METHODS = {"credit_card", "debit_card"}
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",

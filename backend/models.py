@@ -150,9 +150,11 @@ class DailyUsage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id"), nullable=True, index=True
+    )
 
-    session_id = db.Column(db.String(255), nullable=True)
+    session_id = db.Column(db.String(255), nullable=True, index=True)
     usage_date = db.Column(db.Date, nullable=False)
     window_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     usage_count = db.Column(db.Integer, nullable=False, default=0)
@@ -187,9 +189,13 @@ class ConversionJob(db.Model):
 
 class ConversionAuditLog(db.Model):
     __tablename__ = "conversion_audit_logs"
+    __table_args__ = (
+        db.UniqueConstraint("job_id"),
+        db.Index("ix_conversion_audit_logs_job_id", "job_id"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    job_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    job_id = db.Column(db.String(36), nullable=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
     session_id = db.Column(db.String(255), nullable=True)

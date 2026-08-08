@@ -36,12 +36,11 @@ from sqlalchemy.exc import IntegrityError
 PRO_PLAN_NAME = "BoostConvert PRO"
 PROVIDER_PRO_PLAN_CODE = "pro"
 ONE_TIME_ACCESS_DAYS = 30
-PIX_PAYMENT_METHOD = "pix"
 ALLOWED_CARD_PAYMENT_TYPES = {
     "credit_card",
     "debit_card",
 }
-ALLOWED_ONE_TIME_PAYMENT_KINDS = ALLOWED_CARD_PAYMENT_TYPES | {PIX_PAYMENT_METHOD}
+ALLOWED_ONE_TIME_PAYMENT_KINDS = ALLOWED_CARD_PAYMENT_TYPES
 FAILED_PAYMENT_STATUSES = {
     "cancelled",
     "canceled",
@@ -70,56 +69,6 @@ class CardPaymentValidationError(MercadoPagoError):
 
 class IdempotencyKeyValidationError(CardPaymentValidationError):
     """The card idempotency key is absent or not a UUID."""
-
-
-def create_pix_payment(
-    usuario: Usuario,
-    idempotency_key: str | None,
-) -> dict[str, Any]:
-    """Create an idempotent PIX payment without trusting client price or user data."""
-    require_payment_environment()
-    normalized_key = normalize_idempotency_key(idempotency_key)
-    payment = get_or_create_payment_attempt(
-        usuario,
-        normalized_key,
-        payment_method=PIX_PAYMENT_METHOD,
-    )
-    log_payment_attempt_started(payment)
-    if has_complete_pix_checkout_data(payment):
-        return build_pix_payment_response(payment)
-
-    recovered = recover_provider_payment_for_attempt(payment)
-    if recovered is not None and has_complete_pix_checkout_data(recovered):
-        return build_pix_payment_response(recovered)
-
-    payload = {
-        "transaction_amount": float(get_expected_payment_amount(payment)),
-        "description": f"{PRO_PLAN_NAME} - 30 dias",
-        "payment_method_id": PIX_PAYMENT_METHOD,
-        "payer": {"email": str(usuario.email).strip().lower()},
-        "external_reference": payment.external_reference,
-        "notification_url": get_payment_notification_url(),
-        "metadata": build_payment_metadata(payment),
-    }
-    log_payment_request(payment, payment_method_id=PIX_PAYMENT_METHOD)
-    data = mercado_pago_request(
-        "POST",
-        "/v1/payments",
-        json_payload=payload,
-        extra_headers={"X-Idempotency-Key": normalized_key},
-    )
-    validate_provider_environment(data)
-    payment = upsert_payment_from_provider_data(
-        data,
-        user=usuario,
-        requested_payment_method_id=PIX_PAYMENT_METHOD,
-        activate_access=True,
-        existing_payment=payment,
-    )
-    copy_pix_checkout_data(payment, data, required=True)
-    db.session.commit()
-    log_payment_event("mercado_pago_pix_payment_created", payment)
-    return build_pix_payment_response(payment)
 
 
 def create_card_payment(
@@ -229,7 +178,9 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     except (TypeError, ValueError):
         installments = 0
 
-    max_installments = int(current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12))
+    max_installments = int(
+        current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS") or 12
+    )
     if installments < 1 or installments > max_installments:
         raise CardPaymentValidationError("Quantidade de parcelas invalida.")
     if payment_type_id == "debit_card" and installments != 1:
@@ -383,12 +334,6 @@ def get_or_create_payment_attempt(
 
     if payment is not None:
         validate_attempt_owner(payment, usuario)
-        if (
-            payment_method == PIX_PAYMENT_METHOD
-            and payment.payment_method != PIX_PAYMENT_METHOD
-        ):
-            raise MercadoPagoError("Chave de idempotencia pertence a outro pagamento.")
-
         return payment
 
     payment = Payment(
@@ -400,9 +345,7 @@ def get_or_create_payment_attempt(
         plan=PRO_PLAN_CODE,
         idempotency_key=idempotency_key,
         payment_method=payment_method,
-        provider_payment_method_id=(
-            PIX_PAYMENT_METHOD if payment_method == PIX_PAYMENT_METHOD else None
-        ),
+        provider_payment_method_id=None,
         status=CREATING_PAYMENT_STATUS,
         amount=get_plan_price(),
         currency="BRL",
@@ -478,23 +421,6 @@ def normalize_idempotency_key(value: str | None) -> str:
 
 def recover_provider_payment_for_attempt(payment: Payment) -> Payment | None:
     if payment.provider_payment_id:
-        if (
-            payment.payment_method == PIX_PAYMENT_METHOD
-            and not has_complete_pix_checkout_data(payment)
-        ):
-            data = mercado_pago_request(
-                "GET", f"/v1/payments/{payment.provider_payment_id}"
-            )
-            recovered = upsert_payment_from_provider_data(
-                data,
-                user=payment.user,
-                requested_payment_method_id=PIX_PAYMENT_METHOD,
-                activate_access=False,
-                existing_payment=payment,
-            )
-            copy_pix_checkout_data(recovered, data, required=True)
-            db.session.commit()
-            return recovered
         return payment
 
     data = search_payment_by_external_reference(payment.external_reference)
@@ -513,8 +439,6 @@ def recover_provider_payment_for_attempt(payment: Payment) -> Payment | None:
         activate_access=False,
         existing_payment=payment,
     )
-    copy_pix_checkout_data(recovered, data, required=False)
-
     db.session.commit()
     return recovered
 
@@ -625,8 +549,6 @@ def reconcile_payment(payment: Payment, *, force: bool = False) -> Payment:
         activate_access=True,
         existing_payment=payment,
     )
-    copy_pix_checkout_data(payment, data, required=False)
-
     db.session.commit()
     return payment
 
@@ -1097,8 +1019,6 @@ def find_user_for_payment(
 
 
 def detect_payment_type(provider_data: dict[str, Any]) -> str:
-    if get_string(provider_data, "payment_method_id").lower() == PIX_PAYMENT_METHOD:
-        return PIX_PAYMENT_METHOD
     payment_type_id = get_string(provider_data, "payment_type_id")
     return payment_type_id.lower()
 
@@ -1154,65 +1074,6 @@ def get_payment_attempt_id(payment: Payment) -> str:
 
 def get_payment_notification_url() -> str:
     return urljoin(f"{get_base_url()}/", "api/webhooks/mercadopago")
-
-
-def copy_pix_checkout_data(
-    payment: Payment,
-    provider_data: dict[str, Any],
-    *,
-    required: bool,
-) -> None:
-    if payment.payment_method != PIX_PAYMENT_METHOD:
-        return
-    point_of_interaction = provider_data.get("point_of_interaction")
-    transaction_data = (
-        point_of_interaction.get("transaction_data", {})
-        if isinstance(point_of_interaction, dict)
-        else {}
-    )
-    if not isinstance(transaction_data, dict) or not transaction_data:
-        transaction_data = provider_data.get("transaction_data")
-    if not isinstance(transaction_data, dict):
-        transaction_data = {}
-    qr_code = get_string(transaction_data, "qr_code")
-    qr_code_base64 = get_string(transaction_data, "qr_code_base64")
-    ticket_url = get_string(transaction_data, "ticket_url")
-    if required and (not qr_code or not qr_code_base64 or not ticket_url):
-        raise MercadoPagoError("Mercado Pago nao retornou todos os dados do Pix.")
-    payment.pix_qr_code = qr_code or payment.pix_qr_code
-    payment.pix_qr_code_base64 = qr_code_base64 or payment.pix_qr_code_base64
-    payment.pix_ticket_url = ticket_url or payment.pix_ticket_url
-
-
-def has_complete_pix_checkout_data(payment: Payment) -> bool:
-    return bool(
-        payment.provider_payment_id
-        and payment.pix_qr_code
-        and payment.pix_qr_code_base64
-        and payment.pix_ticket_url
-    )
-
-
-def build_pix_payment_response(payment: Payment) -> dict[str, Any]:
-    amount = payment.amount or get_plan_price()
-    return {
-        "ok": True,
-        "provider": PROVIDER,
-        "plan": payment.plan or PRO_PLAN_CODE,
-        "plan_name": PRO_PLAN_NAME,
-        "attempt_id": get_payment_attempt_id(payment),
-        "payment_id": payment.provider_payment_id,
-        "status": payment.status,
-        "status_detail": payment.status_detail,
-        "amount": f"{amount:.2f}",
-        "qr_code": payment.pix_qr_code,
-        "qr_code_base64": payment.pix_qr_code_base64,
-        "ticket_url": payment.pix_ticket_url,
-        "approved": (
-            payment.status.lower() in APPROVED_PAYMENT_STATUSES
-            and payment.premium_expires_at is not None
-        ),
-    }
 
 
 def build_card_payment_response(payment: Payment) -> dict[str, Any]:

@@ -7,9 +7,8 @@ Create Date: 2026-08-01 04:50:00.000000
 
 from uuid import NAMESPACE_URL, uuid5
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "a8d4e6f2c1b9"
 down_revision = "f5a1c9d3e7b2"
@@ -18,6 +17,8 @@ depends_on = None
 
 
 def upgrade():
+    preserve_attempt_correlation_data()
+
     op.drop_index(
         "uq_payments_provider_attempt_external_reference",
         table_name="payments",
@@ -29,27 +30,54 @@ def upgrade():
 
     with op.batch_alter_table("payments") as batch_op:
         batch_op.drop_constraint("uq_payments_provider_attempt_id", type_="unique")
-        batch_op.drop_column("last_provider_sync_at")
         batch_op.drop_column("payment_type")
-        batch_op.drop_column("provider_payment_method_id")
         batch_op.drop_column("attempt_id")
+
+
+def preserve_attempt_correlation_data():
+    payments = sa.table(
+        "payments",
+        sa.column("attempt_id", sa.String()),
+        sa.column("idempotency_key", sa.String()),
+        sa.column("payment_type", sa.String()),
+        sa.column("payment_method", sa.String()),
+    )
+    op.execute(
+        payments.update()
+        .where(payments.c.idempotency_key.is_(None))
+        .values(idempotency_key=payments.c.attempt_id)
+    )
+    op.execute(
+        payments.update()
+        .where(payments.c.payment_type.is_not(None))
+        .where(payments.c.payment_method == "pending_card")
+        .values(payment_method=payments.c.payment_type)
+    )
 
 
 def downgrade():
     with op.batch_alter_table("payments") as batch_op:
-        batch_op.add_column(sa.Column("attempt_id", sa.String(length=36), nullable=True))
+        batch_op.add_column(
+            sa.Column("attempt_id", sa.String(length=36), nullable=True)
+        )
         batch_op.add_column(
             sa.Column("provider_payment_method_id", sa.String(length=50), nullable=True)
         )
-        batch_op.add_column(sa.Column("payment_type", sa.String(length=50), nullable=True))
         batch_op.add_column(
-            sa.Column("last_provider_sync_at", sa.DateTime(timezone=True), nullable=True)
+            sa.Column("payment_type", sa.String(length=50), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column(
+                "last_provider_sync_at", sa.DateTime(timezone=True), nullable=True
+            )
         )
 
     backfill_attempt_ids()
 
     with op.batch_alter_table("payments") as batch_op:
-        batch_op.alter_column("attempt_id", existing_type=sa.String(length=36), nullable=False)
+        batch_op.alter_column(
+            "attempt_id", existing_type=sa.String(length=36), nullable=False
+        )
         batch_op.create_unique_constraint(
             "uq_payments_provider_attempt_id",
             ["provider", "attempt_id"],

@@ -15,22 +15,30 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("payments") as batch_op:
-        batch_op.add_column(
-            sa.Column("provider_payment_method_id", sa.String(length=50), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column("payment_type_id", sa.String(length=50), nullable=True)
-        )
-        batch_op.add_column(sa.Column("installments", sa.Integer(), nullable=True))
-        batch_op.add_column(
-            sa.Column("status_detail", sa.String(length=120), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column(
-                "last_provider_sync_at", sa.DateTime(timezone=True), nullable=True
-            )
-        )
+    inspector = sa.inspect(op.get_bind())
+    existing_columns = {column["name"] for column in inspector.get_columns("payments")}
+    card_columns = {
+        "provider_payment_method_id": sa.Column(
+            "provider_payment_method_id", sa.String(length=50), nullable=True
+        ),
+        "payment_type_id": sa.Column(
+            "payment_type_id", sa.String(length=50), nullable=True
+        ),
+        "installments": sa.Column("installments", sa.Integer(), nullable=True),
+        "status_detail": sa.Column(
+            "status_detail", sa.String(length=120), nullable=True
+        ),
+        "last_provider_sync_at": sa.Column(
+            "last_provider_sync_at", sa.DateTime(timezone=True), nullable=True
+        ),
+    }
+    missing_card_columns = [
+        column for name, column in card_columns.items() if name not in existing_columns
+    ]
+    if missing_card_columns:
+        with op.batch_alter_table("payments") as batch_op:
+            for column in missing_card_columns:
+                batch_op.add_column(column)
 
     op.create_index(
         "ix_payments_provider_payment_method_id",

@@ -16,9 +16,6 @@ class PaymentFrontendContractTests(unittest.TestCase):
         cls.status_template = (
             PROJECT_ROOT / "frontend/templates/checkout_card_status.html"
         ).read_text(encoding="utf-8")
-        cls.pix_template = (
-            PROJECT_ROOT / "frontend/templates/checkout_pix.html"
-        ).read_text(encoding="utf-8")
         cls.styles = (PROJECT_ROOT / "frontend/static/css/checkout.css").read_text(
             encoding="utf-8"
         )
@@ -26,21 +23,15 @@ class PaymentFrontendContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_checkout_offers_card_and_pix_without_duplicating_card_brick(self) -> None:
-        self.assertIn("Escolha como pagar", self.template)
+    def test_checkout_offers_only_card_without_duplicating_card_brick(self) -> None:
         self.assertIn('aria-labelledby="card-checkout-title"', self.template)
-        self.assertIn('aria-labelledby="pix-checkout-title"', self.template)
         self.assertEqual(self.template.count('id="cardPaymentBrick_container"'), 1)
-        self.assertIn("payment-choice-grid", self.template)
+        self.assertEqual(self.template.count('class="card-checkout-panel reveal"'), 1)
 
-    def test_pix_frontend_preserves_qr_copy_and_status_flow(self) -> None:
-        combined = (
-            f"{self.template}\n{self.pix_template}\n{self.javascript}\n{self.styles}"
-        ).lower()
-        self.assertIn("data-pix-payment-form", combined)
-        self.assertIn("data-pix-copy-code", combined)
-        self.assertIn("data-pix-status-page", combined)
-        self.assertIn("qr code", combined)
+    def test_removed_payment_method_has_no_frontend_artifacts(self) -> None:
+        combined = f"{self.template}\n{self.javascript}\n{self.styles}".lower()
+        self.assertNotIn("pix", combined)
+        self.assertNotIn("qr_code", combined)
 
     def test_card_brick_is_created_once_with_credit_and_debit(self) -> None:
         self.assertEqual(self.javascript.count('bricksBuilder.create("cardPayment"'), 1)

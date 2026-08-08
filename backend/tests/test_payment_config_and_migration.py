@@ -7,7 +7,7 @@ from alembic.config import Config as AlembicConfig
 from alembic.script import ScriptDirectory
 from flask import Flask
 from flask_migrate import Migrate, downgrade, upgrade
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -84,12 +84,73 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                         "last_provider_sync_at",
                     }.isdisjoint(downgraded_columns)
                 )
+                db.session.execute(
+                    text(
+                        "INSERT INTO usuarios "
+                        "(id, email, plano, status_assinatura) "
+                        "VALUES (9001, 'migration-payment@example.com', 'free', 'inactive')"
+                    )
+                )
+                db.session.execute(
+                    text(
+                        "INSERT INTO payments "
+                        "(id, user_id, provider, provider_payment_id, payment_method, "
+                        "status, amount, currency, external_reference, plan, idempotency_key) "
+                        "VALUES (9001, 9001, 'mercado_pago', 'pay_migration_sentinel', "
+                        "'credit_card', 'approved', 19.90, 'BRL', "
+                        "'boost:payment:11111111-2222-4333-8444-555555555555:user:9001', "
+                        "'BOOSTCONVERT_PRO', '11111111-2222-4333-8444-555555555555')"
+                    )
+                )
+                db.session.commit()
+                upgrade(
+                    revision="e2f7a9c4d1b6",
+                    directory=str(migrations_path),
+                )
+                db.session.execute(
+                    text(
+                        "UPDATE payments SET provider_payment_method_id = 'visa', "
+                        "payment_type = 'credit_card', "
+                        "last_provider_sync_at = '2026-08-07 12:00:00' "
+                        "WHERE id = 9001"
+                    )
+                )
+                db.session.commit()
                 upgrade(directory=str(migrations_path))
                 upgraded_columns = {
                     column["name"]
                     for column in inspect(db.engine).get_columns("payments")
                 }
                 self.assertTrue(pix_columns <= upgraded_columns)
+                preserved_payment = db.session.execute(
+                    text(
+                        "SELECT provider_payment_id, payment_method, status, amount, "
+                        "currency, external_reference, plan, idempotency_key "
+                        "FROM payments WHERE id = 9001"
+                    )
+                ).one()
+                self.assertEqual(
+                    tuple(preserved_payment),
+                    (
+                        "pay_migration_sentinel",
+                        "credit_card",
+                        "approved",
+                        19.9,
+                        "BRL",
+                        "boost:payment:11111111-2222-4333-8444-555555555555:user:9001",
+                        "BOOSTCONVERT_PRO",
+                        "11111111-2222-4333-8444-555555555555",
+                    ),
+                )
+                preserved_contract = db.session.execute(
+                    text(
+                        "SELECT provider_payment_method_id, payment_type_id, "
+                        "last_provider_sync_at FROM payments WHERE id = 9001"
+                    )
+                ).one()
+                self.assertEqual(preserved_contract[0], "visa")
+                self.assertEqual(preserved_contract[1], "credit_card")
+                self.assertIsNotNone(preserved_contract[2])
                 db.session.remove()
                 db.engine.dispose()
 
@@ -128,6 +189,17 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
     def test_valid_production_configuration_passes(self) -> None:
         validate_mercado_pago_config(self.valid_app("production"))
 
+    def test_production_rejects_invalid_price_or_installments(self) -> None:
+        invalid_price = self.valid_app("production")
+        invalid_price.config["MERCADO_PAGO_PLAN_PRICE"] = "0"
+        with self.assertRaisesRegex(RuntimeError, "maior que zero"):
+            validate_mercado_pago_config(invalid_price)
+
+        invalid_installments = self.valid_app("production")
+        invalid_installments.config["MERCADO_PAGO_MAX_INSTALLMENTS"] = "0"
+        with self.assertRaisesRegex(RuntimeError, "entre 1 e 24"):
+            validate_mercado_pago_config(invalid_installments)
+
     @staticmethod
     def valid_app(environment: str) -> Flask:
         app = Flask(environment)
@@ -144,6 +216,8 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
             ),
             MERCADO_PAGO_WEBHOOK_SECRET="webhook-secret",
             MERCADO_PAGO_COLLECTOR_ID="123456",
+            MERCADO_PAGO_PLAN_PRICE="19.90",
+            MERCADO_PAGO_MAX_INSTALLMENTS="12",
         )
         return app
 
