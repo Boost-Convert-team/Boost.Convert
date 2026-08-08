@@ -1,8 +1,3 @@
-from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, UnsupportedMediaType
-from sqlalchemy.exc import SQLAlchemyError
-
-from extensions import db
 from Blueprints.services.subscription.mercado_pago_service import (
     MercadoPagoError,
     MercadoPagoHTTPError,
@@ -10,6 +5,10 @@ from Blueprints.services.subscription.mercado_pago_service import (
     process_mercado_pago_webhook,
     validate_mercado_pago_webhook_signature,
 )
+from extensions import db
+from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
 webhook_bp = Blueprint("webhook", __name__)
 @webhook_bp.route("/webhook", methods=["POST"])
@@ -23,10 +22,9 @@ def receive_mercado_pago_webhook():
 
     if payload is None: return jsonify({"ok": False, "error": "invalid_json"}), 400
 
-    # TEMPORÁRIO - TESTE MERCADO PAGO
-    # if not validate_mercado_pago_webhook_signature(payload):
-    #     current_app.logger.warning("mercado_pago_webhook_invalid_signature")
-    #     return jsonify({"ok": False, "error": "invalid_signature"}), 401
+    if not validate_mercado_pago_webhook_signature(payload):
+        current_app.logger.warning("mercado_pago_webhook_invalid_signature")
+        return jsonify({"ok": False, "error": "invalid_signature"}), 401
 
     try:
         result = process_mercado_pago_webhook(payload)
@@ -61,8 +59,7 @@ def receive_mercado_pago_webhook():
         db.session.rollback()
 
         current_app.logger.exception(
-            "mercado_pago_webhook_processing_failed message=%s code=%s cause=%s",
-            str(exc),
+            "mercado_pago_webhook_processing_failed code=%s cause=%s",
             exc.code,
             exc.cause,
         )

@@ -1,16 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from flask import current_app, has_app_context
-from sqlalchemy.exc import SQLAlchemyError
-
 from extensions import db
+from flask import current_app, has_app_context
 from models import Payment, Subscription
-
+from sqlalchemy.exc import SQLAlchemyError
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
 APPROVED_PAYMENT_STATUSES = {"approved"}
-CREDIT_PAYMENT_METHOD = "credit_card"
+ACTIVE_ONE_TIME_CARD_TYPES = {"credit_card", "debit_card"}
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",
@@ -133,7 +131,7 @@ def find_active_paid_payment(user_id: int, now: datetime) -> Payment | None:
     return (
         Payment.query.filter(
             Payment.user_id == user_id,
-            Payment.payment_method == CREDIT_PAYMENT_METHOD,
+            Payment.payment_method.in_(ACTIVE_ONE_TIME_CARD_TYPES),
             Payment.status.in_(APPROVED_PAYMENT_STATUSES),
             Payment.premium_expires_at.isnot(None),
             Payment.premium_expires_at > now,

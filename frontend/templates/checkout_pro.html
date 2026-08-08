@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Cartão de crédito | BoostConvert PRO{% endblock %}
-{% block meta_description %}Pagamento seguro com cartão de crédito pelo Mercado Pago.{% endblock %}
+{% block title %}Cartão de crédito ou débito | BoostConvert PRO{% endblock %}
+{% block meta_description %}Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.{% endblock %}
 
 {% block extra_head %}
 {% if mercado_pago_public_key %}<script src="https://sdk.mercadopago.com/js/v2"></script>{% endif %}
@@ -11,8 +11,8 @@
 <main class="checkout-page checkout-card-page">
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="shield-check" aria-hidden="true"></i> Pagamento seguro</span>
-        <h1>Cartão de crédito</h1>
-        <p>Pagamento seguro com cartão de crédito pelo Mercado Pago.</p>
+        <h1>Cartão de crédito ou débito</h1>
+        <p>Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.</p>
         <strong>{{ price }}</strong>
     </header>
 

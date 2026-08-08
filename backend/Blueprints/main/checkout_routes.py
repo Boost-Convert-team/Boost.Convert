@@ -1,5 +1,27 @@
 from uuid import UUID, uuid4
 
+from Blueprints.services.subscription.mercado_pago_payments_service import (
+    APPROVED_PAYMENT_STATUSES,
+    PRO_PLAN_NAME,
+    CardPaymentValidationError,
+    IdempotencyKeyValidationError,
+    get_payment_attempt_id,
+    reconcile_payment,
+)
+from Blueprints.services.subscription.mercado_pago_payments_service import (
+    create_card_payment as create_mercado_pago_card_payment,
+)
+from Blueprints.services.subscription.mercado_pago_service import (
+    PROVIDER,
+    MercadoPagoConfigurationError,
+    MercadoPagoError,
+    MercadoPagoHTTPError,
+    MercadoPagoInvalidResponseError,
+    MercadoPagoTimeoutError,
+    create_monthly_subscription,
+    get_plan_price,
+)
+from extensions import db
 from flask import (
     Blueprint,
     Response,
@@ -11,34 +33,10 @@ from flask import (
     request,
     url_for,
 )
-
 from flask_login import current_user, login_required
+from models import Payment
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
-
-from extensions import db
-from Blueprints.services.subscription.mercado_pago_service import (
-    MercadoPagoError,
-    MercadoPagoConfigurationError,
-    MercadoPagoHTTPError,
-    MercadoPagoInvalidResponseError,
-    MercadoPagoTimeoutError,
-    PROVIDER,
-    create_monthly_subscription,
-    get_plan_price,
-)
-
-from Blueprints.services.subscription.mercado_pago_payments_service import (
-    APPROVED_PAYMENT_STATUSES,
-    PRO_PLAN_NAME,
-    CardPaymentValidationError,
-    IdempotencyKeyValidationError,
-    create_card_payment as create_mercado_pago_card_payment,
-    get_payment_attempt_id,
-    reconcile_payment,
-)
-from models import Payment
-
 
 checkout_bp = Blueprint("checkout", __name__)
 
@@ -107,7 +105,9 @@ def create_card_payment() -> tuple[Response, int]:
 
     if status in {"rejected", "cancelled", "canceled"}:
         payment["ok"] = False
-        payment["error"] = "Pagamento recusado. Revise os dados ou use outro cartao."
+        payment["error"] = get_card_status_message(
+            str(payment.get("status_detail") or "")
+        )
         return jsonify(payment), 422
     
     return jsonify(payment), 201 if payment.get("approved") else 202
@@ -192,6 +192,9 @@ def build_reconciled_status_response(
             "attempt_id": get_payment_attempt_id(payment),
             "payment_id": payment.provider_payment_id,
             "status": payment.status,
+            "status_detail": payment.status_detail,
+            "payment_method_id": payment.provider_payment_method_id,
+            "payment_type_id": payment.payment_type_id,
             "approved": is_payment_confirmed(payment),
         }
     ), 200
@@ -279,6 +282,24 @@ def build_safe_payment_error(exc: MercadoPagoError) -> dict[str, object]:
         "cause": exc.cause,
         "correlation_id": exc.correlation_id,
     }
+
+
+def get_card_status_message(status_detail: str) -> str:
+    messages = {
+        "cc_rejected_bad_filled_card_number": "Confira o numero do cartao e tente novamente.",
+        "cc_rejected_bad_filled_date": "Confira a validade do cartao e tente novamente.",
+        "cc_rejected_bad_filled_security_code": "Confira o codigo de seguranca e tente novamente.",
+        "cc_rejected_insufficient_amount": "O cartao nao possui limite ou saldo suficiente.",
+        "cc_rejected_card_disabled": "O cartao esta desabilitado. Fale com o banco emissor.",
+        "cc_rejected_call_for_authorize": "O banco emissor precisa autorizar este pagamento.",
+        "cc_rejected_duplicated_payment": "Este pagamento ja foi processado.",
+        "cc_rejected_max_attempts": "O limite de tentativas foi atingido. Use outro cartao.",
+        "cc_rejected_high_risk": "O pagamento nao foi autorizado. Use outro meio de pagamento.",
+    }
+    return messages.get(
+        status_detail.lower(),
+        "Pagamento recusado. Revise os dados ou use outro cartao.",
+    )
 
 
 def format_brl(value: object) -> str:

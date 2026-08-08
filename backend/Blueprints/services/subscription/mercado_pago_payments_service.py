@@ -7,16 +7,11 @@ from typing import Any
 from urllib.parse import urlencode, urljoin, urlparse
 from uuid import UUID
 
-from flask import current_app
-from sqlalchemy.exc import IntegrityError
-
-from extensions import db
-from models import Payment, Subscription, Usuario
 from Blueprints.services.subscription.mercado_pago_service import (
-    MercadoPagoError,
-    MercadoPagoConfigurationError,
-    PROVIDER,
     PRO_PLAN_CODE,
+    PROVIDER,
+    MercadoPagoConfigurationError,
+    MercadoPagoError,
     build_payment_external_reference,
     extract_payment_attempt_id,
     extract_user_id_from_external_reference,
@@ -33,7 +28,10 @@ from Blueprints.services.subscription.subscription_service import (
     as_utc,
     synchronize_user_pro_status,
 )
-
+from extensions import db
+from flask import current_app
+from models import Payment, Subscription, Usuario
+from sqlalchemy.exc import IntegrityError
 
 PRO_PLAN_NAME = "BoostConvert PRO"
 PROVIDER_PRO_PLAN_CODE = "pro"
@@ -41,7 +39,6 @@ ONE_TIME_ACCESS_DAYS = 30
 ALLOWED_CARD_PAYMENT_TYPES = {
     "credit_card",
     "debit_card",
-    "prepaid_card",
 }
 FAILED_PAYMENT_STATUSES = {
     "cancelled",
@@ -55,6 +52,7 @@ CREATING_PAYMENT_STATUS = "creating"
 CARD_REQUEST_KEYS = {
     "token",
     "payment_method_id",
+    "payment_type_id",
     "issuer_id",
     "installments",
     "payer",
@@ -78,14 +76,18 @@ def create_card_payment(
     idempotency_key: str | None,
 
 ) -> dict[str, Any]:
-    """Create a credit-card payment using a short-lived browser token."""
+    """Create a card payment using a short-lived browser token."""
     require_payment_environment()
     normalized_key = normalize_idempotency_key(idempotency_key)
     validated = validate_card_request(card_data, usuario)
     
-    get_card_payment_method(validated["payment_method_id"])
+    get_card_payment_method(
+        validated["payment_method_id"],
+        validated["payment_type_id"],
+    )
 
     payment = get_or_create_payment_attempt(usuario, normalized_key)
+    bind_card_request_to_attempt(payment, validated)
     if payment.provider_payment_id:
         return build_card_payment_response(payment)
 
@@ -116,6 +118,22 @@ def create_card_payment(
 
     if validated["issuer_id"]:
         payload["issuer_id"] = validated["issuer_id"]
+    current_app.logger.info(
+        json.dumps(
+            {
+                "event": "mercado_pago_card_payment_request",
+                "environment": current_app.config.get("MERCADO_PAGO_ENVIRONMENT"),
+                "external_reference": payment.external_reference,
+                "amount": f"{get_expected_payment_amount(payment):.2f}",
+                "payment_method_id": validated["payment_method_id"],
+                "payment_type_id": validated["payment_type_id"],
+                "installments": validated["installments"],
+                "payer_email": mask_email(validated["payer"]["email"]),
+                "idempotency_key": mask_identifier(normalized_key),
+            },
+            ensure_ascii=False,
+        )
+    )
     data = mercado_pago_request(
         "POST",
         "/v1/payments",
@@ -127,8 +145,9 @@ def create_card_payment(
     payment = upsert_payment_from_provider_data(
         data,
         user=usuario,
-        requested_payment_method=validated["payment_method_id"],
-        activate_access=False,
+        requested_payment_method_id=validated["payment_method_id"],
+        requested_payment_type_id=validated["payment_type_id"],
+        activate_access=True,
         existing_payment=payment,
     )
 
@@ -151,6 +170,13 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     method_id = normalize_limited_string(
         card_data.get("payment_method_id"), "payment_method_id", 50
     ).lower()
+    payment_type_id = normalize_limited_string(
+        card_data.get("payment_type_id"), "payment_type_id", 50
+    ).lower()
+    if payment_type_id not in ALLOWED_CARD_PAYMENT_TYPES:
+        raise CardPaymentValidationError(
+            "O tipo do cartao deve ser credito ou debito conforme identificado pelo Mercado Pago."
+        )
 
     issuer_id = str(card_data.get("issuer_id") or "").strip()
     if len(issuer_id) > 50:
@@ -164,6 +190,8 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     max_installments = int(current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12))
     if installments < 1 or installments > max_installments:
         raise CardPaymentValidationError("Quantidade de parcelas invalida.")
+    if payment_type_id == "debit_card" and installments != 1:
+        raise CardPaymentValidationError("Cartao de debito deve ser pago em uma parcela.")
 
     payer_data = card_data.get("payer")
     if not isinstance(payer_data, dict) or set(payer_data) - CARD_PAYER_KEYS:
@@ -194,6 +222,7 @@ def validate_card_request(card_data: object, usuario: Usuario) -> dict[str, Any]
     return {
         "token": token,
         "payment_method_id": method_id,
+        "payment_type_id": payment_type_id,
         "issuer_id": issuer_id,
         "installments": installments,
         "payer": payer,
@@ -208,7 +237,22 @@ def normalize_limited_string(value: object, field: str, max_length: int) -> str:
     return normalized
 
 
-def get_card_payment_method(payment_method_id: str) -> dict[str, Any]:
+def mask_email(value: str) -> str:
+    local, separator, domain = value.partition("@")
+    if not separator:
+        return "[invalid-email]"
+    visible = local[:1]
+    return f"{visible}{'*' * max(2, len(local) - 1)}@{domain}"
+
+
+def mask_identifier(value: str) -> str:
+    return f"{value[:8]}...{value[-4:]}" if len(value) > 12 else "[masked]"
+
+
+def get_card_payment_method(
+    payment_method_id: str,
+    payment_type_id: str,
+) -> dict[str, Any]:
     methods = mercado_pago_request(
         "GET",
         "/v1/payment_methods",
@@ -221,40 +265,20 @@ def get_card_payment_method(payment_method_id: str) -> dict[str, Any]:
             for item in methods
             if isinstance(item, dict)
             and get_string(item, "id").lower() == payment_method_id.lower()
+            and get_string(item, "payment_type_id").lower() == payment_type_id.lower()
         ),
         None,
     )
 
     if method is None:
-        raise CardPaymentValidationError("Bandeira do cartao nao reconhecida.")
-
-
-    current_app.logger.warning(
-        "DEBUG MP METHOD ID RECEBIDO: %s",
-        payment_method_id
-    )
-
-    current_app.logger.warning(
-        "DEBUG MP METHOD COMPLETO: %s",
-        method
-    )
-
-    current_app.logger.warning(
-        "DEBUG PAYMENT TYPE: %s",
-        get_string(method, "payment_type_id")
-    )
-
-    current_app.logger.warning(
-        "DEBUG ALLOWED TYPES: %s",
-        ALLOWED_CARD_PAYMENT_TYPES
-    )
-
-
-    if get_string(method, "payment_type_id") not in ALLOWED_CARD_PAYMENT_TYPES:
         raise CardPaymentValidationError(
-            "Apenas cartao de credito ou debito sao aceitos nesta opcao."
+            "Bandeira e tipo do cartao nao correspondem a um meio de pagamento disponivel."
         )
-
+    if get_string(method, "status").lower() not in {"active", ""}:
+        raise CardPaymentValidationError(
+            "O meio de pagamento selecionado esta indisponivel."
+        )
+    return method
 
 def get_or_create_payment_attempt(
     usuario: Usuario,
@@ -276,7 +300,6 @@ def get_or_create_payment_attempt(
         external_reference=build_payment_external_reference(usuario.id, idempotency_key),
         plan=PRO_PLAN_CODE,
         idempotency_key=idempotency_key,
-        attempt_id=idempotency_key,
         payment_method="pending_card",
         status=CREATING_PAYMENT_STATUS,
         amount=get_plan_price(),
@@ -288,11 +311,8 @@ def get_or_create_payment_attempt(
     try:
         db.session.commit()
         return payment
-    except IntegrityError as exc:
-        current_app.logger.exception(
-            "ERRO INTEGRITY PAYMENT: %s",
-            exc
-        )
+    except IntegrityError:
+        current_app.logger.exception("mercado_pago_payment_attempt_integrity_conflict")
 
         db.session.rollback()
         payment = Payment.query.filter_by(
@@ -305,6 +325,35 @@ def get_or_create_payment_attempt(
         
         validate_attempt_owner(payment, usuario)
         return payment
+
+
+def bind_card_request_to_attempt(
+    payment: Payment,
+    validated: dict[str, Any],
+) -> None:
+    """Persist the non-sensitive card contract before contacting the provider."""
+    requested_type = validated["payment_type_id"]
+    requested_method = validated["payment_method_id"]
+    if payment.payment_type_id and payment.payment_type_id != requested_type:
+        raise CardPaymentValidationError(
+            "Esta tentativa ja foi iniciada com outro tipo de cartao."
+        )
+    if (
+        payment.provider_payment_method_id
+        and payment.provider_payment_method_id != requested_method
+    ):
+        raise CardPaymentValidationError(
+            "Esta tentativa ja foi iniciada com outro meio de pagamento."
+        )
+    if payment.installments and payment.installments != validated["installments"]:
+        raise CardPaymentValidationError(
+            "Esta tentativa ja foi iniciada com outra quantidade de parcelas."
+        )
+    payment.payment_method = requested_type
+    payment.payment_type_id = requested_type
+    payment.provider_payment_method_id = requested_method
+    payment.installments = validated["installments"]
+    db.session.commit()
 
 
 def validate_attempt_owner(
@@ -336,7 +385,8 @@ def recover_provider_payment_for_attempt(payment: Payment) -> Payment | None:
     recovered = upsert_payment_from_provider_data(
         data,
         user=payment.user,
-        requested_payment_method=payment.payment_method,
+        requested_payment_method_id=payment.provider_payment_method_id,
+        requested_payment_type_id=payment.payment_type_id,
         activate_access=False,
         existing_payment=payment,
     )
@@ -361,6 +411,8 @@ def search_payment_by_external_reference(
     )
 
     result = mercado_pago_request("GET", f"/v1/payments/search?{query}")
+    if not isinstance(result, dict):
+        raise MercadoPagoError("Busca de pagamento retornou dados invalidos.")
     entries = result.get("results")
 
     if not isinstance(entries, list):
@@ -433,7 +485,8 @@ def reconcile_payment(payment: Payment, *, force: bool = False) -> Payment:
     payment = upsert_payment_from_provider_data(
         data,
         user=payment.user,
-        requested_payment_method=payment.payment_method,
+        requested_payment_method_id=payment.provider_payment_method_id,
+        requested_payment_type_id=payment.payment_type_id,
         activate_access=True,
         existing_payment=payment,
     )
@@ -445,7 +498,8 @@ def reconcile_payment(payment: Payment, *, force: bool = False) -> Payment:
 def upsert_payment_from_provider_data(
     provider_data: dict[str, Any],
     user: Usuario | None = None,
-    requested_payment_method: str | None = None,
+    requested_payment_method_id: str | None = None,
+    requested_payment_type_id: str | None = None,
     activate_access: bool = False,
     existing_payment: Payment | None = None,
 
@@ -510,39 +564,36 @@ def upsert_payment_from_provider_data(
             user_id=user.id,
             provider=PROVIDER,
             provider_payment_id=provider_payment_id,
-            payment_method=requested_payment_method or detect_payment_method(provider_data),
+            payment_method=detect_payment_type(provider_data),
         )
         db.session.add(payment)
 
     elif payment.provider_payment_id and payment.provider_payment_id != provider_payment_id:
         raise MercadoPagoError("Tentativa ja vinculada a outro pagamento.")
 
-    previous_payment_method = payment.payment_method
-    detected_payment_method = detect_payment_method(provider_data)
+    previous_payment_type = payment.payment_type_id or payment.payment_method
+    detected_payment_type = detect_payment_type(provider_data)
+    detected_payment_method_id = get_string(provider_data, "payment_method_id").lower()
 
-    if requested_payment_method:
-        allowed_methods = {
-            "credit_card",
-            "debit_card",
-            "prepaid_card"
-        }
-
-        if detected_payment_method not in allowed_methods:
-            raise MercadoPagoError(
-                "Metodo retornado diverge do pagamento solicitado."
-            )
+    if requested_payment_type_id and detected_payment_type != requested_payment_type_id:
+        raise MercadoPagoError("Tipo retornado diverge do cartao solicitado.")
+    if (
+        requested_payment_method_id
+        and detected_payment_method_id != requested_payment_method_id
+    ):
+        raise MercadoPagoError("Bandeira retornada diverge do cartao solicitado.")
     
     if activate_access:
         validate_provider_environment(provider_data)
-        if detected_payment_method not in ALLOWED_CARD_PAYMENT_TYPES:
+        if detected_payment_type not in ALLOWED_CARD_PAYMENT_TYPES:
             raise MercadoPagoError("Apenas cartao de credito ou debito pode conceder acesso PRO.")
         
         if not get_string(provider_data, "preapproval_id"):
             validate_one_time_provider_contract(
                 payment,
                 provider_data,
-                detected_payment_method,
-                previous_payment_method,
+                detected_payment_type,
+                previous_payment_type,
             )
 
     payment.user_id = user.id
@@ -559,12 +610,17 @@ def upsert_payment_from_provider_data(
 
     payment.plan = payment.plan or get_provider_plan(provider_data) or PRO_PLAN_CODE
     payment.status = get_string(provider_data, "status") or "pending"
-
-    if requested_payment_method:
-        payment.payment_method = requested_payment_method
-
-    elif detected_payment_method != "unknown":
-        payment.payment_method = detected_payment_method
+    payment.status_detail = get_string(provider_data, "status_detail") or None
+    payment.provider_payment_method_id = detected_payment_method_id or payment.provider_payment_method_id
+    payment.payment_type_id = detected_payment_type or payment.payment_type_id
+    if detected_payment_type:
+        payment.payment_method = detected_payment_type
+    provider_installments = provider_data.get("installments")
+    if provider_installments is not None:
+        try:
+            payment.installments = int(provider_installments)
+        except (TypeError, ValueError):
+            raise MercadoPagoError("Parcelas retornadas pelo Mercado Pago sao invalidas.")
 
     if payment.amount is None:
         payment.amount = parse_decimal(provider_data.get("transaction_amount"))
@@ -576,12 +632,13 @@ def upsert_payment_from_provider_data(
     )
 
     payment.updated_at = utc_now()
+    payment.last_provider_sync_at = utc_now()
 
     if activate_access:
         apply_confirmed_payment_status(
             payment,
             provider_data,
-            previous_payment_method=previous_payment_method,
+            previous_payment_method=previous_payment_type,
         )
 
     return payment
@@ -734,7 +791,7 @@ def apply_confirmed_payment_status(
     previous_payment_method: str,
 ) -> None:
     status = payment.status.lower()
-    detected_method = detect_payment_method(provider_data)
+    detected_method = detect_payment_type(provider_data)
     subscription = get_payment_subscription(payment)
 
     if subscription is not None:
@@ -773,63 +830,33 @@ def validate_one_time_provider_contract(
     previous_payment_method: str,
 ) -> None:
 
-    def normalize_payment_method(method: str | None) -> str:
-        if not method:
-            return ""
-
-        method = method.lower().strip()
-
-        # Bandeiras de cartão não são métodos diferentes
-        if method in {
-            "elo",
-            "master",
-            "mastercard",
-            "visa",
-            "amex",
-            "hipercard",
-        }:
-            return "credit_card"
-
-        return method
-
-
-    normalized_detected_method = normalize_payment_method(
-        detected_method
-    )
-
-    normalized_previous_method = normalize_payment_method(
-        previous_payment_method
-    )
-
-
-    current_app.logger.warning(
-        "DEBUG METODO PAGAMENTO previous=%s detected=%s normalized_previous=%s normalized_detected=%s",
-        previous_payment_method,
-        detected_method,
-        normalized_previous_method,
-        normalized_detected_method,
-    )
-
-
-    allowed_payment_types = {
-        "credit_card",
-        "debit_card",
-        "prepaid_card",
-    }
-
-
-    # Aceita somente cartões
-    if normalized_detected_method not in allowed_payment_types:
+    if detected_method not in ALLOWED_CARD_PAYMENT_TYPES:
         raise MercadoPagoError(
             "Metodo de pagamento invalido para o plano PRO."
         )
-
-
-    # Temporariamente ignorando divergência de método/bandeira do Mercado Pago.
-    # O MP pode retornar elo/master/visa/prepaid_card/credit_card
-    # dependendo do emissor do cartão.
-
-    pass
+    if previous_payment_method not in {"", "pending_card", detected_method}:
+        raise MercadoPagoError(
+            "Tipo do pagamento confirmado diverge da tentativa salva."
+        )
+    provider_method_id = get_string(provider_data, "payment_method_id").lower()
+    if not provider_method_id or (
+        payment.provider_payment_method_id
+        and provider_method_id != payment.provider_payment_method_id
+    ):
+        raise MercadoPagoError(
+            "Bandeira do pagamento confirmado diverge da tentativa salva."
+        )
+    if detected_method == "debit_card":
+        try:
+            provider_installments = int(
+                provider_data.get("installments", payment.installments)
+            )
+        except (TypeError, ValueError) as exc:
+            raise MercadoPagoError(
+                "Parcelas do pagamento de debito sao invalidas."
+            ) from exc
+        if provider_installments != 1:
+            raise MercadoPagoError("Pagamento de debito nao pode ser parcelado.")
 
 
     provider_reference = get_string(
@@ -940,15 +967,9 @@ def find_user_for_payment(
     return None
 
 
-def detect_payment_method(provider_data: dict[str, Any]) -> str:
+def detect_payment_type(provider_data: dict[str, Any]) -> str:
     payment_type_id = get_string(provider_data, "payment_type_id")
-
-    if payment_type_id in ALLOWED_CARD_PAYMENT_TYPES:
-        return payment_type_id
-
-    payment_method_id = get_string(provider_data, "payment_method_id")
-
-    return payment_method_id or "unknown"
+    return payment_type_id.lower()
 
 def get_provider_plan(provider_data: dict[str, Any]) -> str:
     metadata = provider_data.get("metadata")
@@ -1013,6 +1034,10 @@ def build_card_payment_response(payment: Payment) -> dict[str, Any]:
         "attempt_id": get_payment_attempt_id(payment),
         "payment_id": payment.provider_payment_id,
         "status": payment.status,
+        "status_detail": payment.status_detail,
+        "payment_method_id": payment.provider_payment_method_id,
+        "payment_type_id": payment.payment_type_id,
+        "installments": payment.installments,
         "approved": (
             payment.status.lower() in APPROVED_PAYMENT_STATUSES
             and payment.premium_expires_at is not None
@@ -1029,8 +1054,11 @@ def log_payment_event(event: str, payment: Payment) -> None:
                 "user_id": payment.user_id,
                 "attempt_id": get_payment_attempt_id(payment),
                 "provider_payment_id": payment.provider_payment_id,
-                "payment_method": payment.payment_method,
+                "payment_method_id": payment.provider_payment_method_id,
+                "payment_type_id": payment.payment_type_id,
+                "installments": payment.installments,
                 "status": payment.status,
+                "status_detail": payment.status_detail,
             },
             ensure_ascii=False,
         )

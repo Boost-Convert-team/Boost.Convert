@@ -9,13 +9,12 @@ from flask import Flask
 from flask_migrate import Migrate, downgrade, upgrade
 from sqlalchemy import inspect
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
+import models  # noqa: F401 - registers the complete migration metadata
 from config import validate_mercado_pago_config
 from extensions import db
-import models  # noqa: F401 - registers the complete migration metadata
 
 
 class PaymentConfigAndMigrationTests(unittest.TestCase):
@@ -23,7 +22,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
         config = AlembicConfig(str(BACKEND_ROOT / "migrations" / "alembic.ini"))
         config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
         script = ScriptDirectory.from_config(config)
-        self.assertEqual(script.get_heads(), ["a8d4e6f2c1b9"])
+        self.assertEqual(script.get_heads(), ["d4e8f2a7c1b9"])
 
     def test_payment_migration_upgrades_and_downgrades_isolated_database(self) -> None:
         migrations_path = BACKEND_ROOT / "migrations"
@@ -40,7 +39,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                 upgrade(directory=str(migrations_path))
                 inspector = inspect(db.engine)
                 columns = {column["name"] for column in inspector.get_columns("payments")}
-                removed_method = "".join(("p", "i", "x"))
+                removed_method = "pix"
                 code_suffix = "_q" + "r_code"
                 encoded_code_suffix = code_suffix + "_base64"
                 link_suffix = "_ticket" + "_url"
@@ -53,6 +52,11 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                     {
                         "idempotency_key",
                         "external_reference",
+                        "provider_payment_method_id",
+                        "payment_type_id",
+                        "installments",
+                        "status_detail",
+                        "last_provider_sync_at",
                     }
                     <= columns
                 )

@@ -11,7 +11,6 @@ from unittest.mock import patch
 from flask import Flask
 from sqlalchemy.exc import IntegrityError
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -24,7 +23,6 @@ from Blueprints.services.subscription.mercado_pago_service import (
 )
 from extensions import db
 from models import Payment, PaymentWebhookEvent, Usuario
-
 
 WEBHOOK_SECRET = "test-mercado-pago-webhook-secret"
 
@@ -303,12 +301,14 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             db.session.add(
                 Payment(
                     user_id=user.id,
-                    attempt_id=attempt_id,
                     provider_payment_id=payment_id,
                     external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
                     plan="BOOSTCONVERT_PRO",
                     idempotency_key=attempt_id,
                     payment_method="credit_card",
+                    payment_type_id="credit_card",
+                    provider_payment_method_id="visa",
+                    installments=1,
                     status="pending",
                     amount="19.90",
                     currency="BRL",
@@ -332,6 +332,8 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             "status": status,
             "payment_method_id": payment_method_id,
             "payment_type_id": payment_type_id,
+            "installments": 1,
+            "status_detail": "accredited" if status == "approved" else status,
             "transaction_amount": "19.90",
             "currency_id": "BRL",
             "collector_id": 123456,

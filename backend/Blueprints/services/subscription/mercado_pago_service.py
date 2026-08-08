@@ -13,18 +13,16 @@ from urllib.parse import urljoin
 from uuid import UUID, uuid4
 
 import requests
-from flask import current_app, request
-from sqlalchemy.exc import IntegrityError
-
-from extensions import db
-from models import PaymentWebhookEvent, Subscription, Usuario
 from Blueprints.services.subscription.subscription_service import (
     ACTIVE_SUBSCRIPTION_STATUSES,
     APPROVED_PAYMENT_STATUSES,
     as_utc,
     synchronize_user_pro_status,
 )
-
+from extensions import db
+from flask import current_app, request
+from models import PaymentWebhookEvent, Subscription, Usuario
+from sqlalchemy.exc import IntegrityError
 
 MERCADO_PAGO_API_BASE_URL = "https://api.mercadopago.com"
 PROVIDER = "mercado_pago"
@@ -267,14 +265,6 @@ def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
     if payload_resource_id and payload_resource_id != data_id:
         return False
 
-    current_app.logger.warning(
-        "DEBUG MP SIGNATURE => x_signature=%s | x_request_id=%s | data_id=%s | secret=%s",
-        x_signature,
-        x_request_id,
-        data_id,
-        secret[:10],
-    )
-    
     return validate_signature_parts(
         x_signature,
         x_request_id,

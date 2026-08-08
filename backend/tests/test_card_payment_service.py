@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from flask import Flask
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -70,11 +69,12 @@ class CardPaymentServiceTests(unittest.TestCase):
                 )
 
             payment = Payment.query.one()
-            self.assertFalse(result["approved"])
-            self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
-            self.assertIsNone(payment.premium_expires_at)
+            self.assertTrue(result["approved"])
+            self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
+            self.assertIsNotNone(payment.premium_expires_at)
             self.assertEqual(payment.payment_method, "credit_card")
-            self.assertEqual(payment.payment_method, "credit_card")
+            self.assertEqual(payment.payment_type_id, "credit_card")
+            self.assertEqual(payment.provider_payment_method_id, "visa")
             self.assertEqual(posted_payload["transaction_amount"], 19.90)
             self.assertNotIn("token", Payment.__table__.columns.keys())
             self.assertNotIn("tok_test_123", repr(payment.__dict__))
@@ -99,23 +99,103 @@ class CardPaymentServiceTests(unittest.TestCase):
                 timedelta(days=30),
             )
 
-    def test_non_credit_methods_are_rejected_server_side(self) -> None:
+    def test_non_card_methods_are_rejected_server_side(self) -> None:
         with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
             user = self.create_user("card@example.com")
-            for payment_type in ("debit_card", "prepaid_card", "account_money"):
+            for payment_type in ("prepaid_card", "account_money"):
                 with self.subTest(payment_type=payment_type), patch(
                     "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
                     return_value=[
                         {"id": "visa", "payment_type_id": payment_type, "status": "active"}
                     ],
-                ):
-                    with self.assertRaises(CardPaymentValidationError):
-                        create_card_payment(
-                            user,
-                            self.card_request(),
-                            "11111111-2222-4333-8444-555555555555",
-                        )
+                ), self.assertRaises(CardPaymentValidationError):
+                    create_card_payment(
+                        user,
+                        self.card_request(payment_type_id=payment_type),
+                        "11111111-2222-4333-8444-555555555555",
+                    )
             self.assertEqual(Payment.query.count(), 0)
+
+    def test_approved_debit_card_keeps_provider_type_and_grants_access(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
+            user = self.create_user("card@example.com")
+            posted_payload = {}
+
+            def provider_request(method, path, **kwargs):
+                if path == "/v1/payment_methods":
+                    return [
+                        {"id": "master", "payment_type_id": "debit_card", "status": "active"}
+                    ]
+                if path.startswith("/v1/payments/search?"):
+                    return {"results": []}
+                posted_payload.update(kwargs["json_payload"])
+                data = self.provider_card_data("pay_debit", posted_payload, "approved")
+                data.update(payment_method_id="master", payment_type_id="debit_card")
+                return data
+
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
+                side_effect=provider_request,
+            ):
+                result = create_card_payment(
+                    user,
+                    self.card_request(
+                        payment_method_id="master",
+                        payment_type_id="debit_card",
+                        installments=1,
+                    ),
+                    "11111111-2222-4333-8444-555555555555",
+                )
+
+            payment = Payment.query.one()
+            self.assertTrue(result["approved"])
+            self.assertEqual(payment.payment_type_id, "debit_card")
+            self.assertEqual(payment.payment_method, "debit_card")
+            self.assertEqual(payment.provider_payment_method_id, "master")
+            self.assertEqual(payment.installments, 1)
+            self.assertNotIn("payment_type_id", posted_payload)
+            self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
+
+    def test_rejected_debit_card_never_grants_access(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
+            user = self.create_user("card@example.com")
+
+            def provider_request(method, path, **kwargs):
+                if path == "/v1/payment_methods":
+                    return [
+                        {"id": "master", "payment_type_id": "debit_card", "status": "active"}
+                    ]
+                if path.startswith("/v1/payments/search?"):
+                    return {"results": []}
+                data = self.provider_card_data(
+                    "pay_debit_rejected", kwargs["json_payload"], "rejected"
+                )
+                data.update(payment_method_id="master", payment_type_id="debit_card")
+                return data
+
+            with patch(
+                "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
+                side_effect=provider_request,
+            ):
+                result = create_card_payment(
+                    user,
+                    self.card_request(
+                        payment_method_id="master", payment_type_id="debit_card"
+                    ),
+                    "11111111-2222-4333-8444-555555555555",
+                )
+            self.assertEqual(result["status"], "rejected")
+            self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
+
+    def test_debit_card_cannot_be_parcelled(self) -> None:
+        with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
+            user = self.create_user("card@example.com")
+            with self.assertRaises(CardPaymentValidationError):
+                create_card_payment(
+                    user,
+                    self.card_request(payment_type_id="debit_card", installments=2),
+                    "11111111-2222-4333-8444-555555555555",
+                )
 
     def test_invalid_installments_are_rejected(self) -> None:
         with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
@@ -137,22 +217,22 @@ class CardPaymentServiceTests(unittest.TestCase):
             payload["card_number"] = "4111111111111111"
             with patch(
                 "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request"
-            ) as provider_request:
-                with self.assertRaises(CardPaymentValidationError):
-                    create_card_payment(
-                        user,
-                        payload,
-                        "11111111-2222-4333-8444-555555555555",
-                    )
+            ) as provider_request, self.assertRaises(CardPaymentValidationError):
+                create_card_payment(
+                    user,
+                    payload,
+                    "11111111-2222-4333-8444-555555555555",
+                )
             provider_request.assert_not_called()
 
     def test_card_requires_uuid_idempotency_key(self) -> None:
         with self.app.app_context(), self.app.test_request_context("/api/payment/card", method="POST"):
             user = self.create_user("card@example.com")
             for invalid_key in (None, "", "not-a-uuid"):
-                with self.subTest(invalid_key=invalid_key):
-                    with self.assertRaises(CardPaymentValidationError):
-                        create_card_payment(user, self.card_request(), invalid_key)
+                with self.subTest(invalid_key=invalid_key), self.assertRaises(
+                    CardPaymentValidationError
+                ):
+                    create_card_payment(user, self.card_request(), invalid_key)
             self.assertEqual(Payment.query.count(), 0)
 
     def test_same_idempotency_key_returns_same_attempt_without_second_charge(self) -> None:
@@ -200,7 +280,6 @@ class CardPaymentServiceTests(unittest.TestCase):
                 db.session.add(
                     Payment(
                         user_id=user.id,
-                        attempt_id=winner_attempt_id,
                         provider="mercado_pago",
                         external_reference=(
                             f"boost:payment:{winner_attempt_id}:user:{user.id}"
@@ -222,7 +301,7 @@ class CardPaymentServiceTests(unittest.TestCase):
                     user,
                     key,
                 )
-            self.assertEqual(payment.attempt_id, winner_attempt_id)
+            self.assertEqual(payment.idempotency_key, winner_attempt_id)
             self.assertEqual(Payment.query.count(), 1)
 
     def test_verified_amount_mismatch_never_activates_access(self) -> None:
@@ -237,7 +316,9 @@ class CardPaymentServiceTests(unittest.TestCase):
                     return {"results": []}
                 if method == "POST":
                     post_payload.update(kwargs["json_payload"])
-                    return self.provider_card_data("pay_wrong_amount", post_payload, "approved")
+                    data = self.provider_card_data("pay_wrong_amount", post_payload, "approved")
+                    data["transaction_amount"] = "1.00"
+                    return data
                 data = self.provider_card_data("pay_wrong_amount", post_payload, "approved")
                 data["transaction_amount"] = "1.00"
                 return data
@@ -245,24 +326,12 @@ class CardPaymentServiceTests(unittest.TestCase):
             with patch(
                 "Blueprints.services.subscription.mercado_pago_payments_service.mercado_pago_request",
                 side_effect=provider_request,
-            ):
+            ), self.assertRaises(MercadoPagoError):
                 create_card_payment(
                     user,
                     self.card_request(),
                     "11111111-2222-4333-8444-555555555555",
                 )
-            payment = Payment.query.one()
-            with patch(
-                "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
-                side_effect=lambda _payment_id: {
-                    **self.provider_card_data(
-                        "pay_wrong_amount", post_payload, "approved"
-                    ),
-                    "transaction_amount": "1.00",
-                },
-            ):
-                with self.assertRaises(MercadoPagoError):
-                    reconcile_payment(payment)
             db.session.rollback()
             db.session.refresh(user)
             self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))
@@ -279,7 +348,7 @@ class CardPaymentServiceTests(unittest.TestCase):
                     "metadata": {
                         "user_id": user.id,
                         "plan": "BOOSTCONVERT_PRO",
-                        "attempt_id": payment.attempt_id,
+                        "attempt_id": payment.idempotency_key,
                     },
                 },
                 "pending",
@@ -305,7 +374,7 @@ class CardPaymentServiceTests(unittest.TestCase):
                     "metadata": {
                         "user_id": user.id,
                         "plan": "BOOSTCONVERT_PRO",
-                        "attempt_id": payment.attempt_id,
+                        "attempt_id": payment.idempotency_key,
                     },
                 },
                 "approved",
@@ -333,7 +402,6 @@ class CardPaymentServiceTests(unittest.TestCase):
         attempt_id = "11111111-2222-4333-8444-555555555555"
         payment = Payment(
             user_id=user.id,
-            attempt_id=attempt_id,
             provider_payment_id=provider_payment_id,
             external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
             plan="BOOSTCONVERT_PRO",
@@ -356,6 +424,7 @@ class CardPaymentServiceTests(unittest.TestCase):
         payload = {
             "token": "tok_test_123",
             "payment_method_id": "visa",
+            "payment_type_id": "credit_card",
             "issuer_id": "123",
             "installments": 1,
             "payer": {
@@ -378,6 +447,8 @@ class CardPaymentServiceTests(unittest.TestCase):
             "status": status,
             "payment_method_id": "visa",
             "payment_type_id": "credit_card",
+            "installments": request_payload.get("installments", 1),
+            "status_detail": "accredited" if status == "approved" else status,
             "transaction_amount": request_payload["transaction_amount"],
             "currency_id": "BRL",
             "collector_id": 123456,

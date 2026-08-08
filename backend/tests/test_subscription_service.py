@@ -5,7 +5,6 @@ from pathlib import Path
 
 from flask import Flask
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -111,7 +110,7 @@ class SubscriptionServiceTests(unittest.TestCase):
             self.assertTrue(has_active_pro_subscription(user))
             self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
 
-    def test_non_credit_payment_record_never_grants_access(self) -> None:
+    def test_non_card_payment_record_never_grants_access(self) -> None:
         with self.app.app_context():
             db.create_all()
             user = self.create_user("non-credit@example.com", "free", "inactive")
@@ -119,7 +118,7 @@ class SubscriptionServiceTests(unittest.TestCase):
                 Payment(
                     user_id=user.id,
                     provider_payment_id="pay_non_credit",
-                    payment_method="debit_card",
+                    payment_method="account_money",
                     status="approved",
                     approved_at=datetime.now(timezone.utc),
                     premium_expires_at=datetime.now(timezone.utc) + timedelta(days=30),

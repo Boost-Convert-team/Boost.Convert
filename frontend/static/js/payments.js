@@ -45,7 +45,7 @@
                 customization: {
                     visual: { style: { theme: "default" } },
                     paymentMethods: {
-                        types: { excluded: ["debit_card", "prepaid_card"] },
+                        types: { included: ["credit_card", "debit_card"] },
                         maxInstallments: Number(config.dataset.maxInstallments || 12)
                     }
                 },
@@ -55,13 +55,13 @@
                         container.dataset.brickReady = "true";
                         setMessage(message, "");
                     },
-                    onSubmit: async (formData) => {
+                    onSubmit: async (formData, additionalData) => {
                         if (cardSubmissionInFlight) return;
                         cardSubmissionInFlight = true;
                         let redirecting = false;
                         setMessage(message, "Processando pagamento com segurança...");
                         try {
-                            const payload = buildCardPayload(formData);
+                            const payload = buildCardPayload(formData, additionalData);
                             const response = await fetch(config.dataset.endpoint, {
                                 method: "POST",
                                 headers: {
@@ -113,11 +113,12 @@
         }
     }
 
-    function buildCardPayload(formData) {
+    function buildCardPayload(formData, additionalData) {
         const payer = formData && typeof formData.payer === "object" ? formData.payer : {};
         const payload = {
             token: String(formData?.token || ""),
             payment_method_id: String(formData?.payment_method_id || ""),
+            payment_type_id: String(additionalData?.paymentTypeId || ""),
             issuer_id: String(formData?.issuer_id || ""),
             installments: Number(formData?.installments || 0),
             payer: { email: String(payer.email || "") }

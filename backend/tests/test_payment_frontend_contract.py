@@ -1,7 +1,6 @@
 import unittest
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -14,6 +13,9 @@ class PaymentFrontendContractTests(unittest.TestCase):
         cls.javascript = (PROJECT_ROOT / "frontend/static/js/payments.js").read_text(
             encoding="utf-8"
         )
+        cls.status_template = (
+            PROJECT_ROOT / "frontend/templates/checkout_card_status.html"
+        ).read_text(encoding="utf-8")
         cls.styles = (PROJECT_ROOT / "frontend/static/css/checkout.css").read_text(
             encoding="utf-8"
         )
@@ -21,10 +23,10 @@ class PaymentFrontendContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_checkout_has_one_centered_credit_card_panel(self) -> None:
-        self.assertIn("<h1>Cartão de crédito</h1>", self.template)
+    def test_checkout_has_one_centered_card_panel(self) -> None:
+        self.assertIn("<h1>Cartão de crédito ou débito</h1>", self.template)
         self.assertIn(
-            "Pagamento seguro com cartão de crédito pelo Mercado Pago.",
+            "Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.",
             self.template,
         )
         self.assertEqual(self.template.count('class="card-checkout-panel reveal"'), 1)
@@ -32,15 +34,16 @@ class PaymentFrontendContractTests(unittest.TestCase):
         self.assertNotIn("payment-choice-grid", self.template)
 
     def test_removed_payment_method_has_no_frontend_artifacts(self) -> None:
-        removed_method = "".join(("p", "i", "x"))
+        removed_method = "pix"
         combined = f"{self.template}\n{self.javascript}\n{self.styles}".lower()
         self.assertNotIn(removed_method, combined)
         self.assertNotIn("qr" + "_code", combined)
         self.assertNotIn("copia e " + "cola", combined)
 
-    def test_card_brick_is_created_once_with_credit_only_customization(self) -> None:
+    def test_card_brick_is_created_once_with_credit_and_debit(self) -> None:
         self.assertEqual(self.javascript.count('bricksBuilder.create("cardPayment"'), 1)
-        self.assertIn('types: { excluded: ["debit_card", "prepaid_card"] }', self.javascript)
+        self.assertIn('types: { included: ["credit_card", "debit_card"] }', self.javascript)
+        self.assertIn("additionalData?.paymentTypeId", self.javascript)
         self.assertIn("cardBrickInitializing", self.javascript)
         self.assertIn("cardBrickController.unmount()", self.javascript)
 
@@ -87,10 +90,15 @@ class PaymentFrontendContractTests(unittest.TestCase):
     def test_card_payload_is_an_explicit_tokenized_whitelist(self) -> None:
         self.assertIn("token:", self.javascript)
         self.assertIn("payment_method_id:", self.javascript)
+        self.assertIn("payment_type_id:", self.javascript)
         self.assertIn("issuer_id:", self.javascript)
         self.assertIn("installments:", self.javascript)
         for raw_field in ("card_number", "security_code", "expiration_date"):
             self.assertNotIn(raw_field, self.javascript)
+
+    def test_status_page_uses_persisted_idempotency_key(self) -> None:
+        self.assertIn("payment.idempotency_key", self.status_template)
+        self.assertNotIn("payment.attempt_id", self.status_template)
 
     def test_checkout_is_responsive_without_horizontal_overflow(self) -> None:
         self.assertIn("width: min(720px, 100%);", self.styles)

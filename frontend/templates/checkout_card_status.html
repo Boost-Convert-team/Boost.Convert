@@ -7,7 +7,7 @@
 <main class="checkout-page checkout-card-status-page"
       data-card-status-page
       data-payment-confirmed="{{ 'true' if is_confirmed else 'false' }}"
-      data-status-url="{{ url_for('checkout.card_payment_status', attempt_id=payment.attempt_id) }}">
+      data-status-url="{{ url_for('checkout.card_payment_status', attempt_id=payment.idempotency_key) }}">
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="credit-card" aria-hidden="true"></i> Pagamento por cartão</span>
         <h1>{{ plan_name }}</h1>

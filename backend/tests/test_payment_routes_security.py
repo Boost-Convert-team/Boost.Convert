@@ -7,7 +7,6 @@ from flask import Flask
 from flask_login import LoginManager
 from sqlalchemy.exc import OperationalError
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -22,7 +21,12 @@ from Blueprints.services.subscription.mercado_pago_service import (
 )
 from extensions import db
 from models import Payment, Usuario
-from security import CSRF_HEADER_NAME, CSRF_SESSION_KEY, clear_rate_limit_state, init_security
+from security import (
+    CSRF_HEADER_NAME,
+    CSRF_SESSION_KEY,
+    clear_rate_limit_state,
+    init_security,
+)
 
 
 class PaymentRouteSecurityTests(unittest.TestCase):
@@ -252,7 +256,6 @@ class PaymentRouteSecurityTests(unittest.TestCase):
             db.session.add(
                 Payment(
                     user_id=other.id,
-                    attempt_id=attempt_id,
                     provider_payment_id="pay_other_user",
                     external_reference=f"boost:payment:{attempt_id}:user:{other.id}",
                     payment_method="credit_card",
@@ -449,6 +452,7 @@ class PaymentRouteSecurityTests(unittest.TestCase):
         return {
             "token": "tok_test_route",
             "payment_method_id": "visa",
+            "payment_type_id": "credit_card",
             "issuer_id": "123",
             "installments": 1,
             "payer": {"email": "route-card@example.com"},
