@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from flask import Flask
+from sqlalchemy.exc import IntegrityError
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -53,6 +54,7 @@ class CardPaymentServiceTests(unittest.TestCase):
         ):
             user = self.create_user("card@example.com")
             posted_payload = {}
+            local_attempt_seen_before_post = []
 
             def provider_request(method, path, **kwargs):
                 if path == "/v1/payment_methods":
@@ -60,6 +62,14 @@ class CardPaymentServiceTests(unittest.TestCase):
                 if path.startswith("/v1/payments/search?"):
                     return {"results": []}
                 if method == "POST":
+                    persisted_attempt = Payment.query.one()
+                    local_attempt_seen_before_post.append(persisted_attempt.id)
+                    self.assertIsNotNone(persisted_attempt.attempt_id)
+                    self.assertEqual(
+                        persisted_attempt.attempt_id,
+                        persisted_attempt.idempotency_key,
+                    )
+                    self.assertNotIn(persisted_attempt, db.session.new)
                     posted_payload.update(kwargs["json_payload"])
                     return self.provider_card_data(
                         "pay_card_1", kwargs["json_payload"], "approved"
@@ -78,6 +88,9 @@ class CardPaymentServiceTests(unittest.TestCase):
 
             payment = Payment.query.one()
             self.assertTrue(result["approved"])
+            self.assertEqual(local_attempt_seen_before_post, [payment.id])
+            self.assertIsNotNone(payment.attempt_id)
+            self.assertEqual(payment.attempt_id, payment.idempotency_key)
             self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
             self.assertIsNotNone(payment.premium_expires_at)
             self.assertEqual(payment.payment_method, "credit_card")
@@ -142,6 +155,7 @@ class CardPaymentServiceTests(unittest.TestCase):
         ):
             user = self.create_user("card@example.com")
             posted_payload = {}
+            local_attempt_seen_before_post = []
 
             def provider_request(method, path, **kwargs):
                 if path == "/v1/payment_methods":
@@ -154,6 +168,12 @@ class CardPaymentServiceTests(unittest.TestCase):
                     ]
                 if path.startswith("/v1/payments/search?"):
                     return {"results": []}
+                persisted_attempt = Payment.query.one()
+                local_attempt_seen_before_post.append(persisted_attempt.id)
+                self.assertEqual(
+                    persisted_attempt.attempt_id,
+                    persisted_attempt.idempotency_key,
+                )
                 posted_payload.update(kwargs["json_payload"])
                 data = self.provider_card_data("pay_debit", posted_payload, "approved")
                 data.update(payment_method_id="master", payment_type_id="debit_card")
@@ -175,6 +195,9 @@ class CardPaymentServiceTests(unittest.TestCase):
 
             payment = Payment.query.one()
             self.assertTrue(result["approved"])
+            self.assertEqual(local_attempt_seen_before_post, [payment.id])
+            self.assertIsNotNone(payment.attempt_id)
+            self.assertEqual(payment.attempt_id, payment.idempotency_key)
             self.assertEqual(payment.payment_type_id, "debit_card")
             self.assertEqual(payment.payment_method, "debit_card")
             self.assertEqual(payment.provider_payment_method_id, "master")
@@ -434,6 +457,29 @@ class CardPaymentServiceTests(unittest.TestCase):
                 )
             self.assertEqual(payment.idempotency_key, winner_attempt_id)
             self.assertEqual(Payment.query.count(), 1)
+
+    def test_integrity_error_without_winner_remains_a_database_error(self) -> None:
+        with (
+            self.app.app_context(),
+            self.app.test_request_context("/api/payment/card", method="POST"),
+        ):
+            user = self.create_user("card@example.com")
+            database_error = IntegrityError(
+                "INSERT INTO payments",
+                {},
+                Exception("attempt_id_not_null"),
+            )
+            with (
+                patch.object(db.session, "commit", side_effect=database_error),
+                self.assertLogs(self.app.logger, level="ERROR") as logs,
+                self.assertRaises(IntegrityError),
+            ):
+                get_or_create_payment_attempt(
+                    user,
+                    "11111111-2222-4333-8444-555555555555",
+                )
+            self.assertIn("DATABASE_ERROR", " ".join(logs.output))
+            self.assertIn("IntegrityError", " ".join(logs.output))
 
     def test_verified_amount_mismatch_never_activates_access(self) -> None:
         with (

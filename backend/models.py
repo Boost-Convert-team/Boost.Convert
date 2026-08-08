@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 from extensions import db
 from flask_login import UserMixin
@@ -6,6 +7,14 @@ from flask_login import UserMixin
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+
+def default_payment_attempt_id(context):
+    idempotency_key = context.get_current_parameters().get("idempotency_key")
+    try:
+        return str(UUID(str(idempotency_key or "").strip()))
+    except (ValueError, AttributeError):
+        return str(uuid4())
 
 
 class Usuario(UserMixin, db.Model):
@@ -71,6 +80,11 @@ class Payment(db.Model):
             "idempotency_key",
             name="uq_payments_provider_idempotency_key",
         ),
+        db.UniqueConstraint(
+            "provider",
+            "attempt_id",
+            name="uq_payments_provider_attempt_id",
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -84,6 +98,9 @@ class Payment(db.Model):
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
     external_reference = db.Column(db.String(255), nullable=True, index=True)
     plan = db.Column(db.String(50), nullable=True, index=True)
+    attempt_id = db.Column(
+        db.String(36), nullable=False, index=True, default=default_payment_attempt_id
+    )
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     payment_method = db.Column(db.String(50), nullable=False, index=True)
     provider_payment_method_id = db.Column(db.String(50), nullable=True, index=True)

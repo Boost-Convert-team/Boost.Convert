@@ -334,6 +334,7 @@ def get_or_create_payment_attempt(
 
     if payment is not None:
         validate_attempt_owner(payment, usuario)
+        validate_attempt_correlation(payment, idempotency_key)
         return payment
 
     payment = Payment(
@@ -343,6 +344,7 @@ def get_or_create_payment_attempt(
             usuario.id, idempotency_key
         ),
         plan=PRO_PLAN_CODE,
+        attempt_id=idempotency_key,
         idempotency_key=idempotency_key,
         payment_method=payment_method,
         provider_payment_method_id=None,
@@ -357,7 +359,10 @@ def get_or_create_payment_attempt(
         db.session.commit()
         return payment
     except IntegrityError:
-        current_app.logger.exception("mercado_pago_payment_attempt_integrity_conflict")
+        current_app.logger.exception(
+            "DATABASE_ERROR component=payment operation=create_attempt "
+            "error_type=IntegrityError"
+        )
 
         db.session.rollback()
         payment = Payment.query.filter_by(
@@ -366,9 +371,10 @@ def get_or_create_payment_attempt(
         ).first()
 
         if payment is None:
-            raise MercadoPagoError("Nao foi possivel iniciar o pagamento.")
+            raise
 
         validate_attempt_owner(payment, usuario)
+        validate_attempt_correlation(payment, idempotency_key)
         return payment
 
 
@@ -407,6 +413,11 @@ def validate_attempt_owner(
 ) -> None:
     if payment.user_id != usuario.id:
         raise MercadoPagoError("Chave de idempotencia pertence a outro pagamento.")
+
+
+def validate_attempt_correlation(payment: Payment, idempotency_key: str) -> None:
+    if get_payment_attempt_id(payment) != idempotency_key:
+        raise MercadoPagoError("Correlacao da tentativa de pagamento invalida.")
 
 
 def normalize_idempotency_key(value: str | None) -> str:
@@ -1067,7 +1078,9 @@ def build_payment_metadata(payment: Payment) -> dict[str, Any]:
 
 def get_payment_attempt_id(payment: Payment) -> str:
     try:
-        return str(UUID(str(payment.idempotency_key or "").strip()))
+        attempt_id = str(UUID(str(payment.attempt_id or "").strip()))
+        idempotency_key = str(UUID(str(payment.idempotency_key or "").strip()))
+        return attempt_id if attempt_id == idempotency_key else ""
     except (ValueError, AttributeError):
         return ""
 

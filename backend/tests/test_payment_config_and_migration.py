@@ -22,7 +22,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
         config = AlembicConfig(str(BACKEND_ROOT / "migrations" / "alembic.ini"))
         config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
         script = ScriptDirectory.from_config(config)
-        self.assertEqual(script.get_heads(), ["d4e8f2a7c1b9"])
+        self.assertEqual(script.get_heads(), ["481645ca061a"])
 
     def test_payment_migration_upgrades_and_downgrades_isolated_database(self) -> None:
         migrations_path = BACKEND_ROOT / "migrations"
@@ -53,6 +53,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                 self.assertTrue(
                     {
                         "idempotency_key",
+                        "attempt_id",
                         "external_reference",
                         "provider_payment_method_id",
                         "payment_type_id",
@@ -68,7 +69,12 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                     for constraint in inspector.get_unique_constraints("payments")
                 }
                 self.assertIn("uq_payments_provider_idempotency_key", constraint_names)
-                self.assertNotIn("attempt_id", columns)
+                attempt_column = next(
+                    column
+                    for column in inspector.get_columns("payments")
+                    if column["name"] == "attempt_id"
+                )
+                self.assertFalse(attempt_column["nullable"])
                 downgrade(revision="c4a8e2f1b7d9", directory=str(migrations_path))
                 downgraded_columns = {
                     column["name"]
@@ -144,13 +150,15 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                 )
                 preserved_contract = db.session.execute(
                     text(
-                        "SELECT provider_payment_method_id, payment_type_id, "
+                        "SELECT attempt_id, idempotency_key, "
+                        "provider_payment_method_id, payment_type_id, "
                         "last_provider_sync_at FROM payments WHERE id = 9001"
                     )
                 ).one()
-                self.assertEqual(preserved_contract[0], "visa")
-                self.assertEqual(preserved_contract[1], "credit_card")
-                self.assertIsNotNone(preserved_contract[2])
+                self.assertEqual(preserved_contract[0], preserved_contract[1])
+                self.assertEqual(preserved_contract[2], "visa")
+                self.assertEqual(preserved_contract[3], "credit_card")
+                self.assertIsNotNone(preserved_contract[4])
                 db.session.remove()
                 db.engine.dispose()
 
