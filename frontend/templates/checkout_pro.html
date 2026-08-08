@@ -1,26 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Cartão de crédito ou débito | BoostConvert PRO{% endblock %}
-{% block meta_description %}Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.{% endblock %}
+{% block title %}Pagamento do BoostConvert PRO{% endblock %}
+{% block meta_description %}Pague o BoostConvert PRO com cartão de crédito, débito ou Pix.{% endblock %}
 
 {% block extra_head %}
 {% if mercado_pago_public_key %}<script src="https://sdk.mercadopago.com/js/v2"></script>{% endif %}
 {% endblock %}
 
 {% block content %}
-<main class="checkout-page checkout-card-page">
+<main class="checkout-page">
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="shield-check" aria-hidden="true"></i> Pagamento seguro</span>
-        <h1>Cartão de crédito ou débito</h1>
-        <p>Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.</p>
+        <h1>Assinar {{ plan_name }}</h1>
+        <p>Escolha como pagar. O acesso PRO é liberado somente após aprovação.</p>
         <strong>{{ price }}</strong>
     </header>
 
-    <section class="card-checkout-panel reveal" aria-labelledby="card-checkout-title">
+    <section class="payment-choice-grid reveal" aria-label="Formas de pagamento">
+      <article class="card-checkout-panel" aria-labelledby="card-checkout-title">
         <div class="card-checkout-intro">
             <span class="card-checkout-icon"><i data-lucide="credit-card" aria-hidden="true"></i></span>
             <div>
-                <h2 id="card-checkout-title">{{ plan_name }}</h2>
+                <h2 id="card-checkout-title">Cartão de crédito ou débito</h2>
                 <p>Preencha os dados do cartão para concluir sua assinatura.</p>
             </div>
         </div>
@@ -40,6 +41,23 @@
         {% else %}
         <p class="checkout-message">O pagamento por cartão está temporariamente indisponível.</p>
         {% endif %}
+      </article>
+
+      <article class="card-checkout-panel payment-choice-card--pix" aria-labelledby="pix-checkout-title">
+        <div class="card-checkout-intro">
+            <span class="card-checkout-icon"><i data-lucide="qr-code" aria-hidden="true"></i></span>
+            <div>
+                <h2 id="pix-checkout-title">Pix</h2>
+                <p>Gere um QR Code e pague pelo aplicativo do seu banco.</p>
+            </div>
+        </div>
+        <form action="{{ url_for('checkout.create_pix_payment') }}" method="post" data-pix-payment-form>
+            {% include "partials/csrf_field.html" %}
+            <input type="hidden" name="pix_idempotency_key" value="{{ pix_idempotency_key }}">
+            <button class="button button-primary" type="submit">Pagar com Pix</button>
+            <p class="checkout-message" data-pix-payment-message aria-live="polite"></p>
+        </form>
+      </article>
     </section>
 </main>
 {% endblock %}

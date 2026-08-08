@@ -4,10 +4,12 @@ from extensions import db
 from flask_login import UserMixin
 
 
-def utc_now(): return datetime.now(timezone.utc)
+def utc_now():
+    return datetime.now(timezone.utc)
+
 
 class Usuario(UserMixin, db.Model):
-    __tablename__ = 'usuarios'
+    __tablename__ = "usuarios"
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(200), unique=True, nullable=False)
@@ -17,6 +19,7 @@ class Usuario(UserMixin, db.Model):
 
     plano = db.Column(db.String(20), nullable=False, default="free")
     status_assinatura = db.Column(db.String(20), nullable=False, default="inactive")
+
 
 class Subscription(db.Model):
     __tablename__ = "subscriptions"
@@ -29,8 +32,12 @@ class Subscription(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
-    provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True
+    )
+    provider = db.Column(
+        db.String(50), nullable=False, default="mercado_pago", index=True
+    )
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
     external_reference = db.Column(db.String(255), nullable=True, index=True)
@@ -44,9 +51,12 @@ class Subscription(db.Model):
     latest_payment_status = db.Column(db.String(50), nullable=True, index=True)
     canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at = db.Column(
+        db.DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     user = db.relationship("Usuario", backref=db.backref("subscriptions", lazy=True))
+
 
 class Payment(db.Model):
     __tablename__ = "payments"
@@ -64,8 +74,12 @@ class Payment(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
-    provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True
+    )
+    provider = db.Column(
+        db.String(50), nullable=False, default="mercado_pago", index=True
+    )
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
     external_reference = db.Column(db.String(255), nullable=True, index=True)
@@ -82,9 +96,16 @@ class Payment(db.Model):
     premium_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
     payment_created_at = db.Column(db.DateTime(timezone=True), nullable=True)
     approved_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    last_provider_sync_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    last_provider_sync_at = db.Column(
+        db.DateTime(timezone=True), nullable=True, index=True
+    )
+    pix_qr_code = db.Column(db.Text, nullable=True)
+    pix_qr_code_base64 = db.Column(db.Text, nullable=True)
+    pix_ticket_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    updated_at = db.Column(
+        db.DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     user = db.relationship("Usuario", backref=db.backref("payments", lazy=True))
 
@@ -100,13 +121,16 @@ class PaymentWebhookEvent(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    provider = db.Column(db.String(50), nullable=False, default="mercado_pago", index=True)
+    provider = db.Column(
+        db.String(50), nullable=False, default="mercado_pago", index=True
+    )
     provider_event_id = db.Column(db.String(120), nullable=True, index=True)
     event_type = db.Column(db.String(80), nullable=False)
     resource_id = db.Column(db.String(120), nullable=True, index=True)
     status = db.Column(db.String(40), nullable=False, default="processed")
     payload = db.Column(db.JSON, nullable=False, default=dict)
     processed_at = db.Column(db.DateTime(timezone=True), default=utc_now)
+
 
 class ToolUsage(db.Model):
     __tablename__ = "tool_usages"
@@ -120,19 +144,21 @@ class ToolUsage(db.Model):
     tool_name = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
 
+
 class DailyUsage(db.Model):
     __tablename__ = "daily_usages"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer,db.ForeignKey("usuarios.id"),nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
 
     session_id = db.Column(db.String(255), nullable=True)
     usage_date = db.Column(db.Date, nullable=False)
     window_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     usage_count = db.Column(db.Integer, nullable=False, default=0)
 
-    user = db.relationship("Usuario",backref=db.backref("daily_usages", lazy=True))
+    user = db.relationship("Usuario", backref=db.backref("daily_usages", lazy=True))
+
 
 class ConversionJob(db.Model):
     __tablename__ = "conversion_jobs"
@@ -158,6 +184,7 @@ class ConversionJob(db.Model):
 
     user = db.relationship("Usuario", backref=db.backref("conversion_jobs", lazy=True))
 
+
 class ConversionAuditLog(db.Model):
     __tablename__ = "conversion_audit_logs"
 
@@ -173,4 +200,6 @@ class ConversionAuditLog(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), default=utc_now)
 
-    user = db.relationship("Usuario", backref=db.backref("conversion_audit_logs", lazy=True))
+    user = db.relationship(
+        "Usuario", backref=db.backref("conversion_audit_logs", lazy=True)
+    )

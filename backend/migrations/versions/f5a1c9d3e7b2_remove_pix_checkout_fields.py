@@ -1,13 +1,9 @@
-"""remove PIX checkout fields
+"""preserve PIX checkout fields
 
 Revision ID: f5a1c9d3e7b2
 Revises: e2f7a9c4d1b6
 Create Date: 2026-08-01 04:25:00.000000
 """
-
-from alembic import op
-import sqlalchemy as sa
-
 
 revision = "f5a1c9d3e7b2"
 down_revision = "e2f7a9c4d1b6"
@@ -16,14 +12,11 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("payments", schema=None) as batch_op:
-        batch_op.drop_column("pix_ticket_url")
-        batch_op.drop_column("pix_qr_code_base64")
-        batch_op.drop_column("pix_qr_code")
+    # Kept as a no-op so databases upgrading from c4a8e2f1b7d9 do not lose
+    # active PIX checkout data. The next billing revision repairs databases
+    # where the original destructive version was already applied.
+    pass
 
 
 def downgrade():
-    with op.batch_alter_table("payments", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("pix_qr_code", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("pix_qr_code_base64", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("pix_ticket_url", sa.Text(), nullable=True))
+    pass

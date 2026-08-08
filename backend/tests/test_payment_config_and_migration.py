@@ -38,15 +38,17 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
             with app.app_context():
                 upgrade(directory=str(migrations_path))
                 inspector = inspect(db.engine)
-                columns = {column["name"] for column in inspector.get_columns("payments")}
-                removed_method = "pix"
+                columns = {
+                    column["name"] for column in inspector.get_columns("payments")
+                }
+                preserved_method = "pix"
                 code_suffix = "_q" + "r_code"
                 encoded_code_suffix = code_suffix + "_base64"
                 link_suffix = "_ticket" + "_url"
-                removed_columns = {
-                    removed_method + code_suffix,
-                    removed_method + encoded_code_suffix,
-                    removed_method + link_suffix,
+                pix_columns = {
+                    preserved_method + code_suffix,
+                    preserved_method + encoded_code_suffix,
+                    preserved_method + link_suffix,
                 }
                 self.assertTrue(
                     {
@@ -60,7 +62,7 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                     }
                     <= columns
                 )
-                self.assertTrue(removed_columns.isdisjoint(columns))
+                self.assertTrue(pix_columns <= columns)
                 constraint_names = {
                     constraint["name"]
                     for constraint in inspector.get_unique_constraints("payments")
@@ -69,20 +71,33 @@ class PaymentConfigAndMigrationTests(unittest.TestCase):
                 self.assertNotIn("attempt_id", columns)
                 downgrade(revision="c4a8e2f1b7d9", directory=str(migrations_path))
                 downgraded_columns = {
-                    column["name"] for column in inspect(db.engine).get_columns("payments")
+                    column["name"]
+                    for column in inspect(db.engine).get_columns("payments")
                 }
-                self.assertTrue(removed_columns <= downgraded_columns)
+                self.assertTrue(pix_columns <= downgraded_columns)
+                self.assertTrue(
+                    {
+                        "provider_payment_method_id",
+                        "payment_type_id",
+                        "installments",
+                        "status_detail",
+                        "last_provider_sync_at",
+                    }.isdisjoint(downgraded_columns)
+                )
                 upgrade(directory=str(migrations_path))
                 upgraded_columns = {
-                    column["name"] for column in inspect(db.engine).get_columns("payments")
+                    column["name"]
+                    for column in inspect(db.engine).get_columns("payments")
                 }
-                self.assertTrue(removed_columns.isdisjoint(upgraded_columns))
+                self.assertTrue(pix_columns <= upgraded_columns)
                 db.session.remove()
                 db.engine.dispose()
 
     def test_production_rejects_missing_or_test_credentials(self) -> None:
         missing = Flask("missing")
-        missing.config.update(APP_ENV="production", MERCADO_PAGO_ENVIRONMENT="production")
+        missing.config.update(
+            APP_ENV="production", MERCADO_PAGO_ENVIRONMENT="production"
+        )
         with self.assertRaises(RuntimeError):
             validate_mercado_pago_config(missing)
 

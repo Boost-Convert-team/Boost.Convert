@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
 APPROVED_PAYMENT_STATUSES = {"approved"}
-ACTIVE_ONE_TIME_CARD_TYPES = {"credit_card", "debit_card"}
+ACTIVE_ONE_TIME_PAYMENT_METHODS = {"credit_card", "debit_card", "pix"}
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",
@@ -66,7 +66,9 @@ def get_pro_access_state(usuario, now: datetime | None = None) -> ProAccessState
     if payment is not None:
         return ProAccessState(True, "payment", payment.premium_expires_at)
 
-    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_payment_records(user_id):
+    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_payment_records(
+        user_id
+    ):
         return ProAccessState(True, "legacy")
     return ProAccessState(False, "none")
 
@@ -85,8 +87,7 @@ def synchronize_user_pro_status(
     desired_plan = "pro" if active else "free"
     desired_status = "active" if active else "inactive"
     changed = (
-        usuario.plano != desired_plan
-        or usuario.status_assinatura != desired_status
+        usuario.plano != desired_plan or usuario.status_assinatura != desired_status
     )
     if changed:
         usuario.plano = desired_plan
@@ -131,7 +132,7 @@ def find_active_paid_payment(user_id: int, now: datetime) -> Payment | None:
     return (
         Payment.query.filter(
             Payment.user_id == user_id,
-            Payment.payment_method.in_(ACTIVE_ONE_TIME_CARD_TYPES),
+            Payment.payment_method.in_(ACTIVE_ONE_TIME_PAYMENT_METHODS),
             Payment.status.in_(APPROVED_PAYMENT_STATUSES),
             Payment.premium_expires_at.isnot(None),
             Payment.premium_expires_at > now,

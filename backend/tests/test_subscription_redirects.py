@@ -8,16 +8,18 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
+from Blueprints.handlers.conversion_handlers import (
+    handle_conversion_error,
+    validate_uploaded_file_count,
+)
 from Blueprints.main.checkout_routes import (
     checkout,
     checkout_credit_subscription,
     checkout_pro_choice,
-    create_card_payment as create_card_payment_route,
     legacy_checkout_disabled,
 )
-from Blueprints.handlers.conversion_handlers import (
-    handle_conversion_error,
-    validate_uploaded_file_count,
+from Blueprints.main.checkout_routes import (
+    create_card_payment as create_card_payment_route,
 )
 from Blueprints.services.convertions_services.upload_flow.job_factory import (
     validate_single_file_upload,
@@ -56,15 +58,20 @@ class SubscriptionRedirectTests(unittest.TestCase):
             "subscription_id": "sub_original",
             "status": "pending",
         }
-        with self.app.test_request_context("/checkout/credit-subscription", method="POST"):
-            with patch(
+        with (
+            self.app.test_request_context(
+                "/checkout/credit-subscription", method="POST"
+            ),
+            patch(
                 "Blueprints.main.checkout_routes.current_user",
                 SimpleNamespace(id=42, email="subscriber@example.com"),
-            ), patch(
+            ),
+            patch(
                 "Blueprints.main.checkout_routes.create_monthly_subscription",
                 return_value=subscription,
-            ) as create_subscription:
-                response, status_code = checkout_credit_subscription.__wrapped__()
+            ) as create_subscription,
+        ):
+            response, status_code = checkout_credit_subscription.__wrapped__()
         self.assertEqual(status_code, 200)
         self.assertEqual(response.json["subscription_id"], "sub_original")
         create_subscription.assert_called_once()
@@ -77,30 +84,35 @@ class SubscriptionRedirectTests(unittest.TestCase):
             "status": "approved",
             "approved": True,
         }
-        with self.app.test_request_context(
-            "/api/payment/card",
-            method="POST",
-            json={
-                "token": "token",
-                "payment_method_id": "visa",
-                "issuer_id": "1",
-                "installments": 1,
-                "payer": {"email": "card@example.com"},
-            },
-            headers={"X-Idempotency-Key": "11111111-2222-4333-8444-555555555555"},
-        ):
-            with patch(
+        with (
+            self.app.test_request_context(
+                "/api/payment/card",
+                method="POST",
+                json={
+                    "token": "token",
+                    "payment_method_id": "visa",
+                    "issuer_id": "1",
+                    "installments": 1,
+                    "payer": {"email": "card@example.com"},
+                },
+                headers={"X-Idempotency-Key": "11111111-2222-4333-8444-555555555555"},
+            ),
+            patch(
                 "Blueprints.main.checkout_routes.current_user",
                 SimpleNamespace(id=42, email="card@example.com"),
-            ), patch(
+            ),
+            patch(
                 "Blueprints.main.checkout_routes.create_mercado_pago_card_payment",
                 return_value=mercado_pago_response,
-            ):
-                response, status_code = create_card_payment_route.__wrapped__()
+            ),
+        ):
+            response, status_code = create_card_payment_route.__wrapped__()
 
         self.assertEqual(status_code, 201)
         self.assertEqual(response.json["payment_id"], "pay_card_123")
-        self.assertIn("/checkout-card/status?attempt_id=", response.json["redirect_url"])
+        self.assertIn(
+            "/checkout-card/status?attempt_id=", response.json["redirect_url"]
+        )
 
     def test_legacy_hosted_checkout_routes_are_disabled(self) -> None:
         for path in ("/checkout/debit", "/checkout/pro"):
@@ -109,9 +121,13 @@ class SubscriptionRedirectTests(unittest.TestCase):
                     _response, status_code = legacy_checkout_disabled.__wrapped__()
                 self.assertEqual(status_code, 410)
 
-    def test_planos_pro_button_opens_credit_card_checkout(self) -> None:
-        template = (BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html").read_text(encoding="utf-8")
-        choice_template = (BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html").read_text(encoding="utf-8")
+    def test_planos_pro_button_opens_card_and_pix_checkout(self) -> None:
+        template = (
+            BACKEND_ROOT.parent / "frontend" / "templates" / "planos.html"
+        ).read_text(encoding="utf-8")
+        choice_template = (
+            BACKEND_ROOT.parent / "frontend" / "templates" / "checkout_pro.html"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("url_for('checkout.checkout_pro_choice')", template)
         self.assertIn("BoostConvert PRO", template)
@@ -119,32 +135,28 @@ class SubscriptionRedirectTests(unittest.TestCase):
         self.assertIn("url_for('checkout.create_card_payment')", choice_template)
         self.assertIn("sdk.mercadopago.com/js/v2", choice_template)
         self.assertIn("Cartão de crédito", choice_template)
-        self.assertIn('class="card-checkout-panel reveal"', choice_template)
+        self.assertIn("url_for('checkout.create_pix_payment')", choice_template)
+        self.assertIn('class="payment-choice-grid reveal"', choice_template)
         self.assertNotIn("sem renovação automática", choice_template)
         self.assertNotIn("30 dias", choice_template)
         self.assertNotIn('href="https://pay.', template)
 
-    def test_removed_payment_routes_return_404_and_are_not_registered(self) -> None:
-        removed_method = "".join(("p", "i", "x"))
+    def test_pix_routes_are_registered_and_require_authentication(self) -> None:
         paths = (
-            f"/api/payment/{removed_method}",
-            f"/api/payment/{removed_method}/missing/status",
-            f"/checkout-{removed_method}",
-            f"/checkout/{removed_method}",
+            "/api/payment/pix",
+            "/api/payment/pix/<payment_id>/status",
+            "/checkout-pix",
+            "/checkout/pix",
         )
         registered_rules = {rule.rule for rule in self.app.url_map.iter_rules()}
-        self.assertTrue(all(path not in registered_rules for path in paths))
-
-        self.assertEqual(self.client.get(paths[2]).status_code, 404)
-        self.assertEqual(self.client.get(paths[1]).status_code, 404)
+        self.assertTrue(all(path in registered_rules for path in paths))
         self.assertEqual(
-            self.client.post(paths[0], data=self.csrf_data()).status_code,
-            404,
+            self.client.get("/checkout-pix?payment_id=missing").status_code, 302
         )
         self.assertEqual(
-            self.client.post(paths[3], data=self.csrf_data()).status_code,
-            404,
+            self.client.get("/api/payment/pix/missing/status").status_code, 302
         )
+        self.assertEqual(self.client.post("/api/payment/pix").status_code, 400)
 
     def test_checkout_template_receives_only_the_public_mercado_pago_key(self) -> None:
         public_key = "TEST-public-key-visible-in-browser"
@@ -153,12 +165,14 @@ class SubscriptionRedirectTests(unittest.TestCase):
             MERCADO_PAGO_PUBLIC_KEY=public_key,
             MERCADO_PAGO_ACCESS_TOKEN=access_token,
         )
-        with self.app.test_request_context("/checkout-pro"):
-            with patch(
+        with (
+            self.app.test_request_context("/checkout-pro"),
+            patch(
                 "Blueprints.main.checkout_routes.current_user",
                 SimpleNamespace(id=42, email="payer@example.com"),
-            ):
-                rendered = checkout_pro_choice.__wrapped__()
+            ),
+        ):
+            rendered = checkout_pro_choice.__wrapped__()
 
         self.assertIn(f'data-public-key="{public_key}"', rendered)
         self.assertIn('id="cardPaymentBrick_container"', rendered)

@@ -2,6 +2,7 @@ from uuid import UUID, uuid4
 
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     APPROVED_PAYMENT_STATUSES,
+    PIX_PAYMENT_METHOD,
     PRO_PLAN_NAME,
     CardPaymentValidationError,
     IdempotencyKeyValidationError,
@@ -10,6 +11,9 @@ from Blueprints.services.subscription.mercado_pago_payments_service import (
 )
 from Blueprints.services.subscription.mercado_pago_payments_service import (
     create_card_payment as create_mercado_pago_card_payment,
+)
+from Blueprints.services.subscription.mercado_pago_payments_service import (
+    create_pix_payment as create_mercado_pago_pix_payment,
 )
 from Blueprints.services.subscription.mercado_pago_service import (
     PROVIDER,
@@ -50,8 +54,7 @@ def checkout() -> Response:
 @checkout_bp.get("/checkout-pro")
 @login_required
 def checkout_pro_choice() -> Response:
-
-    """Display the card one-time payment flow."""
+    """Display the card and PIX one-time payment flows."""
 
     return render_template(
         "checkout_pro.html",
@@ -62,20 +65,44 @@ def checkout_pro_choice() -> Response:
         mercado_pago_max_installments=int(
             current_app.config.get("MERCADO_PAGO_MAX_INSTALLMENTS", 12)
         ),
-
         payer_email=current_user.email,
+        pix_idempotency_key=str(uuid4()),
         card_idempotency_key=str(uuid4()),
     )
+
+
+@checkout_bp.post("/api/payment/pix")
+@login_required
+def create_pix_payment() -> tuple[Response, int]:
+    try:
+        payment = create_mercado_pago_pix_payment(
+            current_user,
+            request.form.get("pix_idempotency_key")
+            or request.headers.get("X-Idempotency-Key"),
+        )
+    except IdempotencyKeyValidationError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except SQLAlchemyError as exc:
+        return handle_payment_database_error("pix_create", exc)
+    except MercadoPagoError as exc:
+        return handle_provider_error("pix_create", exc)
+
+    payment["redirect_url"] = url_for(
+        "checkout.checkout_pix_page",
+        payment_id=payment["payment_id"],
+    )
+    return jsonify(payment), 201 if payment.get("approved") else 202
 
 
 @checkout_bp.post("/api/payment/card")
 @login_required
 def create_card_payment() -> tuple[Response, int]:
-
     """Accept only Card Payment Brick tokenized JSON for a one-time charge."""
     if not request.is_json:
-        return jsonify({"ok": False, "error": "Content-Type application/json e obrigatorio."}), 415
-    
+        return jsonify(
+            {"ok": False, "error": "Content-Type application/json e obrigatorio."}
+        ), 415
+
     try:
         payload = request.get_json()
     except (BadRequest, UnsupportedMediaType):
@@ -109,7 +136,7 @@ def create_card_payment() -> tuple[Response, int]:
             str(payment.get("status_detail") or "")
         )
         return jsonify(payment), 422
-    
+
     return jsonify(payment), 201 if payment.get("approved") else 202
 
 
@@ -125,6 +152,26 @@ def checkout_card_status_page() -> Response:
         price=format_brl(payment.amount or get_plan_price()),
         is_confirmed=is_payment_confirmed(payment),
     )
+
+
+@checkout_bp.get("/checkout-pix")
+@login_required
+def checkout_pix_page() -> Response:
+    payment = get_user_pix_payment_or_404(request.args.get("payment_id", ""))
+    return render_template(
+        "checkout_pix.html",
+        payment=payment,
+        plan_name=PRO_PLAN_NAME,
+        price=format_brl(payment.amount or get_plan_price()),
+        is_confirmed=is_payment_confirmed(payment),
+    )
+
+
+@checkout_bp.get("/api/payment/pix/<payment_id>/status")
+@login_required
+def pix_payment_status(payment_id: str) -> tuple[Response, int]:
+    payment = get_user_pix_payment_or_404(payment_id)
+    return build_reconciled_status_response(payment, "pix_status")
 
 
 @checkout_bp.get("/api/payment/card/<attempt_id>/status")
@@ -162,6 +209,7 @@ def checkout_credit_subscription() -> tuple[Response, int]:
 
 
 @checkout_bp.post("/checkout/debit")
+@checkout_bp.post("/checkout/pix")
 @checkout_bp.post("/checkout/pro")
 @login_required
 def legacy_checkout_disabled() -> tuple[Response, int]:
@@ -179,7 +227,7 @@ def build_reconciled_status_response(
     payment: Payment,
     operation: str,
 ) -> tuple[Response, int]:
-    
+
     try:
         payment = reconcile_payment(payment)
     except SQLAlchemyError as exc:
@@ -206,22 +254,44 @@ def get_user_card_attempt_or_404(attempt_id: str) -> Payment:
     except (ValueError, AttributeError):
         abort(404)
 
-    payment = Payment.query.filter_by(
-        user_id=current_user.id,
-        provider=PROVIDER,
-        idempotency_key=normalized_attempt_id,
-    ).first()
+    payment = (
+        Payment.query.filter_by(
+            user_id=current_user.id,
+            provider=PROVIDER,
+            idempotency_key=normalized_attempt_id,
+        )
+        .filter(
+            Payment.payment_method.in_({"credit_card", "debit_card", "pending_card"})
+        )
+        .first()
+    )
 
     if payment is None:
         abort(404)
 
     return payment
 
+
+def get_user_pix_payment_or_404(payment_id: str) -> Payment:
+    normalized_id = str(payment_id or "").strip()
+    if not normalized_id or len(normalized_id) > 120:
+        abort(404)
+    payment = Payment.query.filter_by(
+        user_id=current_user.id,
+        provider=PROVIDER,
+        provider_payment_id=normalized_id,
+        payment_method=PIX_PAYMENT_METHOD,
+    ).first()
+    if payment is None:
+        abort(404)
+    return payment
+
+
 def handle_payment_database_error(
     operation: str,
     exc: SQLAlchemyError,
 ) -> tuple[Response, int]:
-    
+
     db.session.rollback()
 
     current_app.logger.exception(
@@ -264,14 +334,19 @@ def handle_provider_error(
         )
         if exc.retry_after:
             response.headers["Retry-After"] = exc.retry_after
-    
-        return response, exc.public_status
-    
-    if isinstance(exc, MercadoPagoTimeoutError): return jsonify(build_safe_payment_error(exc)), 503
-    if isinstance(exc, MercadoPagoInvalidResponseError): return jsonify(build_safe_payment_error(exc)), 502
-    if isinstance(exc, MercadoPagoConfigurationError): return jsonify(build_safe_payment_error(exc)), 503
 
-    return jsonify({"ok": False, "error": "Nao foi possivel processar o pagamento."}), 502
+        return response, exc.public_status
+
+    if isinstance(exc, MercadoPagoTimeoutError):
+        return jsonify(build_safe_payment_error(exc)), 503
+    if isinstance(exc, MercadoPagoInvalidResponseError):
+        return jsonify(build_safe_payment_error(exc)), 502
+    if isinstance(exc, MercadoPagoConfigurationError):
+        return jsonify(build_safe_payment_error(exc)), 503
+
+    return jsonify(
+        {"ok": False, "error": "Nao foi possivel processar o pagamento."}
+    ), 502
 
 
 def build_safe_payment_error(exc: MercadoPagoError) -> dict[str, object]:
@@ -303,7 +378,9 @@ def get_card_status_message(status_detail: str) -> str:
 
 
 def format_brl(value: object) -> str:
-    return f"R$ {float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return (
+        f"R$ {float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    )
 
 
 def is_payment_confirmed(payment: Payment) -> bool:

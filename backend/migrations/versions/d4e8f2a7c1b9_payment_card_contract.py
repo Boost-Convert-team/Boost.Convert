@@ -5,9 +5,8 @@ Revises: a8d4e6f2c1b9
 Create Date: 2026-08-07
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "d4e8f2a7c1b9"
 down_revision = "a8d4e6f2c1b9"
@@ -28,7 +27,9 @@ def upgrade():
             sa.Column("status_detail", sa.String(length=120), nullable=True)
         )
         batch_op.add_column(
-            sa.Column("last_provider_sync_at", sa.DateTime(timezone=True), nullable=True)
+            sa.Column(
+                "last_provider_sync_at", sa.DateTime(timezone=True), nullable=True
+            )
         )
 
     op.create_index(
@@ -53,6 +54,18 @@ def upgrade():
         .where(payments.c.payment_method.in_(["credit_card", "debit_card"]))
         .values(payment_type_id=payments.c.payment_method)
     )
+
+    inspector = sa.inspect(op.get_bind())
+    existing_columns = {column["name"] for column in inspector.get_columns("payments")}
+    missing_pix_columns = [
+        name
+        for name in ("pix_qr_code", "pix_qr_code_base64", "pix_ticket_url")
+        if name not in existing_columns
+    ]
+    if missing_pix_columns:
+        with op.batch_alter_table("payments") as batch_op:
+            for name in missing_pix_columns:
+                batch_op.add_column(sa.Column(name, sa.Text(), nullable=True))
 
 
 def downgrade():

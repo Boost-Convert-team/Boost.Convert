@@ -72,6 +72,31 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                 timedelta(days=30),
             )
 
+    def test_approved_pix_webhook_grants_access_once(self) -> None:
+        user_id, payment_id = self.create_pix_attempt()
+        provider_data = self.provider_data(
+            user_id, payment_id, "approved", "pix", "bank_transfer"
+        )
+        with patch(
+            "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
+            return_value=provider_data,
+        ) as get_payment:
+            first = self.post_payment_event(1003, payment_id)
+            duplicate = self.post_payment_event(1003, payment_id)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertTrue(duplicate.json["duplicate"])
+        self.assertEqual(get_payment.call_count, 1)
+        self.assertEqual(self.user_state(user_id), ("pro", "active"))
+        with self.app.app_context():
+            payment = Payment.query.filter_by(provider_payment_id=payment_id).one()
+            self.assertEqual(payment.payment_method, "pix")
+            self.assertEqual(
+                payment.premium_expires_at - payment.approved_at,
+                timedelta(days=30),
+            )
+
     def test_pending_or_rejected_payment_never_grants_access(self) -> None:
         for index, status in enumerate(("pending", "in_process", "rejected"), start=1):
             with self.subTest(status=status):
@@ -117,27 +142,36 @@ class MercadoPagoWebhookTests(unittest.TestCase):
     def test_concurrent_duplicate_event_integrity_error_reloads_winner(self) -> None:
         payload = {"id": 1301, "type": "payment", "data": {"id": "pay_race"}}
         dispatched = MercadoPagoWebhookResult("processed", "payment", "pay_race")
-        with self.app.test_request_context("/api/webhooks/mercadopago", method="POST"), patch(
-            "Blueprints.services.subscription.mercado_pago_service.is_duplicate_webhook_event",
-            side_effect=[False, True],
-        ), patch(
-            "Blueprints.services.subscription.mercado_pago_service.dispatch_mercado_pago_webhook",
-            return_value=dispatched,
-        ), patch(
-            "Blueprints.services.subscription.mercado_pago_service.record_webhook_event"
-        ), patch(
-            "Blueprints.services.subscription.mercado_pago_service.db.session.commit",
-            side_effect=IntegrityError("INSERT", {}, Exception("unique")),
-        ), patch(
-            "Blueprints.services.subscription.mercado_pago_service.db.session.rollback"
-        ) as rollback:
+        with (
+            self.app.test_request_context("/api/webhooks/mercadopago", method="POST"),
+            patch(
+                "Blueprints.services.subscription.mercado_pago_service.is_duplicate_webhook_event",
+                side_effect=[False, True],
+            ),
+            patch(
+                "Blueprints.services.subscription.mercado_pago_service.dispatch_mercado_pago_webhook",
+                return_value=dispatched,
+            ),
+            patch(
+                "Blueprints.services.subscription.mercado_pago_service.record_webhook_event"
+            ),
+            patch(
+                "Blueprints.services.subscription.mercado_pago_service.db.session.commit",
+                side_effect=IntegrityError("INSERT", {}, Exception("unique")),
+            ),
+            patch(
+                "Blueprints.services.subscription.mercado_pago_service.db.session.rollback"
+            ) as rollback,
+        ):
             result = process_mercado_pago_webhook(payload)
         self.assertTrue(result.duplicate)
         rollback.assert_called_once()
 
     def test_provider_contract_mismatches_never_grant_access(self) -> None:
         mutations = {
-            "reference": lambda data: data.update(external_reference="boost:payment:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee:user:999"),
+            "reference": lambda data: data.update(
+                external_reference="boost:payment:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee:user:999"
+            ),
             "amount": lambda data: data.update(transaction_amount="0.01"),
             "currency": lambda data: data.update(currency_id="USD"),
             "plan": lambda data: data["metadata"].update(plan="OTHER"),
@@ -146,7 +180,9 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             ),
             "collector": lambda data: data.update(collector_id=999999),
             "live_mode": lambda data: data.update(live_mode=True),
-            "attempt_metadata": lambda data: data["metadata"].update(attempt_id="ffffffff-ffff-4fff-8fff-ffffffffffff"),
+            "attempt_metadata": lambda data: data["metadata"].update(
+                attempt_id="ffffffff-ffff-4fff-8fff-ffffffffffff"
+            ),
             "user_metadata": lambda data: data["metadata"].update(user_id=999999),
         }
         for index, (name, mutate) in enumerate(mutations.items(), start=1):
@@ -188,8 +224,12 @@ class MercadoPagoWebhookTests(unittest.TestCase):
 
     def test_refund_removes_only_refunded_access(self) -> None:
         user_id, payment_id = self.create_credit_attempt()
-        approved = self.provider_data(user_id, payment_id, "approved", "visa", "credit_card")
-        refunded = self.provider_data(user_id, payment_id, "refunded", "visa", "credit_card")
+        approved = self.provider_data(
+            user_id, payment_id, "approved", "visa", "credit_card"
+        )
+        refunded = self.provider_data(
+            user_id, payment_id, "refunded", "visa", "credit_card"
+        )
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
             side_effect=[approved, refunded],
@@ -242,7 +282,9 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             user.plano = "pro"
             user.status_assinatura = "active"
             db.session.commit()
-        refunded = self.provider_data(user_id, payment_id, "refunded", "visa", "credit_card")
+        refunded = self.provider_data(
+            user_id, payment_id, "refunded", "visa", "credit_card"
+        )
         with patch(
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
             return_value=refunded,
@@ -261,14 +303,19 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             invalid = self.client.post(
                 f"/api/webhooks/mercadopago?data.id={payment_id}",
                 json={"id": 6002, "type": "payment", "data": {"id": payment_id}},
-                headers={"x-request-id": "invalid", "x-signature": f"ts={int(time.time())},v1=wrong"},
+                headers={
+                    "x-request-id": "invalid",
+                    "x-signature": f"ts={int(time.time())},v1=wrong",
+                },
             )
         self.assertEqual(stale.status_code, 401)
         self.assertEqual(invalid.status_code, 401)
         get_payment.assert_not_called()
 
     def test_legacy_webhook_is_disabled(self) -> None:
-        response = self.client.post("/webhook", json={"type": "payment", "data": {"id": "1"}})
+        response = self.client.post(
+            "/webhook", json={"type": "payment", "data": {"id": "1"}}
+        )
         self.assertEqual(response.status_code, 410)
 
     def test_persisted_webhook_payload_is_sanitized(self) -> None:
@@ -280,7 +327,9 @@ class MercadoPagoWebhookTests(unittest.TestCase):
             "Blueprints.services.subscription.mercado_pago_payments_service.get_payment",
             return_value=provider_data,
         ):
-            response = self.post_payment_event(7001, payment_id, extra={"token": "must-not-persist"})
+            response = self.post_payment_event(
+                7001, payment_id, extra={"token": "must-not-persist"}
+            )
         self.assertEqual(response.status_code, 200)
         with self.app.app_context():
             stored = PaymentWebhookEvent.query.one().payload
@@ -312,6 +361,38 @@ class MercadoPagoWebhookTests(unittest.TestCase):
                     status="pending",
                     amount="19.90",
                     currency="BRL",
+                )
+            )
+            db.session.commit()
+            return user.id, payment_id
+
+    def create_pix_attempt(self) -> tuple[int, str]:
+        with self.app.app_context():
+            user = Usuario(
+                email="pix-webhook@example.com",
+                plano="free",
+                status_assinatura="inactive",
+            )
+            db.session.add(user)
+            db.session.flush()
+            attempt_id = "11111111-2222-4333-8444-555555555555"
+            payment_id = "pay_pix"
+            db.session.add(
+                Payment(
+                    user_id=user.id,
+                    provider_payment_id=payment_id,
+                    external_reference=f"boost:payment:{attempt_id}:user:{user.id}",
+                    plan="BOOSTCONVERT_PRO",
+                    idempotency_key=attempt_id,
+                    payment_method="pix",
+                    payment_type_id="bank_transfer",
+                    provider_payment_method_id="pix",
+                    status="pending",
+                    amount="19.90",
+                    currency="BRL",
+                    pix_qr_code="000201-pix-copy-code",
+                    pix_qr_code_base64="cXItY29kZQ==",
+                    pix_ticket_url="https://example.test/pix-ticket",
                 )
             )
             db.session.commit()

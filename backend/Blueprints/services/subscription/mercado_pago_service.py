@@ -164,7 +164,9 @@ def process_mercado_pago_webhook(payload: dict[str, Any]) -> MercadoPagoWebhookR
     event_id = extract_webhook_event_id(payload)
 
     if event_id and is_duplicate_webhook_event(event_id):
-        return MercadoPagoWebhookResult("duplicate", event_type, resource_id, duplicate=True)
+        return MercadoPagoWebhookResult(
+            "duplicate", event_type, resource_id, duplicate=True
+        )
 
     try:
         result = (
@@ -191,22 +193,28 @@ def dispatch_mercado_pago_webhook(
     event_type: str,
     resource_id: str,
 ) -> MercadoPagoWebhookResult:
-    
+
     if event_type == "subscription_preapproval":
         subscription_data = get_subscription(resource_id)
         upsert_subscription_from_provider_data(subscription_data)
-        
+
         return MercadoPagoWebhookResult("processed", event_type, resource_id)
 
     if event_type == "subscription_authorized_payment":
         invoice_data = get_authorized_payment(resource_id)
         preapproval_id = get_string(invoice_data, "preapproval_id")
-        payment = invoice_data.get("payment") if isinstance(invoice_data.get("payment"), dict) else {}
+        payment = (
+            invoice_data.get("payment")
+            if isinstance(invoice_data.get("payment"), dict)
+            else {}
+        )
         payment_id = get_string(payment, "id")
 
         if preapproval_id:
             subscription_data = get_subscription(preapproval_id)
-            subscription = upsert_subscription_from_provider_data(subscription_data, payment_id)
+            subscription = upsert_subscription_from_provider_data(
+                subscription_data, payment_id
+            )
 
             if payment_id:
                 from Blueprints.services.subscription.mercado_pago_payments_service import (
@@ -261,7 +269,7 @@ def validate_mercado_pago_webhook_signature(payload: dict[str, Any]) -> bool:
 
     if not x_signature or not x_request_id or not data_id:
         return False
-    
+
     if payload_resource_id and payload_resource_id != data_id:
         return False
 
@@ -365,7 +373,7 @@ def mercado_pago_request(
     extra_headers: dict[str, str] | None = None,
     expected_response_types: tuple[type, ...] = (dict,),
 ) -> Any:
-    
+
     correlation_id = str(uuid4())
     access_token = current_app.config.get("MERCADO_PAGO_ACCESS_TOKEN")
 
@@ -396,13 +404,25 @@ def mercado_pago_request(
         )
 
     except requests.Timeout as exc:
+        current_app.logger.exception(
+            "MERCADO_PAGO_EXCEPTION method=%s path=%s correlation_id=%s type=timeout",
+            method,
+            path,
+            correlation_id,
+        )
         raise MercadoPagoTimeoutError(
             "Mercado Pago demorou para responder.",
             code="provider_timeout",
             correlation_id=correlation_id,
         ) from exc
-    
+
     except requests.RequestException as exc:
+        current_app.logger.exception(
+            "MERCADO_PAGO_EXCEPTION method=%s path=%s correlation_id=%s type=connection",
+            method,
+            path,
+            correlation_id,
+        )
         raise MercadoPagoError(
             "Falha ao conectar com Mercado Pago.",
             code="provider_connection_error",
@@ -415,6 +435,9 @@ def mercado_pago_request(
         current_app.logger.warning(
             json.dumps(
                 {
+                    "event": "MERCADO_PAGO_RESPONSE",
+                    "method": method,
+                    "path": path,
                     "status": response.status_code,
                     "code": provider_error_code,
                     "cause": provider_cause,
@@ -451,18 +474,45 @@ def mercado_pago_request(
             code="provider_invalid_response",
             correlation_id=get_provider_correlation_id(response, correlation_id),
         )
-    
+
+    response_summary = data if isinstance(data, dict) else {}
+    current_app.logger.info(
+        json.dumps(
+            {
+                "event": "MERCADO_PAGO_RESPONSE",
+                "method": method,
+                "path": path,
+                "http_status": response.status_code,
+                "correlation_id": get_provider_correlation_id(response, correlation_id),
+                "provider_payment_id": response_summary.get("id"),
+                "status": response_summary.get("status"),
+                "status_detail": response_summary.get("status_detail"),
+                "payment_method_id": response_summary.get("payment_method_id"),
+                "payment_type_id": response_summary.get("payment_type_id"),
+                "external_reference": response_summary.get("external_reference"),
+            },
+            ensure_ascii=False,
+        )
+    )
+
     return data
 
 
 def classify_provider_http_error(status_code: int) -> tuple[int, str]:
-    if status_code == 400: return 400, "Mercado Pago recusou o payload do pagamento."
-    if status_code == 401: return 502, "Mercado Pago recusou o Access Token da integracao."
-    if status_code == 403: return 502, "A conta ou o recurso nao foi autorizado pelo Mercado Pago."
-    if status_code == 409: return 409, "Mercado Pago informou conflito no pagamento."
-    if status_code == 429: return 503, "Mercado Pago esta temporariamente limitando requisicoes."
-    if status_code == 422: return 422, "Mercado Pago recusou os dados do pagamento."
-    if status_code >= 500: return 503, "Mercado Pago esta temporariamente indisponivel."
+    if status_code == 400:
+        return 400, "Mercado Pago recusou o payload do pagamento."
+    if status_code == 401:
+        return 502, "Mercado Pago recusou o Access Token da integracao."
+    if status_code == 403:
+        return 502, "A conta ou o recurso nao foi autorizado pelo Mercado Pago."
+    if status_code == 409:
+        return 409, "Mercado Pago informou conflito no pagamento."
+    if status_code == 429:
+        return 503, "Mercado Pago esta temporariamente limitando requisicoes."
+    if status_code == 422:
+        return 422, "Mercado Pago recusou os dados do pagamento."
+    if status_code >= 500:
+        return 503, "Mercado Pago esta temporariamente indisponivel."
     return 502, "Mercado Pago recusou a operacao."
 
 
@@ -486,7 +536,9 @@ def get_provider_error_details(response: requests.Response) -> tuple[str, str]:
             )
             if value is None and item_code:
                 value = item_code
-            cause_parts.append(": ".join(part for part in (item_code, item_description) if part))
+            cause_parts.append(
+                ": ".join(part for part in (item_code, item_description) if part)
+            )
     elif isinstance(cause, dict):
         item_code = sanitize_provider_detail(cause.get("code"), 80)
         item_description = sanitize_provider_detail(
@@ -494,7 +546,9 @@ def get_provider_error_details(response: requests.Response) -> tuple[str, str]:
         )
         if value is None and item_code:
             value = item_code
-        cause_parts.append(": ".join(part for part in (item_code, item_description) if part))
+        cause_parts.append(
+            ": ".join(part for part in (item_code, item_description) if part)
+        )
     if not cause_parts:
         message = sanitize_provider_detail(payload.get("message"), 200)
         if message:
@@ -571,10 +625,14 @@ def upsert_subscription_from_provider_data(
     )
     subscription.plan = subscription.plan or PRO_PLAN_CODE
     subscription.status = get_string(provider_data, "status") or "pending"
-    subscription.provider_payment_id = provider_payment_id or subscription.provider_payment_id
+    subscription.provider_payment_id = (
+        provider_payment_id or subscription.provider_payment_id
+    )
     subscription.amount = parse_decimal(auto_recurring.get("transaction_amount"))
     subscription.currency = get_string(auto_recurring, "currency_id") or "BRL"
-    subscription.next_payment_at = parse_provider_datetime(provider_data.get("next_payment_date"))
+    subscription.next_payment_at = parse_provider_datetime(
+        provider_data.get("next_payment_date")
+    )
     subscription.updated_at = utc_now()
 
     apply_subscription_status(user, subscription)
@@ -622,7 +680,9 @@ def find_user_for_subscription(
     provider_data: dict[str, Any],
     subscription: Subscription | None,
 ) -> Usuario | None:
-    user_id = extract_user_id_from_external_reference(provider_data.get("external_reference"))
+    user_id = extract_user_id_from_external_reference(
+        provider_data.get("external_reference")
+    )
     if user_id is not None:
         return db.session.get(Usuario, user_id)
     if subscription is not None:
@@ -657,9 +717,7 @@ def sanitize_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "type": str(payload.get("type") or payload.get("topic") or "")[:80],
         "action": str(payload.get("action") or "")[:80],
         "data": {
-            "id": str(data.get("id") or "")[:120]
-            if isinstance(data, dict)
-            else ""
+            "id": str(data.get("id") or "")[:120] if isinstance(data, dict) else ""
         },
         "live_mode": payload.get("live_mode")
         if isinstance(payload.get("live_mode"), bool)

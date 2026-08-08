@@ -7,14 +7,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 class PaymentFrontendContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.template = (PROJECT_ROOT / "frontend/templates/checkout_pro.html").read_text(
-            encoding="utf-8"
-        )
+        cls.template = (
+            PROJECT_ROOT / "frontend/templates/checkout_pro.html"
+        ).read_text(encoding="utf-8")
         cls.javascript = (PROJECT_ROOT / "frontend/static/js/payments.js").read_text(
             encoding="utf-8"
         )
         cls.status_template = (
             PROJECT_ROOT / "frontend/templates/checkout_card_status.html"
+        ).read_text(encoding="utf-8")
+        cls.pix_template = (
+            PROJECT_ROOT / "frontend/templates/checkout_pix.html"
         ).read_text(encoding="utf-8")
         cls.styles = (PROJECT_ROOT / "frontend/static/css/checkout.css").read_text(
             encoding="utf-8"
@@ -23,26 +26,27 @@ class PaymentFrontendContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_checkout_has_one_centered_card_panel(self) -> None:
-        self.assertIn("<h1>Cartão de crédito ou débito</h1>", self.template)
-        self.assertIn(
-            "Pagamento seguro com cartão de crédito ou débito pelo Mercado Pago.",
-            self.template,
-        )
-        self.assertEqual(self.template.count('class="card-checkout-panel reveal"'), 1)
+    def test_checkout_offers_card_and_pix_without_duplicating_card_brick(self) -> None:
+        self.assertIn("Escolha como pagar", self.template)
+        self.assertIn('aria-labelledby="card-checkout-title"', self.template)
+        self.assertIn('aria-labelledby="pix-checkout-title"', self.template)
         self.assertEqual(self.template.count('id="cardPaymentBrick_container"'), 1)
-        self.assertNotIn("payment-choice-grid", self.template)
+        self.assertIn("payment-choice-grid", self.template)
 
-    def test_removed_payment_method_has_no_frontend_artifacts(self) -> None:
-        removed_method = "pix"
-        combined = f"{self.template}\n{self.javascript}\n{self.styles}".lower()
-        self.assertNotIn(removed_method, combined)
-        self.assertNotIn("qr" + "_code", combined)
-        self.assertNotIn("copia e " + "cola", combined)
+    def test_pix_frontend_preserves_qr_copy_and_status_flow(self) -> None:
+        combined = (
+            f"{self.template}\n{self.pix_template}\n{self.javascript}\n{self.styles}"
+        ).lower()
+        self.assertIn("data-pix-payment-form", combined)
+        self.assertIn("data-pix-copy-code", combined)
+        self.assertIn("data-pix-status-page", combined)
+        self.assertIn("qr code", combined)
 
     def test_card_brick_is_created_once_with_credit_and_debit(self) -> None:
         self.assertEqual(self.javascript.count('bricksBuilder.create("cardPayment"'), 1)
-        self.assertIn('types: { included: ["credit_card", "debit_card"] }', self.javascript)
+        self.assertIn(
+            'types: { included: ["credit_card", "debit_card"] }', self.javascript
+        )
         self.assertIn("additionalData?.paymentTypeId", self.javascript)
         self.assertIn("cardBrickInitializing", self.javascript)
         self.assertIn("cardBrickController.unmount()", self.javascript)
@@ -56,7 +60,9 @@ class PaymentFrontendContractTests(unittest.TestCase):
             self.app_javascript.count("window.BoostPayments?.initPayments()"), 1
         )
         self.assertIn("if (cardSubmissionInFlight) return", self.javascript)
-        self.assertIn('page.dataset.paymentPollingInitialized === "true"', self.javascript)
+        self.assertIn(
+            'page.dataset.paymentPollingInitialized === "true"', self.javascript
+        )
 
     def test_card_sdk_loads_before_the_local_payment_initialization(self) -> None:
         self.assertIn("{% block extra_head %}", self.template)
@@ -66,11 +72,15 @@ class PaymentFrontendContractTests(unittest.TestCase):
         self.assertLess(sdk_position, content_position)
 
     def test_card_initialization_errors_are_visible_and_controlled(self) -> None:
-        self.assertIn('reportCardPaymentError("initialization", error)', self.javascript)
-        self.assertIn('reportCardPaymentError("sdk", error)', self.javascript)
-        self.assertIn("Não foi possível iniciar o pagamento seguro por cartão.", self.javascript)
         self.assertIn(
-            "catch (error) {\n            reportCardPaymentError(\"initialization\", error)",
+            'reportCardPaymentError("initialization", error)', self.javascript
+        )
+        self.assertIn('reportCardPaymentError("sdk", error)', self.javascript)
+        self.assertIn(
+            "Não foi possível iniciar o pagamento seguro por cartão.", self.javascript
+        )
+        self.assertIn(
+            'catch (error) {\n            reportCardPaymentError("initialization", error)',
             self.javascript,
         )
 
