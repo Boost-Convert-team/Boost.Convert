@@ -1,7 +1,6 @@
 import os
 import secrets
 from datetime import timedelta
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from sqlalchemy.engine import URL
@@ -142,19 +141,9 @@ class Config:
     CSRF_ENABLED = get_bool_env("CSRF_ENABLED", True)
     RATE_LIMIT_ENABLED = get_bool_env("RATE_LIMIT_ENABLED", True)
     HSTS_MAX_AGE_SECONDS = get_int_env("HSTS_MAX_AGE_SECONDS", 31536000)
-    MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
-    MERCADO_PAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
-    MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET")
-    MERCADO_PAGO_COLLECTOR_ID = os.getenv("MERCADO_PAGO_COLLECTOR_ID")
-    MERCADO_PAGO_ENVIRONMENT = (os.getenv("MERCADO_PAGO_ENVIRONMENT") or "").lower()
-    MERCADO_PAGO_PLAN_PRICE = os.getenv("MERCADO_PAGO_PLAN_PRICE")
-    MERCADO_PAGO_MAX_INSTALLMENTS = os.getenv("MERCADO_PAGO_MAX_INSTALLMENTS")
-    MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS = get_int_env(
-        "MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS", 300
-    )
-    MERCADO_PAGO_RECONCILE_INTERVAL_SECONDS = get_int_env(
-        "MERCADO_PAGO_RECONCILE_INTERVAL_SECONDS", 10
-    )
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+    STRIPE_PRO_PRICE_ID = os.getenv("STRIPE_PRO_PRICE_ID")
     # Public SEO origin.  This must not depend on the inbound Host or proxy
     # scheme because those values may vary behind nginx and during health
     # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
@@ -186,84 +175,16 @@ def should_auto_create_db(app):
     return False
 
 
-def validate_mercado_pago_config(app):
-    """Fail closed for a production payment configuration."""
-    environment = str(app.config.get("MERCADO_PAGO_ENVIRONMENT") or "").lower()
-    access_token = str(app.config.get("MERCADO_PAGO_ACCESS_TOKEN") or "").strip()
-    public_key = str(app.config.get("MERCADO_PAGO_PUBLIC_KEY") or "").strip()
-    if (
-        not environment
-        and app.config.get("APP_ENV") not in {"production", "prod"}
-        and access_token.startswith("TEST-")
-        and public_key.startswith("TEST-")
-    ):
-        environment = "test"
-        app.config["MERCADO_PAGO_ENVIRONMENT"] = environment
-    if environment not in {"test", "production"}:
-        message = "MERCADO_PAGO_ENVIRONMENT deve ser test ou production."
-        if app.config.get("APP_ENV") in {"production", "prod"}:
-            raise RuntimeError(message)
-        app.logger.warning("mercado_pago_config_incomplete field=environment")
+def validate_stripe_config(app):
+    """Fail closed when production billing configuration is incomplete."""
+    required = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRO_PRICE_ID")
+    missing = [name for name in required if not str(app.config.get(name) or "").strip()]
+    if not missing:
+        if app.config.get("APP_ENV") in {"production", "prod"} and not str(
+            app.config.get("BASE_URL") or ""
+        ).startswith("https://"):
+            raise RuntimeError("BASE_URL HTTPS é obrigatória para pagamentos em produção.")
         return
-
-    required = {
-        "MERCADO_PAGO_ACCESS_TOKEN": app.config.get("MERCADO_PAGO_ACCESS_TOKEN"),
-        "MERCADO_PAGO_PUBLIC_KEY": app.config.get("MERCADO_PAGO_PUBLIC_KEY"),
-        "MERCADO_PAGO_WEBHOOK_SECRET": app.config.get("MERCADO_PAGO_WEBHOOK_SECRET"),
-        "MERCADO_PAGO_COLLECTOR_ID": app.config.get("MERCADO_PAGO_COLLECTOR_ID"),
-        "MERCADO_PAGO_PLAN_PRICE": app.config.get("MERCADO_PAGO_PLAN_PRICE"),
-        "MERCADO_PAGO_MAX_INSTALLMENTS": app.config.get(
-            "MERCADO_PAGO_MAX_INSTALLMENTS"
-        ),
-    }
-    missing = sorted(
-        name for name, value in required.items() if not str(value or "").strip()
-    )
-    is_production_app = app.config.get("APP_ENV") in {"production", "prod"}
-    if missing and is_production_app:
-        raise RuntimeError("Configuracao Mercado Pago ausente: " + ", ".join(missing))
-    if missing:
-        app.logger.warning(
-            "mercado_pago_config_incomplete fields=%s", ",".join(missing)
-        )
-        return
-
-    access_token = str(required["MERCADO_PAGO_ACCESS_TOKEN"])
-    public_key = str(required["MERCADO_PAGO_PUBLIC_KEY"])
-    uses_test_credentials = access_token.startswith("TEST-") or public_key.startswith(
-        "TEST-"
-    )
-    if environment == "production" and uses_test_credentials:
-        raise RuntimeError(
-            "Credenciais TEST nao podem ser usadas no ambiente Mercado Pago production."
-        )
-    if environment == "test" and not (
-        access_token.startswith("TEST-") and public_key.startswith("TEST-")
-    ):
-        raise RuntimeError("Ambiente Mercado Pago test exige credenciais TEST.")
-    if is_production_app and environment != "production":
-        raise RuntimeError(
-            "Aplicacao em producao exige MERCADO_PAGO_ENVIRONMENT=production."
-        )
-    if not is_production_app and environment == "production":
-        raise RuntimeError(
-            "Pagamentos reais sao bloqueados fora da aplicacao em producao."
-        )
-    if is_production_app and not str(app.config.get("BASE_URL") or "").startswith(
-        "https://"
-    ):
-        raise RuntimeError("BASE_URL HTTPS e obrigatoria para pagamentos em producao.")
-
-    try:
-        plan_price = Decimal(str(required["MERCADO_PAGO_PLAN_PRICE"]))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise RuntimeError("MERCADO_PAGO_PLAN_PRICE invalido.") from exc
-    if plan_price <= 0:
-        raise RuntimeError("MERCADO_PAGO_PLAN_PRICE precisa ser maior que zero.")
-
-    try:
-        max_installments = int(str(required["MERCADO_PAGO_MAX_INSTALLMENTS"]))
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError("MERCADO_PAGO_MAX_INSTALLMENTS invalido.") from exc
-    if max_installments < 1 or max_installments > 24:
-        raise RuntimeError("MERCADO_PAGO_MAX_INSTALLMENTS deve estar entre 1 e 24.")
+    if app.config.get("APP_ENV") in {"production", "prod"}:
+        raise RuntimeError("Configuracao Stripe ausente: " + ", ".join(missing))
+    app.logger.warning("stripe_config_incomplete fields=%s", ",".join(missing))

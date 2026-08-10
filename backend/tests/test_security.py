@@ -2,20 +2,24 @@ import sys
 import unittest
 from pathlib import Path
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import create_app
-from config import is_weak_secret_key
+from config import Config, is_weak_secret_key
 from security import CSRF_FIELD_NAME, CSRF_SESSION_KEY, clear_rate_limit_state
 
 
 class SecurityMiddlewareTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_rate_limit_state()
+        Config.SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+        Config.SQLALCHEMY_ENGINE_OPTIONS = {}
         self.app = create_app()
         self.app.config.update(TESTING=True)
+        with self.app.app_context():
+            from extensions import db
+            db.create_all()
         self.client = self.app.test_client()
 
     def test_post_without_csrf_token_is_blocked(self) -> None:
@@ -27,8 +31,7 @@ class SecurityMiddlewareTests(unittest.TestCase):
         response = self.client.get("/")
 
         content_security_policy = response.headers["Content-Security-Policy"]
-        self.assertIn("http2.mlstatic.com", content_security_policy)
-        self.assertIn("https://*.mercadolivre.com", content_security_policy)
+        self.assertIn("https://checkout.stripe.com", content_security_policy)
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("geolocation=()", response.headers["Permissions-Policy"])
@@ -50,18 +53,19 @@ class SecurityMiddlewareTests(unittest.TestCase):
         self.assertTrue(is_weak_secret_key("short"))
         self.assertFalse(is_weak_secret_key("a-secure-test-secret-key-with-32-chars"))
 
-    def test_mercado_pago_webhook_requires_secret_in_production(self) -> None:
-        self.app.config.update(APP_ENV="production", MERCADO_PAGO_WEBHOOK_SECRET=None)
+    def test_stripe_webhook_requires_secret(self) -> None:
+        self.app.config.update(STRIPE_WEBHOOK_SECRET=None)
 
         response = self.client.post(
-            "/webhooks/mercado-pago",
-            json={"type": "subscription_preapproval", "data": {"id": "sub_123"}},
+            "/api/webhooks/stripe",
+            data=b"{}",
+            headers={"Stripe-Signature": "invalid"},
         )
 
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 503)
 
     def test_private_checkout_route_requires_login_with_valid_csrf(self) -> None:
-        response = self.client.post("/checkout/pro", data=self.csrf_data())
+        response = self.client.post("/api/billing/checkout", data=self.csrf_data())
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])

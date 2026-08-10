@@ -5,6 +5,13 @@
 
 {% block content %}
 <main class="pricing-page">
+    {% if request.args.get('checkout') == 'success' %}
+    <p class="pricing-notice" role="status">Pagamento recebido. Seu acesso PRO será ativado assim que a Stripe confirmar a assinatura.</p>
+    {% elif request.args.get('checkout') == 'canceled' %}
+    <p class="pricing-notice" role="status">Checkout cancelado. Seu plano não foi alterado.</p>
+    {% elif request.args.get('checkout') == 'error' %}
+    <p class="pricing-notice" role="alert">O pagamento está temporariamente indisponível. Tente novamente em instantes.</p>
+    {% endif %}
     <section class="pricing-hero" aria-labelledby="pricing-title">
         <div class="pricing-copy reveal">
             <div class="eyebrow pricing-eyebrow">
@@ -13,7 +20,6 @@
             </div>
             <h1 id="pricing-title">Converta no <span>ritmo do seu trabalho</span></h1>
             <p>Use o Free para demandas pontuais. Assine BoostConvert PRO para tirar a trava di&aacute;ria e enviar arquivos maiores.</p>
-            <strong class="pricing-save">Economize 60%</strong>
         </div>
 
         <div class="pricing-stage reveal" aria-label="Planos dispon&iacute;veis">
@@ -54,15 +60,10 @@
                     <p>Para quem converte arquivos todos os dias</p>
                 </div>
 
-                <div class="plan-price plan-price-promo" aria-label="De R$ 49,90 por R$ 19,90 por m&ecirc;s">
-                    <div class="plan-price-before">
-                        <span>De</span>
-                        <del class="plan-price-old">R$ 49,90</del>
-                    </div>
+                <div class="plan-price" aria-label="R$ 29,90 por m&ecirc;s">
                     <div class="plan-price-current">
-                        <span>por</span>
                         <b>R$</b>
-                        <strong>19,90</strong>
+                        <strong>29,90</strong>
                         <small>/ m&ecirc;s</small>
                     </div>
                 </div>
@@ -77,9 +78,12 @@
                 </ul>
 
                 <div class="plan-action">
-                    <a class="button button-primary plan-button" href="{{ url_for('checkout.checkout_pro_choice') }}">
+                    <form method="post" action="{{ url_for('checkout.create_checkout_session') }}">
+                        {% include "partials/csrf_field.html" %}
+                    <button class="button button-primary plan-button" type="submit">
                         Assinar BoostConvert PRO
-                    </a>
+                    </button>
+                    </form>
                 </div>
                 <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Volume alto. Convers&otilde;es ilimitadas.</p>
             </article>

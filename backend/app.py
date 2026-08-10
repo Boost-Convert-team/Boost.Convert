@@ -8,14 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()
 
-from flask_migrate import Migrate
-import pip_system_certs.wrapt_requests
-from config import Config, validate_mercado_pago_config
-from error_pages import register_error_handlers
-from extensions import db, lm, oauth
-from models import Usuario
-from register_blueprints import register_blueprints
-from security import init_security
+import pip_system_certs.wrapt_requests  # noqa: F401
 from Blueprints.main.seo_helpers import public_url, robots_for_path
 from Blueprints.main.tool_search import build_tool_search_index
 from Blueprints.main.tools_registry import build_tool_counts
@@ -25,6 +18,13 @@ from Blueprints.services.convertions_services.runtime.file_cleanup import (
 from Blueprints.services.convertions_services.runtime.media_dependencies import (
     configure_media_dependencies,
 )
+from config import Config, validate_stripe_config
+from error_pages import register_error_handlers
+from extensions import db, lm, oauth
+from flask_migrate import Migrate
+from models import Usuario
+from register_blueprints import register_blueprints
+from security import init_security
 
 migrate = Migrate()
 
@@ -38,7 +38,7 @@ def create_app() -> Flask:
     )
     app.config.from_object(Config)
     app.secret_key = app.config["SECRET_KEY"]
-    validate_mercado_pago_config(app)
+    validate_stripe_config(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -113,7 +113,7 @@ def create_app() -> Flask:
     @app.get("/health")
     def health():
         try:
-            db.session.execute(text("SELECT id FROM payments LIMIT 1"))
+            db.session.execute(text("SELECT 1"))
         except SQLAlchemyError:
             db.session.rollback()
             return jsonify({"status": "unavailable"}), 503

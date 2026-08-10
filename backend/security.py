@@ -12,14 +12,13 @@ from flask_login import current_user
 from werkzeug.exceptions import TooManyRequests
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-
 CSRF_FIELD_NAME = "_csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_EXEMPT_ENDPOINTS = {
     "webhook.legacy_webhook_disabled",
-    "webhook.receive_mercado_pago_webhook",
+    "webhook.receive_stripe_webhook",
 }
 
 
@@ -42,14 +41,12 @@ AUTH_RATE_LIMITS = {
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
-    "checkout.checkout_credit_subscription": RateLimitRule(10, 60),
-    "checkout.create_card_payment": RateLimitRule(5, 60),
-    "checkout.card_payment_status": RateLimitRule(30, 60),
+    "checkout.create_checkout_session": RateLimitRule(10, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
 PAYMENT_CREATION_ENDPOINTS = {
-    "checkout.create_card_payment",
+    "checkout.create_checkout_session",
 }
 PAYMENT_CREATION_RAW_LIMIT = RateLimitRule(30, 60)
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
@@ -308,12 +305,12 @@ def should_noindex_response(response: Response) -> bool:
 def build_content_security_policy() -> str:
     directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com https://http2.mlstatic.com",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-        "img-src 'self' data: https://*.mercadopago.com https://*.mercadolibre.com https://*.mercadolivre.com https://http2.mlstatic.com",
+        "img-src 'self' data:",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self' https://*.mercadopago.com https://*.mercadolibre.com https://http2.mlstatic.com",
-        "frame-src https://*.mercadopago.com https://*.mercadolibre.com",
+        "connect-src 'self'",
+        "frame-src https://checkout.stripe.com",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

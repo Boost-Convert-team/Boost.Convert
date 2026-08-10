@@ -3,12 +3,10 @@ from datetime import datetime, timezone
 
 from extensions import db
 from flask import current_app, has_app_context
-from models import Payment, Subscription
+from models import Subscription
 from sqlalchemy.exc import SQLAlchemyError
 
-ACTIVE_SUBSCRIPTION_STATUSES = {"authorized", "active", "approved"}
-APPROVED_PAYMENT_STATUSES = {"approved"}
-ACTIVE_ONE_TIME_PAYMENT_METHODS = {"credit_card", "debit_card"}
+ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing", "past_due"}
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",
@@ -18,7 +16,7 @@ MISSING_BILLING_SCHEMA_MARKERS = (
     "undefinedcolumn",
     "unknown column",
 )
-BILLING_TABLE_MARKERS = ("subscriptions", "payments")
+BILLING_TABLE_MARKERS = ("subscriptions",)
 
 
 @dataclass(frozen=True)
@@ -60,15 +58,13 @@ def get_pro_access_state(usuario, now: datetime | None = None) -> ProAccessState
     now = now or utc_now()
     recurring = find_active_recurring_subscription(user_id, now)
     if recurring is not None:
-        return ProAccessState(True, "recurring", recurring.paid_through_at)
+        return ProAccessState(
+            True,
+            "recurring",
+            recurring.paid_through_at or recurring.current_period_end,
+        )
 
-    payment = find_active_paid_payment(user_id, now)
-    if payment is not None:
-        return ProAccessState(True, "payment", payment.premium_expires_at)
-
-    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_payment_records(
-        user_id
-    ):
+    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_subscription(user_id):
         return ProAccessState(True, "legacy")
     return ProAccessState(False, "none")
 
@@ -111,8 +107,8 @@ def find_active_recurring_subscription(
     return (
         Subscription.query.filter(
             Subscription.user_id == user_id,
+            Subscription.provider == "stripe",
             Subscription.status.in_(ACTIVE_SUBSCRIPTION_STATUSES),
-            Subscription.latest_payment_status.in_(APPROVED_PAYMENT_STATUSES),
             Subscription.paid_through_at.isnot(None),
             Subscription.paid_through_at > now,
         )
@@ -121,32 +117,8 @@ def find_active_recurring_subscription(
     )
 
 
-def has_active_one_time_payment(
-    user_id: int,
-    now: datetime | None = None,
-) -> bool:
-    return find_active_paid_payment(user_id, now or utc_now()) is not None
-
-
-def find_active_paid_payment(user_id: int, now: datetime) -> Payment | None:
-    return (
-        Payment.query.filter(
-            Payment.user_id == user_id,
-            Payment.payment_method.in_(ACTIVE_ONE_TIME_PAYMENT_METHODS),
-            Payment.status.in_(APPROVED_PAYMENT_STATUSES),
-            Payment.premium_expires_at.isnot(None),
-            Payment.premium_expires_at > now,
-        )
-        .order_by(Payment.premium_expires_at.desc())
-        .first()
-    )
-
-
-def has_legacy_active_pro_without_payment_records(user_id: int) -> bool:
-    return (
-        Subscription.query.filter_by(user_id=user_id).first() is None
-        and Payment.query.filter_by(user_id=user_id).first() is None
-    )
+def has_legacy_active_pro_without_subscription(user_id: int) -> bool:
+    return Subscription.query.filter_by(user_id=user_id).first() is None
 
 
 def is_user_marked_pro(usuario) -> bool:
