@@ -227,9 +227,7 @@ def get_recent_rate_limit_hits(
 ) -> list[RateLimitHit]:
     now = monotonic() if now is None else now
     cutoff = now - window_seconds
-    hits = [
-        hit for hit in RATE_LIMIT_HITS.get(key, []) if hit.occurred_at >= cutoff
-    ]
+    hits = [hit for hit in RATE_LIMIT_HITS.get(key, []) if hit.occurred_at >= cutoff]
     RATE_LIMIT_HITS[key] = hits
     return hits
 
@@ -275,11 +273,15 @@ def clear_rate_limit_state() -> None:
 
 
 def apply_security_headers(response: Response) -> Response:
-    response.headers.setdefault("Content-Security-Policy", build_content_security_policy())
+    response.headers.setdefault(
+        "Content-Security-Policy", build_content_security_policy()
+    )
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+    )
     if should_noindex_response(response):
         response.headers.setdefault("X-Robots-Tag", "noindex, follow, noarchive")
     if current_app.config.get("FORCE_HTTPS"):

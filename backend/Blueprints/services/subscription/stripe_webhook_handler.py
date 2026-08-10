@@ -48,7 +48,9 @@ def process_event(event: Any) -> WebhookResult:
     if not event_id.startswith("evt_") or not event_type:
         raise StripeWebhookError("Evento Stripe inválido.")
 
-    if PaymentWebhookEvent.query.filter_by(provider=PROVIDER, provider_event_id=event_id).first():
+    if PaymentWebhookEvent.query.filter_by(
+        provider=PROVIDER, provider_event_id=event_id
+    ).first():
         return WebhookResult(event_type, "duplicate", True)
 
     event_record = PaymentWebhookEvent(
@@ -75,7 +77,9 @@ def process_event(event: Any) -> WebhookResult:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        if PaymentWebhookEvent.query.filter_by(provider=PROVIDER, provider_event_id=event_id).first():
+        if PaymentWebhookEvent.query.filter_by(
+            provider=PROVIDER, provider_event_id=event_id
+        ).first():
             return WebhookResult(event_type, "duplicate", True)
         raise
 
@@ -117,7 +121,9 @@ def _handle_invoice(invoice: Any, *, paid: bool) -> None:
     if paid:
         period_end = _invoice_period_end(invoice) or subscription.current_period_end
         subscription.paid_through_at = period_end
-    synchronize_user_pro_status(subscription.user, _subscription_grants_access(subscription), persist=False)
+    synchronize_user_pro_status(
+        subscription.user, _subscription_grants_access(subscription), persist=False
+    )
 
 
 def _sync_subscription(data: Any, *, deleted: bool = False) -> Subscription:
@@ -149,10 +155,16 @@ def _sync_subscription(data: Any, *, deleted: bool = False) -> Subscription:
     subscription.stripe_price_id = price_id
     subscription.current_period_end = period_end
     subscription.next_payment_at = period_end
-    subscription.cancel_at_period_end = bool(_value(data, "cancel_at_period_end", False))
-    subscription.canceled_at = _timestamp(_value(data, "canceled_at")) if status == "canceled" else None
+    subscription.cancel_at_period_end = bool(
+        _value(data, "cancel_at_period_end", False)
+    )
+    subscription.canceled_at = (
+        _timestamp(_value(data, "canceled_at")) if status == "canceled" else None
+    )
     db.session.add(subscription)
-    synchronize_user_pro_status(user, _subscription_grants_access(subscription), persist=False)
+    synchronize_user_pro_status(
+        user, _subscription_grants_access(subscription), persist=False
+    )
     return subscription
 
 
@@ -189,7 +201,9 @@ def _retrieve_subscription(subscription_id: str) -> Any:
 
 
 def _find_subscription(subscription_id: str) -> Subscription | None:
-    return Subscription.query.filter_by(provider=PROVIDER, provider_subscription_id=subscription_id).first()
+    return Subscription.query.filter_by(
+        provider=PROVIDER, provider_subscription_id=subscription_id
+    ).first()
 
 
 def _configured_price_id() -> str:
@@ -226,8 +240,12 @@ def _invoice_subscription_id(invoice: Any) -> str:
 
 def _invoice_period_end(invoice: Any) -> datetime | None:
     lines = _value(_value(invoice, "lines", {}) or {}, "data", []) or []
-    ends = [_timestamp(_value(_value(line, "period", {}) or {}, "end")) for line in lines]
-    return max((end for end in ends if end), default=_timestamp(_value(invoice, "period_end")))
+    ends = [
+        _timestamp(_value(_value(line, "period", {}) or {}, "end")) for line in lines
+    ]
+    return max(
+        (end for end in ends if end), default=_timestamp(_value(invoice, "period_end"))
+    )
 
 
 def _event_object(event: Any) -> Any:
@@ -252,7 +270,11 @@ def _timestamp(value: Any) -> datetime | None:
 
 
 def _as_utc(value: datetime) -> datetime:
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return (
+        value.replace(tzinfo=timezone.utc)
+        if value.tzinfo is None
+        else value.astimezone(timezone.utc)
+    )
 
 
 def _value(data: Any, key: str, default: Any = None) -> Any:

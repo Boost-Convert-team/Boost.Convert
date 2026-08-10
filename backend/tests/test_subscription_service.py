@@ -42,15 +42,17 @@ class SubscriptionServiceTests(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
             user = self.user("active@example.com")
-            db.session.add(Subscription(
-                user_id=user.id,
-                provider="stripe",
-                provider_subscription_id="sub_active",
-                stripe_price_id="price_pro",
-                status="active",
-                current_period_end=period_end,
-                paid_through_at=period_end,
-            ))
+            db.session.add(
+                Subscription(
+                    user_id=user.id,
+                    provider="stripe",
+                    provider_subscription_id="sub_active",
+                    stripe_price_id="price_pro",
+                    status="active",
+                    current_period_end=period_end,
+                    paid_through_at=period_end,
+                )
+            )
             db.session.commit()
             state = get_pro_access_state(user, now=period_end - timedelta(seconds=1))
             self.assertTrue(state.active)
@@ -60,13 +62,15 @@ class SubscriptionServiceTests(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
             user = self.user("canceled@example.com", "pro", "active")
-            db.session.add(Subscription(
-                user_id=user.id,
-                provider="stripe",
-                provider_subscription_id="sub_canceled",
-                status="canceled",
-                current_period_end=datetime.now(timezone.utc) + timedelta(days=10),
-            ))
+            db.session.add(
+                Subscription(
+                    user_id=user.id,
+                    provider="stripe",
+                    provider_subscription_id="sub_canceled",
+                    status="canceled",
+                    current_period_end=datetime.now(timezone.utc) + timedelta(days=10),
+                )
+            )
             db.session.commit()
             self.assertFalse(has_active_pro_subscription(user))
             self.assertEqual((user.plano, user.status_assinatura), ("free", "inactive"))

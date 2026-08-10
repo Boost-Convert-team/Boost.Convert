@@ -16,7 +16,9 @@ class Usuario(UserMixin, db.Model):
     senha = db.Column(db.String(255), nullable=True)
     nome = db.Column(db.String(200), nullable=True)
     google_id = db.Column(db.String(255), unique=True, nullable=True)
-    stripe_customer_id = db.Column(db.String(120), unique=True, nullable=True, index=True)
+    stripe_customer_id = db.Column(
+        db.String(120), unique=True, nullable=True, index=True
+    )
 
     plano = db.Column(db.String(20), nullable=False, default="free")
     status_assinatura = db.Column(db.String(20), nullable=False, default="inactive")
@@ -36,9 +38,7 @@ class Subscription(db.Model):
     user_id = db.Column(
         db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True
     )
-    provider = db.Column(
-        db.String(50), nullable=False, default="stripe", index=True
-    )
+    provider = db.Column(db.String(50), nullable=False, default="stripe", index=True)
     provider_subscription_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
     external_reference = db.Column(db.String(255), nullable=True, index=True)
@@ -51,7 +51,9 @@ class Subscription(db.Model):
     paid_through_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
     latest_payment_status = db.Column(db.String(50), nullable=True, index=True)
     stripe_price_id = db.Column(db.String(120), nullable=True, index=True)
-    current_period_end = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    current_period_end = db.Column(
+        db.DateTime(timezone=True), nullable=True, index=True
+    )
     cancel_at_period_end = db.Column(db.Boolean, nullable=False, default=False)
     canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
@@ -73,9 +75,7 @@ class PaymentWebhookEvent(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    provider = db.Column(
-        db.String(50), nullable=False, default="stripe", index=True
-    )
+    provider = db.Column(db.String(50), nullable=False, default="stripe", index=True)
     provider_event_id = db.Column(db.String(120), nullable=True, index=True)
     event_type = db.Column(db.String(80), nullable=False)
     resource_id = db.Column(db.String(120), nullable=True, index=True)

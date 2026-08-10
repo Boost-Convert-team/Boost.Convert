@@ -36,11 +36,15 @@ def receive_stripe_webhook():
         return jsonify({"ok": False, "error": "invalid_event"}), 400
     except stripe.StripeError as exc:
         db.session.rollback()
-        current_app.logger.warning("stripe_webhook_api_failed error_type=%s", type(exc).__name__)
+        current_app.logger.warning(
+            "stripe_webhook_api_failed error_type=%s", type(exc).__name__
+        )
         return jsonify({"ok": False, "error": "provider_unavailable"}), 503
     except SQLAlchemyError as exc:
         db.session.rollback()
-        current_app.logger.error("stripe_webhook_database_failed error_type=%s", type(exc).__name__)
+        current_app.logger.error(
+            "stripe_webhook_database_failed error_type=%s", type(exc).__name__
+        )
         return jsonify({"ok": False, "error": "database_unavailable"}), 503
 
     return jsonify(

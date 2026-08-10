@@ -61,7 +61,9 @@ class StripeCheckoutTests(unittest.TestCase):
             db.drop_all()
 
     def test_route_requires_authentication(self):
-        response = self.client.post("/api/billing/checkout", headers=self.csrf_headers())
+        response = self.client.post(
+            "/api/billing/checkout", headers=self.csrf_headers()
+        )
         self.assertEqual(response.status_code, 401)
 
     def test_missing_price_fails_explicitly(self):
@@ -69,25 +71,50 @@ class StripeCheckoutTests(unittest.TestCase):
             self.app.config["STRIPE_PRO_PRICE_ID"] = ""
             user = db.session.get(Usuario, self.user_id)
             with self.assertRaises(StripeConfigurationError):
-                create_subscription_checkout(user, "https://example/s", "https://example/c")
+                create_subscription_checkout(
+                    user, "https://example/s", "https://example/c"
+                )
 
-    @patch("Blueprints.services.subscription.stripe_checkout_service.stripe.checkout.Session.create")
-    @patch("Blueprints.services.subscription.stripe_checkout_service.stripe.Customer.create")
-    def test_creates_customer_and_subscription_checkout(self, customer_create, session_create):
+    @patch(
+        "Blueprints.services.subscription.stripe_checkout_service.stripe.checkout.Session.create"
+    )
+    @patch(
+        "Blueprints.services.subscription.stripe_checkout_service.stripe.Customer.create"
+    )
+    def test_creates_customer_and_subscription_checkout(
+        self, customer_create, session_create
+    ):
         customer_create.return_value = {"id": "cus_created"}
-        session_create.return_value = {"id": "cs_created", "url": "https://checkout.stripe.com/c/pay/test"}
+        session_create.return_value = {
+            "id": "cs_created",
+            "url": "https://checkout.stripe.com/c/pay/test",
+        }
         with self.app.app_context():
             user = db.session.get(Usuario, self.user_id)
-            result = create_subscription_checkout(user, "https://example/s", "https://example/c")
-            self.assertEqual(result.checkout_url, "https://checkout.stripe.com/c/pay/test")
+            result = create_subscription_checkout(
+                user, "https://example/s", "https://example/c"
+            )
+            self.assertEqual(
+                result.checkout_url, "https://checkout.stripe.com/c/pay/test"
+            )
             self.assertEqual(user.stripe_customer_id, "cus_created")
         self.assertEqual(session_create.call_args.kwargs["mode"], "subscription")
-        self.assertEqual(session_create.call_args.kwargs["line_items"], [{"price": "price_pro", "quantity": 1}])
+        self.assertEqual(
+            session_create.call_args.kwargs["line_items"],
+            [{"price": "price_pro", "quantity": 1}],
+        )
 
-    @patch("Blueprints.services.subscription.stripe_checkout_service.stripe.checkout.Session.create")
-    @patch("Blueprints.services.subscription.stripe_checkout_service.stripe.Customer.create")
+    @patch(
+        "Blueprints.services.subscription.stripe_checkout_service.stripe.checkout.Session.create"
+    )
+    @patch(
+        "Blueprints.services.subscription.stripe_checkout_service.stripe.Customer.create"
+    )
     def test_reuses_existing_customer(self, customer_create, session_create):
-        session_create.return_value = {"id": "cs_existing", "url": "https://checkout.stripe.com/c/pay/existing"}
+        session_create.return_value = {
+            "id": "cs_existing",
+            "url": "https://checkout.stripe.com/c/pay/existing",
+        }
         with self.app.app_context():
             user = db.session.get(Usuario, self.user_id)
             user.stripe_customer_id = "cus_existing"
@@ -96,7 +123,10 @@ class StripeCheckoutTests(unittest.TestCase):
         customer_create.assert_not_called()
         self.assertEqual(session_create.call_args.kwargs["customer"], "cus_existing")
 
-    @patch("Blueprints.main.checkout_routes.create_subscription_checkout", side_effect=StripeCheckoutError("falha segura"))
+    @patch(
+        "Blueprints.main.checkout_routes.create_subscription_checkout",
+        side_effect=StripeCheckoutError("falha segura"),
+    )
     def test_provider_failure_is_safe(self, _service):
         self.login()
         response = self.client.post(

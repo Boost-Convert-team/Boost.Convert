@@ -30,7 +30,9 @@ def create_checkout_session() -> tuple[Response, int] | Response:
             _external_url("main.planos", checkout="canceled"),
         )
     except StripeConfigurationError:
-        current_app.logger.error("stripe_checkout_configuration_missing user_id=%s", current_user.id)
+        current_app.logger.error(
+            "stripe_checkout_configuration_missing user_id=%s", current_user.id
+        )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
     except StripeCheckoutError as exc:
         db.session.rollback()
@@ -38,7 +40,9 @@ def create_checkout_session() -> tuple[Response, int] | Response:
         return _checkout_error(str(exc), 502)
     except SQLAlchemyError as exc:
         db.session.rollback()
-        current_app.logger.error("stripe_checkout_database_failed error_type=%s", type(exc).__name__)
+        current_app.logger.error(
+            "stripe_checkout_database_failed error_type=%s", type(exc).__name__
+        )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
 
     if request.accept_mimetypes.best == "application/json":
@@ -55,4 +59,6 @@ def _checkout_error(message: str, status: int) -> tuple[Response, int] | Respons
 def _external_url(endpoint: str, **values: str) -> str:
     base_url = str(current_app.config.get("BASE_URL") or "").rstrip("/")
     path = url_for(endpoint, **values)
-    return f"{base_url}{path}" if base_url else url_for(endpoint, _external=True, **values)
+    return (
+        f"{base_url}{path}" if base_url else url_for(endpoint, _external=True, **values)
+    )

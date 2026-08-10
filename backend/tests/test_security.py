@@ -19,11 +19,14 @@ class SecurityMiddlewareTests(unittest.TestCase):
         self.app.config.update(TESTING=True)
         with self.app.app_context():
             from extensions import db
+
             db.create_all()
         self.client = self.app.test_client()
 
     def test_post_without_csrf_token_is_blocked(self) -> None:
-        response = self.client.post("/login", data={"nomeForm": "a@b.com", "senhaForm": "x"})
+        response = self.client.post(
+            "/login", data={"nomeForm": "a@b.com", "senhaForm": "x"}
+        )
 
         self.assertEqual(response.status_code, 400)
 
@@ -40,7 +43,9 @@ class SecurityMiddlewareTests(unittest.TestCase):
         responses = [
             self.client.post(
                 "/login",
-                data=self.csrf_data({"nomeForm": "nobody@example.com", "senhaForm": "bad"}),
+                data=self.csrf_data(
+                    {"nomeForm": "nobody@example.com", "senhaForm": "bad"}
+                ),
                 environ_overrides={"REMOTE_ADDR": "203.0.113.77"},
             )
             for _index in range(6)

@@ -64,7 +64,9 @@ def get_pro_access_state(usuario, now: datetime | None = None) -> ProAccessState
             recurring.paid_through_at or recurring.current_period_end,
         )
 
-    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_subscription(user_id):
+    if is_user_marked_pro(usuario) and has_legacy_active_pro_without_subscription(
+        user_id
+    ):
         return ProAccessState(True, "legacy")
     return ProAccessState(False, "none")
 

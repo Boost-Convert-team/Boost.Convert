@@ -183,7 +183,9 @@ def validate_stripe_config(app):
         if app.config.get("APP_ENV") in {"production", "prod"} and not str(
             app.config.get("BASE_URL") or ""
         ).startswith("https://"):
-            raise RuntimeError("BASE_URL HTTPS é obrigatória para pagamentos em produção.")
+            raise RuntimeError(
+                "BASE_URL HTTPS é obrigatória para pagamentos em produção."
+            )
         return
     if app.config.get("APP_ENV") in {"production", "prod"}:
         raise RuntimeError("Configuracao Stripe ausente: " + ", ".join(missing))

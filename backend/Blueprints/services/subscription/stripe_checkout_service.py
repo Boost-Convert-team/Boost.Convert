@@ -23,7 +23,9 @@ class CheckoutResult:
     checkout_url: str
 
 
-def create_subscription_checkout(usuario: Usuario, success_url: str, cancel_url: str) -> CheckoutResult:
+def create_subscription_checkout(
+    usuario: Usuario, success_url: str, cancel_url: str
+) -> CheckoutResult:
     secret_key = _required_config("STRIPE_SECRET_KEY")
     price_id = _required_config("STRIPE_PRO_PRICE_ID")
     customer_id = _get_or_create_customer(usuario, secret_key)
@@ -47,12 +49,16 @@ def create_subscription_checkout(usuario: Usuario, success_url: str, cancel_url:
             idempotency_key=f"checkout-{usuario.id}-{uuid4()}",
         )
     except stripe.StripeError as exc:
-        raise StripeCheckoutError("Não foi possível iniciar o pagamento. Tente novamente.") from exc
+        raise StripeCheckoutError(
+            "Não foi possível iniciar o pagamento. Tente novamente."
+        ) from exc
 
     session_id = str(_value(session, "id") or "")
     checkout_url = str(_value(session, "url") or "")
     if not session_id or not checkout_url.startswith("https://checkout.stripe.com/"):
-        raise StripeCheckoutError("A Stripe não retornou uma sessão de pagamento válida.")
+        raise StripeCheckoutError(
+            "A Stripe não retornou uma sessão de pagamento válida."
+        )
     return CheckoutResult(session_id=session_id, checkout_url=checkout_url)
 
 
@@ -69,7 +75,9 @@ def _get_or_create_customer(usuario: Usuario, secret_key: str) -> str:
             idempotency_key=f"boostconvert-user-{usuario.id}-customer",
         )
     except stripe.StripeError as exc:
-        raise StripeCheckoutError("Não foi possível iniciar o pagamento. Tente novamente.") from exc
+        raise StripeCheckoutError(
+            "Não foi possível iniciar o pagamento. Tente novamente."
+        ) from exc
 
     customer_id = str(_value(customer, "id") or "")
     if not customer_id.startswith("cus_"):
