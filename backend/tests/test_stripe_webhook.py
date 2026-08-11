@@ -165,6 +165,33 @@ class StripeWebhookTests(unittest.TestCase):
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
             self.assertEqual(Subscription.query.one().status, "canceled")
 
+    def test_existing_subscription_keeps_its_original_price(self):
+        period_end = int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp())
+        with self.app.app_context():
+            db.session.add(
+                Subscription(
+                    user_id=self.user_id,
+                    provider="stripe",
+                    provider_subscription_id="sub_user",
+                    status="active",
+                    stripe_price_id="price_pro_legacy",
+                    paid_through_at=datetime.fromtimestamp(period_end, timezone.utc),
+                )
+            )
+            db.session.commit()
+
+            process_event(
+                self.event(
+                    "evt_legacy_price",
+                    "customer.subscription.updated",
+                    self.subscription("active", period_end, price_id="price_pro_legacy"),
+                )
+            )
+
+            subscription = Subscription.query.one()
+            self.assertEqual(subscription.stripe_price_id, "price_pro_legacy")
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
+
     def test_unknown_event_is_idempotently_ignored(self):
         with self.app.app_context():
             result = process_event(
@@ -176,7 +203,9 @@ class StripeWebhookTests(unittest.TestCase):
     def metadata(self):
         return {"boostconvert_user_id": str(self.user_id)}
 
-    def subscription(self, status, period_end, *, cancel_at_period_end=False):
+    def subscription(
+        self, status, period_end, *, cancel_at_period_end=False, price_id="price_pro"
+    ):
         return {
             "id": "sub_user",
             "customer": "cus_user",
@@ -185,7 +214,7 @@ class StripeWebhookTests(unittest.TestCase):
             "cancel_at_period_end": cancel_at_period_end,
             "items": {
                 "data": [
-                    {"price": {"id": "price_pro"}, "current_period_end": period_end}
+                    {"price": {"id": price_id}, "current_period_end": period_end}
                 ]
             },
         }

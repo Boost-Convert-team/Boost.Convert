@@ -147,7 +147,11 @@ def _sync_subscription(data: Any, *, deleted: bool = False) -> Subscription:
         raise StripeWebhookError("Assinatura associada a outro usuário.")
 
     price_id = _subscription_price_id(data)
-    if price_id != _configured_price_id():
+    is_current_price = price_id == _configured_price_id()
+    is_existing_subscription_price = bool(
+        subscription.id and subscription.stripe_price_id == price_id
+    )
+    if not is_current_price and not is_existing_subscription_price:
         raise StripeWebhookError("Price da assinatura não corresponde ao plano PRO.")
     period_end = _subscription_period_end(data)
     status = "canceled" if deleted else str(_value(data, "status") or "pending")

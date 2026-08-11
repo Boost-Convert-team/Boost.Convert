@@ -144,6 +144,7 @@ class Config:
     STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
     STRIPE_PRO_PRICE_ID = os.getenv("STRIPE_PRO_PRICE_ID")
+    PRO_PLAN_PRICE_DISPLAY = "25,90"
     # Public SEO origin.  This must not depend on the inbound Host or proxy
     # scheme because those values may vary behind nginx and during health
     # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
