@@ -31,7 +31,7 @@
                     "X-CSRF-Token": String(payload._csrf_token || ""),
                     "X-Idempotency-Key": String(payload.idempotency_key || "")
                 },
-                body: JSON.stringify({ plan: payload.plan })
+                body: JSON.stringify({ plan_id: payload.plan_id })
             });
             if (response.redirected && response.url.includes("/login")) {
                 window.location.assign(form.dataset.loginUrl || response.url);

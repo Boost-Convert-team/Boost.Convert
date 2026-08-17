@@ -11,7 +11,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from flask import current_app
 
-from Blueprints.services.payments.mercado_pago_gateway import MercadoPagoGateway
+from Blueprints.services.payments.mercado_pago_client import MercadoPagoClient
 from Blueprints.services.payments.payment_service import (
     PROVIDER,
     map_subscription_status,
@@ -53,9 +53,7 @@ def validate_webhook_signature(
     request_id: str,
     data_id: str,
 ) -> None:
-    secret = str(
-        current_app.config.get("MERCADOPAGO_WEBHOOK_SECRET") or ""
-    ).strip()
+    secret = str(current_app.config.get("MERCADOPAGO_WEBHOOK_SECRET") or "").strip()
     if not secret:
         raise WebhookConfigurationError("Webhook não configurado.")
 
@@ -100,7 +98,7 @@ def process_subscription_notification(
     resource_id: str,
     *,
     request_id: str = "",
-    gateway: MercadoPagoGateway | None = None,
+    client: MercadoPagoClient | None = None,
 ) -> WebhookResult:
     event_type = str(payload.get("type") or "").strip()
     if event_type not in SUPPORTED_EVENT_TYPES:
@@ -117,7 +115,7 @@ def process_subscription_notification(
     if existing_event is not None:
         return WebhookResult(event_type, existing_event.status, True)
 
-    payment_gateway = gateway or MercadoPagoGateway()
+    mercado_pago = client or MercadoPagoClient()
     event = PaymentWebhookEvent(
         provider=PROVIDER,
         provider_event_id=provider_event_id,
@@ -129,21 +127,19 @@ def process_subscription_notification(
     db.session.add(event)
 
     if event_type == SUBSCRIPTION_EVENT:
-        provider_subscription = payment_gateway.get_subscription(resource_id)
+        provider_subscription = mercado_pago.get_subscription(resource_id)
         subscription = validate_provider_subscription(
             provider_subscription, resource_id
         )
         synchronize_subscription_fields(subscription, provider_subscription)
     else:
-        provider_invoice = payment_gateway.get_authorized_payment(resource_id)
+        provider_invoice = mercado_pago.get_authorized_payment(resource_id)
         provider_subscription_id = str(
             provider_invoice.get("preapproval_id") or ""
         ).strip()
         if not provider_subscription_id:
             raise WebhookValidationError("Fatura sem assinatura associada.")
-        provider_subscription = payment_gateway.get_subscription(
-            provider_subscription_id
-        )
+        provider_subscription = mercado_pago.get_subscription(provider_subscription_id)
         subscription = validate_provider_subscription(
             provider_subscription, provider_subscription_id
         )
@@ -197,12 +193,15 @@ def validate_provider_subscription(
     provider_plan_id = str(
         provider_subscription.get("preapproval_plan_id") or ""
     ).strip()
-    if not provider_plan_id or provider_plan_id != subscription.provider_plan_id:
+    expected_plan_id = str(subscription.provider_plan_id or "").strip()
+    if provider_plan_id != expected_plan_id:
         raise WebhookValidationError("Plano da assinatura não corresponde.")
 
     recurring = provider_subscription.get("auto_recurring")
     if not isinstance(recurring, dict):
         raise WebhookValidationError("Recorrência da assinatura ausente.")
+    if recurring.get("frequency") != 1 or recurring.get("frequency_type") != "months":
+        raise WebhookValidationError("Recorrência da assinatura não corresponde.")
     validate_amount_and_currency(
         recurring.get("transaction_amount"),
         recurring.get("currency_id"),
@@ -265,7 +264,7 @@ def synchronize_subscription_fields(
         provider_subscription.get("next_payment_date")
     )
     subscription.updated_at = utc_now()
-    if provider_status == "cancelled":
+    if provider_status in {"canceled", "cancelled"}:
         subscription.canceled_at = subscription.canceled_at or utc_now()
 
 
@@ -313,16 +312,14 @@ def synchronize_authorized_payment(
     if provider_status != "approved" or not provider_payment_id:
         return
 
-    approved_at = parse_provider_datetime(provider_invoice.get("debit_date")) or utc_now()
-    period_end = parse_provider_datetime(
-        provider_subscription.get("next_payment_date")
+    approved_at = (
+        parse_provider_datetime(provider_invoice.get("debit_date")) or utc_now()
     )
+    period_end = parse_provider_datetime(provider_subscription.get("next_payment_date"))
     if period_end is None or period_end <= approved_at:
         period_end = add_calendar_month(approved_at)
     current_paid_through = as_utc(subscription.paid_through_at)
-    subscription.paid_through_at = max(
-        period_end, current_paid_through or period_end
-    )
+    subscription.paid_through_at = max(period_end, current_paid_through or period_end)
     subscription.status = "active"
     payment.approved_at = approved_at
     payment.premium_expires_at = period_end
@@ -342,9 +339,10 @@ def map_payment_status(provider_status: str) -> str:
     return {
         "approved": "approved",
         "rejected": "rejected",
-        "cancelled": "cancelled",
-        "refunded": "cancelled",
-        "charged_back": "cancelled",
+        "canceled": "canceled",
+        "cancelled": "canceled",
+        "refunded": "canceled",
+        "charged_back": "canceled",
         "pending": "pending",
         "in_process": "pending",
         "authorized": "pending",

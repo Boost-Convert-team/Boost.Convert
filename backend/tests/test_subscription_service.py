@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import Flask
+from sqlalchemy.exc import OperationalError
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -31,11 +32,12 @@ class SubscriptionServiceTests(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def test_legacy_pro_user_keeps_access_without_billing_schema(self):
+    def test_missing_billing_schema_is_not_hidden(self):
         with self.app.app_context():
             Usuario.__table__.create(db.engine)
             user = self.user("legacy@example.com", "pro", "active")
-            self.assertTrue(has_active_pro_subscription(user))
+            with self.assertRaises(OperationalError):
+                has_active_pro_subscription(user)
 
     def test_active_paid_entitlement_grants_access_until_period_end(self):
         period_end = datetime.now(timezone.utc) + timedelta(days=30)

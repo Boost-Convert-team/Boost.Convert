@@ -13,18 +13,16 @@ from flask import (
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 
-from Blueprints.services.payments.mercado_pago_gateway import (
+from Blueprints.services.payments.mercado_pago_client import (
     MercadoPagoConfigurationError,
-    MercadoPagoGatewayError,
+    MercadoPagoError,
 )
 from Blueprints.services.payments.payment_service import (
     CheckoutConflictError,
     InvalidIdempotencyKeyError,
     SubscriptionNotFoundError,
     cancel_current_subscription,
-)
-from Blueprints.services.payments.payment_service import (
-    create_checkout as create_payment_checkout,
+    create_subscription_checkout,
 )
 from Blueprints.services.payments.plans import InvalidPlanError
 from extensions import db
@@ -43,12 +41,12 @@ def checkout() -> Response:
 @login_required
 def create_checkout() -> tuple[Response, int] | Response:
     body = request.get_json(silent=True) if request.is_json else request.form
-    plan = (body or {}).get("plan")
+    plan = (body or {}).get("plan_id")
     idempotency_key = request.headers.get("X-Idempotency-Key") or (body or {}).get(
         "idempotency_key"
     )
     try:
-        result = create_payment_checkout(
+        result = create_subscription_checkout(
             current_user,
             plan,
             idempotency_key,
@@ -63,10 +61,13 @@ def create_checkout() -> tuple[Response, int] | Response:
             "payment_checkout_configuration_missing user_id=%s", current_user.id
         )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
-    except MercadoPagoGatewayError:
+    except MercadoPagoError as exc:
         db.session.rollback()
-        current_app.logger.warning(
-            "payment_checkout_provider_failed user_id=%s", current_user.id
+        _log_mercado_pago_error(
+            "mercadopago_subscription_create_failed",
+            exc,
+            user_id=current_user.id,
+            plan="PRO",
         )
         return _checkout_error(
             "Não foi possível iniciar sua assinatura. Tente novamente.", 502
@@ -98,10 +99,12 @@ def cancel_subscription() -> tuple[Response, int] | Response:
         return _subscription_action_error(
             "Cancelamento temporariamente indisponível.", 503
         )
-    except MercadoPagoGatewayError:
+    except MercadoPagoError as exc:
         db.session.rollback()
-        current_app.logger.warning(
-            "subscription_cancel_provider_failed user_id=%s", current_user.id
+        _log_mercado_pago_error(
+            "mercadopago_subscription_cancel_failed",
+            exc,
+            user_id=current_user.id,
         )
         return _subscription_action_error(
             "Não foi possível cancelar a assinatura. Tente novamente.", 502
@@ -117,8 +120,8 @@ def cancel_subscription() -> tuple[Response, int] | Response:
 
     current_app.logger.info("subscription_cancelled user_id=%s", current_user.id)
     if request.is_json or request.accept_mimetypes.best == "application/json":
-        return jsonify({"ok": True, "status": "cancelled"}), 200
-    return redirect(url_for("home.conta", subscription="cancelled"), code=303)
+        return jsonify({"ok": True, "status": "canceled"}), 200
+    return redirect(url_for("home.conta", subscription="canceled"), code=303)
 
 
 @payments_bp.get("/pagamento/retorno")
@@ -127,33 +130,6 @@ def payment_return() -> str:
         "Assinatura recebida",
         "Estamos confirmando sua assinatura com o Mercado Pago. O acesso PRO só será liberado após a confirmação segura da cobrança.",
         "pending",
-    )
-
-
-@payments_bp.get("/pagamento/sucesso")
-def payment_success() -> str:
-    return _render_payment_return(
-        "Assinatura recebida",
-        "Estamos confirmando sua assinatura. O acesso PRO só será liberado após a confirmação segura.",
-        "success",
-    )
-
-
-@payments_bp.get("/pagamento/pendente")
-def payment_pending() -> str:
-    return _render_payment_return(
-        "Pagamento em processamento",
-        "Assim que o provedor confirmar a aprovação, seu acesso PRO será ativado.",
-        "pending",
-    )
-
-
-@payments_bp.get("/pagamento/falhou")
-def payment_failure() -> str:
-    return _render_payment_return(
-        "Pagamento não concluído",
-        "Seu plano não foi alterado. Você pode voltar aos planos e tentar novamente.",
-        "failure",
     )
 
 
@@ -181,3 +157,24 @@ def _external_url(endpoint: str) -> str:
     base_url = str(current_app.config.get("BASE_URL") or "").rstrip("/")
     path = url_for(endpoint)
     return f"{base_url}{path}" if base_url else url_for(endpoint, _external=True)
+
+
+def _log_mercado_pago_error(
+    event: str,
+    error: MercadoPagoError,
+    *,
+    user_id: int,
+    plan: str | None = None,
+) -> None:
+    current_app.logger.warning(
+        "%s status=%s operation=%s endpoint=%s provider_code=%s "
+        "provider_message=%s user_id=%s plan=%s",
+        event,
+        error.status if error.status is not None else "none",
+        error.operation,
+        error.endpoint,
+        error.provider_code,
+        error.provider_message,
+        user_id,
+        plan or "none",
+    )

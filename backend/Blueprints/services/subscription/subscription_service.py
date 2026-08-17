@@ -2,21 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from extensions import db
-from flask import current_app, has_app_context
 from models import Subscription
-from sqlalchemy.exc import SQLAlchemyError
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"active"}
-MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
-MISSING_BILLING_SCHEMA_MARKERS = (
-    "does not exist",
-    "no such table",
-    "no such column",
-    "undefinedtable",
-    "undefinedcolumn",
-    "unknown column",
-)
-BILLING_TABLE_MARKERS = ("subscriptions",)
 
 
 @dataclass(frozen=True)
@@ -35,16 +23,9 @@ def has_active_pro_subscription(usuario) -> bool:
     if user_id is None:
         return is_user_marked_pro(usuario)
 
-    try:
-        state = get_pro_access_state(usuario)
-        synchronize_user_pro_status(usuario, state.active, persist=True)
-        return state.active
-    except SQLAlchemyError as exc:
-        db.session.rollback()
-        if not is_missing_billing_schema_error(exc):
-            raise
-        log_missing_billing_schema_fallback(exc)
-        return is_user_marked_pro(usuario)
+    state = get_pro_access_state(usuario)
+    synchronize_user_pro_status(usuario, state.active, persist=True)
+    return state.active
 
 
 def get_pro_access_state(usuario, now: datetime | None = None) -> ProAccessState:
@@ -140,25 +121,3 @@ def as_utc(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
-
-
-def is_missing_billing_schema_error(exc: SQLAlchemyError) -> bool:
-    original = getattr(exc, "orig", None)
-    sqlstate = getattr(original, "sqlstate", None) or getattr(original, "pgcode", None)
-    if sqlstate in MISSING_BILLING_SCHEMA_SQLSTATES:
-        return True
-
-    message = str(exc).lower()
-    return any(marker in message for marker in BILLING_TABLE_MARKERS) and any(
-        marker in message for marker in MISSING_BILLING_SCHEMA_MARKERS
-    )
-
-
-def log_missing_billing_schema_fallback(exc: SQLAlchemyError) -> None:
-    if not has_app_context():
-        return
-
-    current_app.logger.warning(
-        "billing_schema_unavailable_using_legacy_pro_status error=%s",
-        type(exc).__name__,
-    )

@@ -13,6 +13,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from Blueprints.main.webhook_routes import webhook_bp
+from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
     WebhookValidationError,
     process_subscription_notification,
@@ -35,7 +36,6 @@ class PaymentWebhookTests(unittest.TestCase):
             MERCADOPAGO_API_BASE_URL="https://api.mercadopago.com",
             MERCADOPAGO_REQUEST_TIMEOUT_SECONDS=10,
             PRO_PLAN_PRICE="25.90",
-            PRO_PLAN_DURATION_DAYS=30,
             CSRF_ENABLED=True,
             RATE_LIMIT_ENABLED=False,
             FORCE_HTTPS=False,
@@ -59,11 +59,13 @@ class PaymentWebhookTests(unittest.TestCase):
     def test_authorized_subscription_without_paid_invoice_does_not_activate_pro(self):
         with self.app.app_context():
             subscription = self.create_subscription()
-            gateway = self.gateway(self.provider_subscription(subscription, "authorized"))
+            gateway = self.gateway(
+                self.provider_subscription(subscription, "authorized")
+            )
             process_subscription_notification(
                 self.event("evt-sub", "subscription_preapproval", "sub-101"),
                 "sub-101",
-                gateway=gateway,
+                client=gateway,
             )
             self.assertEqual(Subscription.query.one().status, "active")
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
@@ -78,7 +80,7 @@ class PaymentWebhookTests(unittest.TestCase):
             result = process_subscription_notification(
                 self.event("evt-invoice", "subscription_authorized_payment", "501"),
                 "501",
-                gateway=gateway,
+                client=gateway,
             )
             self.assertEqual(result.status, "processed")
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
@@ -104,11 +106,13 @@ class PaymentWebhookTests(unittest.TestCase):
             process_subscription_notification(
                 self.event("evt-rejected", "subscription_authorized_payment", "502"),
                 "502",
-                gateway=gateway,
+                client=gateway,
             )
             self.assertEqual(Subscription.query.one().latest_payment_status, "rejected")
             self.assertEqual(
-                Subscription.query.one().paid_through_at.replace(tzinfo=timezone.utc).isoformat(),
+                Subscription.query.one()
+                .paid_through_at.replace(tzinfo=timezone.utc)
+                .isoformat(),
                 "2026-08-20T12:00:00+00:00",
             )
 
@@ -122,8 +126,8 @@ class PaymentWebhookTests(unittest.TestCase):
             event = self.event(
                 "evt-duplicate", "subscription_authorized_payment", "503"
             )
-            process_subscription_notification(event, "503", gateway=gateway)
-            duplicate = process_subscription_notification(event, "503", gateway=gateway)
+            process_subscription_notification(event, "503", client=gateway)
+            duplicate = process_subscription_notification(event, "503", client=gateway)
             self.assertTrue(duplicate.duplicate)
             self.assertEqual(Payment.query.count(), 1)
             self.assertEqual(PaymentWebhookEvent.query.count(), 1)
@@ -143,12 +147,12 @@ class PaymentWebhookTests(unittest.TestCase):
                         "evt-tampered", "subscription_authorized_payment", "504"
                     ),
                     "504",
-                    gateway=gateway,
+                    client=gateway,
                 )
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
 
     @patch(
-        "Blueprints.services.payments.webhook_service.MercadoPagoGateway.get_subscription"
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription"
     )
     def test_route_validates_signature_and_fetches_official_subscription(
         self, get_subscription
@@ -189,12 +193,105 @@ class PaymentWebhookTests(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(PaymentWebhookEvent.query.count(), 0)
 
+    def test_subscription_statuses_are_synchronized(self):
+        expected = {
+            "pending": "pending",
+            "authorized": "active",
+            "paused": "paused",
+            "canceled": "canceled",
+        }
+        with self.app.app_context():
+            subscription = self.create_subscription()
+            for index, (provider_status, local_status) in enumerate(expected.items()):
+                gateway = self.gateway(
+                    self.provider_subscription(subscription, provider_status)
+                )
+                process_subscription_notification(
+                    self.event(
+                        f"evt-status-{index}",
+                        "subscription_preapproval",
+                        "sub-101",
+                    ),
+                    "sub-101",
+                    client=gateway,
+                )
+                self.assertEqual(Subscription.query.one().status, local_status)
+
+    def test_irrelevant_event_is_ignored_without_provider_call(self):
+        with self.app.app_context():
+            gateway = Mock()
+            result = process_subscription_notification(
+                self.event("evt-payment", "payment", "9001"),
+                "9001",
+                client=gateway,
+            )
+            self.assertEqual(result.status, "ignored")
+            gateway.get_subscription.assert_not_called()
+            gateway.get_authorized_payment.assert_not_called()
+
+    def test_missing_local_subscription_is_rejected(self):
+        with self.app.app_context():
+            remote = {
+                "id": "sub-unknown",
+                "preapproval_plan_id": None,
+                "external_reference": "boost:subscription:unknown",
+                "status": "authorized",
+                "auto_recurring": {
+                    "frequency": 1,
+                    "frequency_type": "months",
+                    "transaction_amount": "25.90",
+                    "currency_id": "BRL",
+                },
+            }
+            with self.assertRaises(WebhookValidationError):
+                process_subscription_notification(
+                    self.event(
+                        "evt-unknown", "subscription_preapproval", "sub-unknown"
+                    ),
+                    "sub-unknown",
+                    client=self.gateway(remote),
+                )
+
+    @patch(
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription",
+        side_effect=MercadoPagoError(
+            operation="subscription_get",
+            endpoint="/preapproval/sub-missing",
+            status=404,
+            provider_code="not_found",
+            provider_message="resource not found",
+        ),
+    )
+    def test_missing_provider_resource_returns_controlled_retry(
+        self, _get_subscription
+    ):
+        payload = self.event(
+            "evt-missing-provider", "subscription_preapproval", "sub-missing"
+        )
+        response = self.signed_webhook(payload, "sub-missing", "request-missing")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json["error"], "provider_unavailable")
+
+    def signed_webhook(self, payload, resource_id, request_id):
+        timestamp = "1742505638683"
+        manifest = f"id:{resource_id.lower()};request-id:{request_id};ts:{timestamp};"
+        digest = hmac.new(
+            b"test-webhook-secret", manifest.encode(), hashlib.sha256
+        ).hexdigest()
+        return self.client.post(
+            f"/webhooks/mercado-pago?data.id={resource_id}",
+            json=payload,
+            headers={
+                "X-Request-Id": request_id,
+                "X-Signature": f"ts={timestamp},v1={digest}",
+            },
+        )
+
     def create_subscription(self):
         subscription = Subscription(
             user_id=self.user_id,
             provider="mercado_pago",
             provider_subscription_id="sub-101",
-            provider_plan_id="plan-pro",
             external_reference=f"boost:subscription:{uuid4()}",
             plan="PRO",
             status="pending",
@@ -209,7 +306,7 @@ class PaymentWebhookTests(unittest.TestCase):
     def provider_subscription(subscription, status):
         return {
             "id": subscription.provider_subscription_id,
-            "preapproval_plan_id": subscription.provider_plan_id,
+            "preapproval_plan_id": None,
             "external_reference": subscription.external_reference,
             "status": status,
             "date_created": "2026-08-17T12:00:00Z",

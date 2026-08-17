@@ -101,17 +101,17 @@ class Payment(db.Model):
     provider_preference_id = db.Column(db.String(120), nullable=True, index=True)
     provider_payment_id = db.Column(db.String(120), nullable=True, index=True)
     provider_invoice_id = db.Column(db.String(120), nullable=True, index=True)
-    external_reference = db.Column(db.String(255), nullable=False, index=True)
-    plan = db.Column(db.String(50), nullable=False, index=True)
+    external_reference = db.Column(db.String(255), nullable=True, index=True)
+    plan = db.Column(db.String(50), nullable=True, index=True)
     attempt_id = db.Column(db.String(36), nullable=False, index=True)
-    idempotency_key = db.Column(db.String(64), nullable=False, index=True)
+    idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     payment_method = db.Column(
-        db.String(50), nullable=False, default="checkout_pro", index=True
+        db.String(50), nullable=False, default="recurring_subscription", index=True
     )
     status = db.Column(db.String(50), nullable=False, default="pending", index=True)
     status_detail = db.Column(db.String(120), nullable=True)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
-    currency = db.Column(db.String(10), nullable=False, default="BRL")
+    amount = db.Column(db.Numeric(10, 2), nullable=True)
+    currency = db.Column(db.String(10), nullable=True, default="BRL")
     checkout_url = db.Column(db.Text, nullable=True)
     checkout_expires_at = db.Column(
         db.DateTime(timezone=True), nullable=True, index=True
@@ -131,6 +131,8 @@ class Payment(db.Model):
 
 
 class PaymentPlanMapping(db.Model):
+    """Legacy plan mapping retained so deployed billing history is not dropped."""
+
     __tablename__ = "payment_plan_mappings"
     __table_args__ = (
         db.UniqueConstraint(

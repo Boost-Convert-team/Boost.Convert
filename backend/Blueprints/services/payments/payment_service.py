@@ -2,25 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import text
+from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError
 
-from Blueprints.services.payments.mercado_pago_gateway import (
-    MercadoPagoGateway,
-    MercadoPagoGatewayError,
+from Blueprints.services.payments.mercado_pago_client import (
+    MercadoPagoClient,
+    MercadoPagoError,
 )
 from Blueprints.services.payments.plans import PaymentPlan, get_payment_plan
 from Blueprints.services.subscription.subscription_service import (
     synchronize_user_pro_status,
 )
 from extensions import db
-from models import PaymentPlanMapping, Subscription
+from models import Subscription
 
 PROVIDER = "mercado_pago"
 OPEN_SUBSCRIPTION_STATUSES = {"creating", "pending", "active", "paused"}
+LEGACY_CHECKOUT_PREFIX = "checkout-pro:%"
 
 
 class InvalidIdempotencyKeyError(ValueError):
@@ -42,17 +42,17 @@ class CheckoutResult:
     reused: bool
 
 
-def create_checkout(
+def create_subscription_checkout(
     usuario,
     plan_code: object,
     idempotency_key: object,
     back_url: str,
     *,
-    gateway: MercadoPagoGateway | None = None,
+    client: MercadoPagoClient | None = None,
 ) -> CheckoutResult:
     plan = get_payment_plan(plan_code)
     normalized_key = normalize_idempotency_key(idempotency_key)
-    payment_gateway = gateway or MercadoPagoGateway()
+    mercado_pago = client or MercadoPagoClient()
 
     lock_checkout_for_user(usuario.id)
     existing = Subscription.query.filter_by(
@@ -65,8 +65,11 @@ def create_checkout(
         Subscription.query.filter(
             Subscription.user_id == usuario.id,
             Subscription.provider == PROVIDER,
-            Subscription.provider_plan_id.isnot(None),
             Subscription.status.in_(OPEN_SUBSCRIPTION_STATUSES),
+            or_(
+                Subscription.provider_subscription_id.is_(None),
+                ~Subscription.provider_subscription_id.like(LEGACY_CHECKOUT_PREFIX),
+            ),
         )
         .order_by(Subscription.id.desc())
         .first()
@@ -84,7 +87,7 @@ def create_checkout(
     legacy_entitlement = Subscription.query.filter(
         Subscription.user_id == usuario.id,
         Subscription.provider == PROVIDER,
-        Subscription.provider_plan_id.is_(None),
+        Subscription.provider_subscription_id.like(LEGACY_CHECKOUT_PREFIX),
         Subscription.status == "active",
         Subscription.paid_through_at.isnot(None),
         Subscription.paid_through_at > utc_now(),
@@ -117,23 +120,15 @@ def create_checkout(
         return reuse_checkout(existing, usuario.id, plan)
 
     try:
-        mapping = ensure_provider_plan(plan, back_url, payment_gateway)
-        checkout = payment_gateway.create_subscription(
-            build_subscription_payload(
-                subscription,
-                usuario.email,
-                plan,
-                mapping.provider_plan_id,
-                back_url,
-            )
+        checkout = mercado_pago.create_subscription_checkout(
+            build_subscription_payload(subscription, usuario.email, plan, back_url)
         )
-    except (MercadoPagoGatewayError, CheckoutConflictError):
+    except MercadoPagoError:
         subscription.status = "error"
         subscription.updated_at = utc_now()
         db.session.commit()
         raise
 
-    subscription.provider_plan_id = mapping.provider_plan_id
     subscription.provider_subscription_id = checkout.subscription_id
     subscription.checkout_url = checkout.checkout_url
     subscription.status = map_subscription_status(checkout.status)
@@ -143,48 +138,17 @@ def create_checkout(
     return CheckoutResult(checkout.checkout_url, subscription.id, False)
 
 
-def ensure_provider_plan(
-    plan: PaymentPlan,
-    back_url: str,
-    gateway: MercadoPagoGateway,
-) -> PaymentPlanMapping:
-    lock_provider_plan(plan.code)
-    mapping = PaymentPlanMapping.query.filter_by(
-        provider=PROVIDER, plan=plan.code
-    ).first()
-    if mapping is not None:
-        if Decimal(mapping.amount) != plan.amount or mapping.currency != plan.currency:
-            raise CheckoutConflictError(
-                "O plano recorrente precisa ser sincronizado antes da venda."
-            )
-        return mapping
-
-    provider_plan = gateway.create_subscription_plan(
-        build_subscription_plan_payload(plan, back_url)
-    )
-    mapping = PaymentPlanMapping(
-        provider=PROVIDER,
-        plan=plan.code,
-        provider_plan_id=provider_plan.plan_id,
-        amount=plan.amount,
-        currency=plan.currency,
-    )
-    db.session.add(mapping)
-    db.session.commit()
-    return mapping
-
-
 def cancel_current_subscription(
     usuario,
     *,
-    gateway: MercadoPagoGateway | None = None,
+    client: MercadoPagoClient | None = None,
 ) -> Subscription:
     subscription = (
         Subscription.query.filter(
             Subscription.user_id == usuario.id,
             Subscription.provider == PROVIDER,
-            Subscription.provider_plan_id.isnot(None),
             Subscription.provider_subscription_id.isnot(None),
+            ~Subscription.provider_subscription_id.like(LEGACY_CHECKOUT_PREFIX),
             Subscription.status.in_(OPEN_SUBSCRIPTION_STATUSES),
         )
         .order_by(Subscription.id.desc())
@@ -194,20 +158,25 @@ def cancel_current_subscription(
     if subscription is None:
         raise SubscriptionNotFoundError("Nenhuma assinatura ativa foi encontrada.")
 
-    provider_data = (gateway or MercadoPagoGateway()).cancel_subscription(
+    provider_data = (client or MercadoPagoClient()).cancel_subscription(
         subscription.provider_subscription_id
     )
     if (
         str(provider_data.get("id") or "") != subscription.provider_subscription_id
         or str(provider_data.get("external_reference") or "")
         != subscription.external_reference
-        or str(provider_data.get("status") or "").lower() != "cancelled"
+        or str(provider_data.get("status") or "").lower()
+        not in {"canceled", "cancelled"}
     ):
-        raise MercadoPagoGatewayError(
-            "O provedor não confirmou o cancelamento da assinatura."
+        raise MercadoPagoError(
+            operation="subscription_cancel",
+            endpoint="/preapproval/{id}",
+            status=None,
+            provider_code="invalid_response",
+            provider_message="Mercado Pago não confirmou o cancelamento.",
         )
 
-    subscription.status = "cancelled"
+    subscription.status = "canceled"
     subscription.canceled_at = utc_now()
     subscription.updated_at = utc_now()
     synchronize_user_pro_status(usuario, False)
@@ -227,37 +196,24 @@ def reuse_checkout(
     raise CheckoutConflictError("Use uma nova tentativa para iniciar a assinatura.")
 
 
-def build_subscription_plan_payload(
-    plan: PaymentPlan, back_url: str
+def build_subscription_payload(
+    subscription: Subscription,
+    payer_email: str,
+    plan: PaymentPlan,
+    back_url: str,
 ) -> dict[str, object]:
     return {
         "reason": plan.title,
+        "external_reference": subscription.external_reference,
+        "payer_email": payer_email,
         "auto_recurring": {
             "frequency": 1,
             "frequency_type": "months",
             "transaction_amount": float(plan.amount),
             "currency_id": plan.currency,
         },
-        "payment_methods_allowed": {
-            "payment_types": [{"id": "credit_card"}],
-        },
         "back_url": back_url,
-    }
-
-
-def build_subscription_payload(
-    subscription: Subscription,
-    payer_email: str,
-    plan: PaymentPlan,
-    provider_plan_id: str,
-    back_url: str,
-) -> dict[str, object]:
-    return {
-        "preapproval_plan_id": provider_plan_id,
-        "reason": plan.title,
-        "external_reference": subscription.external_reference,
-        "payer_email": payer_email,
-        "back_url": back_url,
+        "status": "pending",
     }
 
 
@@ -266,7 +222,8 @@ def map_subscription_status(provider_status: object) -> str:
         "pending": "pending",
         "authorized": "active",
         "paused": "paused",
-        "cancelled": "cancelled",
+        "canceled": "canceled",
+        "cancelled": "canceled",
     }.get(str(provider_status or "").strip().lower(), "pending")
 
 
@@ -280,19 +237,11 @@ def normalize_idempotency_key(value: object) -> str:
 
 
 def lock_checkout_for_user(user_id: int) -> None:
-    execute_postgres_advisory_lock(f"subscription-checkout:user:{user_id}")
-
-
-def lock_provider_plan(plan_code: str) -> None:
-    execute_postgres_advisory_lock(f"subscription-plan:{plan_code}")
-
-
-def execute_postgres_advisory_lock(lock_key: str) -> None:
     bind = db.session.get_bind()
     if bind is not None and bind.dialect.name == "postgresql":
         db.session.execute(
             text("SELECT pg_advisory_xact_lock(hashtext(:lock_key))"),
-            {"lock_key": lock_key},
+            {"lock_key": f"subscription-checkout:user:{user_id}"},
         )
 
 

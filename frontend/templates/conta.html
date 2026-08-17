@@ -5,7 +5,7 @@
 
 {% block content %}
 <main class="account-page">
-    {% if request.args.get('subscription') == 'cancelled' %}
+    {% if request.args.get('subscription') == 'canceled' %}
     <p class="pricing-notice" role="status">Sua assinatura foi cancelada no Mercado Pago.</p>
     {% elif request.args.get('subscription') == 'error' %}
     <p class="pricing-notice" role="alert">Não foi possível atualizar sua assinatura. Tente novamente.</p>

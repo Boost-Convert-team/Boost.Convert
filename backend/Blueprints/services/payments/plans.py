@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import timedelta
 from decimal import Decimal
 
 from flask import current_app
@@ -14,12 +13,9 @@ class InvalidPlanError(ValueError):
 @dataclass(frozen=True)
 class PaymentPlan:
     code: str
-    item_id: str
     title: str
-    description: str
     amount: Decimal
     currency: str
-    entitlement_duration: timedelta
 
 
 def get_payment_plan(code: object) -> PaymentPlan:
@@ -29,14 +25,9 @@ def get_payment_plan(code: object) -> PaymentPlan:
 
     return PaymentPlan(
         code=PRO_PLAN_CODE,
-        item_id="BOOSTCONVERT_PRO_MONTHLY",
         title="BoostConvert PRO mensal",
-        description="Assinatura mensal do BoostConvert PRO",
         amount=Decimal(str(current_app.config["PRO_PLAN_PRICE"])).quantize(
             Decimal("0.01")
         ),
         currency="BRL",
-        entitlement_duration=timedelta(
-            days=int(current_app.config["PRO_PLAN_DURATION_DAYS"])
-        ),
     )

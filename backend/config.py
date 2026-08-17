@@ -152,7 +152,6 @@ class Config:
     MERCADOPAGO_REQUEST_TIMEOUT_SECONDS = 10
     PRO_PLAN_PRICE = Decimal("25.90")
     PRO_PLAN_PRICE_DISPLAY = "25,90"
-    PRO_PLAN_DURATION_DAYS = 30
     # Public SEO origin.  This must not depend on the inbound Host or proxy
     # scheme because those values may vary behind nginx and during health
     # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
@@ -208,4 +207,5 @@ def validate_payment_config(app):
         return
     if app.config.get("APP_ENV") in {"production", "prod"}:
         raise RuntimeError("Configuracao de pagamento ausente: " + ", ".join(missing))
-    app.logger.warning("payment_config_incomplete fields=%s", ",".join(missing))
+    for field in missing:
+        app.logger.warning("payment_config_missing field=%s", field)

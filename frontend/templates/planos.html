@@ -79,7 +79,7 @@
                           data-payment-checkout
                           data-login-url="{{ url_for('auth.login', next=url_for('main.planos')) }}">
                         {% include "partials/csrf_field.html" %}
-                        <input type="hidden" name="plan" value="PRO">
+                        <input type="hidden" name="plan_id" value="PRO">
                         <input type="hidden" name="idempotency_key" value="{{ checkout_idempotency_key }}" data-payment-idempotency>
                         <button class="button button-primary plan-button" type="submit" data-payment-button>
                             Assinar BoostConvert PRO

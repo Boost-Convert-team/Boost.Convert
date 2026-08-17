@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
 
-from Blueprints.services.payments.mercado_pago_gateway import MercadoPagoGatewayError
+from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
     WebhookConfigurationError,
     WebhookSignatureError,
@@ -55,9 +55,18 @@ def receive_mercado_pago_webhook():
             "payment_webhook_rejected reason=%s", type(exc).__name__
         )
         return jsonify({"ok": False, "error": "invalid_subscription"}), 400
-    except MercadoPagoGatewayError:
+    except MercadoPagoError as exc:
         db.session.rollback()
-        current_app.logger.warning("payment_webhook_provider_unavailable")
+        current_app.logger.warning(
+            "mercadopago_webhook_sync_failed status=%s operation=%s endpoint=%s "
+            "provider_code=%s provider_message=%s resource_id=%s",
+            exc.status if exc.status is not None else "none",
+            exc.operation,
+            exc.endpoint,
+            exc.provider_code,
+            exc.provider_message,
+            query_resource_id,
+        )
         return jsonify({"ok": False, "error": "provider_unavailable"}), 503
     except SQLAlchemyError as exc:
         db.session.rollback()
