@@ -1,64 +1,183 @@
 from __future__ import annotations
 
-from Blueprints.services.subscription.stripe_checkout_service import (
-    StripeCheckoutError,
-    StripeConfigurationError,
-    create_subscription_checkout,
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
 )
-from extensions import db
-from flask import Blueprint, Response, current_app, jsonify, redirect, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 
-checkout_bp = Blueprint("checkout", __name__)
+from Blueprints.services.payments.mercado_pago_gateway import (
+    MercadoPagoConfigurationError,
+    MercadoPagoGatewayError,
+)
+from Blueprints.services.payments.payment_service import (
+    CheckoutConflictError,
+    InvalidIdempotencyKeyError,
+    SubscriptionNotFoundError,
+    cancel_current_subscription,
+)
+from Blueprints.services.payments.payment_service import (
+    create_checkout as create_payment_checkout,
+)
+from Blueprints.services.payments.plans import InvalidPlanError
+from extensions import db
+
+payments_bp = Blueprint("payments", __name__)
 
 
-@checkout_bp.get("/checkout")
-@checkout_bp.get("/checkout-pro")
+@payments_bp.get("/checkout")
+@payments_bp.get("/checkout-pro")
 @login_required
 def checkout() -> Response:
     return redirect(url_for("main.planos"))
 
 
-@checkout_bp.post("/api/billing/checkout")
+@payments_bp.post("/api/payments/checkout")
 @login_required
-def create_checkout_session() -> tuple[Response, int] | Response:
+def create_checkout() -> tuple[Response, int] | Response:
+    body = request.get_json(silent=True) if request.is_json else request.form
+    plan = (body or {}).get("plan")
+    idempotency_key = request.headers.get("X-Idempotency-Key") or (body or {}).get(
+        "idempotency_key"
+    )
     try:
-        result = create_subscription_checkout(
+        result = create_payment_checkout(
             current_user,
-            _external_url("main.planos", checkout="success"),
-            _external_url("main.planos", checkout="canceled"),
+            plan,
+            idempotency_key,
+            _external_url("payments.payment_return"),
         )
-    except StripeConfigurationError:
+    except (InvalidPlanError, InvalidIdempotencyKeyError) as exc:
+        return _checkout_error(str(exc), 400)
+    except CheckoutConflictError as exc:
+        return _checkout_error(str(exc), 409)
+    except MercadoPagoConfigurationError:
         current_app.logger.error(
-            "stripe_checkout_configuration_missing user_id=%s", current_user.id
+            "payment_checkout_configuration_missing user_id=%s", current_user.id
         )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
-    except StripeCheckoutError as exc:
+    except MercadoPagoGatewayError:
         db.session.rollback()
-        current_app.logger.warning("stripe_checkout_failed user_id=%s", current_user.id)
-        return _checkout_error(str(exc), 502)
+        current_app.logger.warning(
+            "payment_checkout_provider_failed user_id=%s", current_user.id
+        )
+        return _checkout_error(
+            "Não foi possível iniciar sua assinatura. Tente novamente.", 502
+        )
     except SQLAlchemyError as exc:
         db.session.rollback()
         current_app.logger.error(
-            "stripe_checkout_database_failed error_type=%s", type(exc).__name__
+            "payment_checkout_database_failed error_type=%s", type(exc).__name__
         )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
 
-    if request.accept_mimetypes.best == "application/json":
-        return jsonify({"ok": True, "checkout_url": result.checkout_url}), 201
+    if request.is_json or request.accept_mimetypes.best == "application/json":
+        status = 200 if result.reused else 201
+        return jsonify({"checkout_url": result.checkout_url}), status
     return redirect(result.checkout_url, code=303)
 
 
+@payments_bp.post("/api/subscriptions/cancel")
+@login_required
+def cancel_subscription() -> tuple[Response, int] | Response:
+    try:
+        cancel_current_subscription(current_user)
+    except SubscriptionNotFoundError as exc:
+        return _subscription_action_error(str(exc), 404)
+    except MercadoPagoConfigurationError:
+        current_app.logger.error(
+            "subscription_cancel_configuration_missing user_id=%s", current_user.id
+        )
+        return _subscription_action_error(
+            "Cancelamento temporariamente indisponível.", 503
+        )
+    except MercadoPagoGatewayError:
+        db.session.rollback()
+        current_app.logger.warning(
+            "subscription_cancel_provider_failed user_id=%s", current_user.id
+        )
+        return _subscription_action_error(
+            "Não foi possível cancelar a assinatura. Tente novamente.", 502
+        )
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        current_app.logger.error(
+            "subscription_cancel_database_failed error_type=%s", type(exc).__name__
+        )
+        return _subscription_action_error(
+            "Cancelamento temporariamente indisponível.", 503
+        )
+
+    current_app.logger.info("subscription_cancelled user_id=%s", current_user.id)
+    if request.is_json or request.accept_mimetypes.best == "application/json":
+        return jsonify({"ok": True, "status": "cancelled"}), 200
+    return redirect(url_for("home.conta", subscription="cancelled"), code=303)
+
+
+@payments_bp.get("/pagamento/retorno")
+def payment_return() -> str:
+    return _render_payment_return(
+        "Assinatura recebida",
+        "Estamos confirmando sua assinatura com o Mercado Pago. O acesso PRO só será liberado após a confirmação segura da cobrança.",
+        "pending",
+    )
+
+
+@payments_bp.get("/pagamento/sucesso")
+def payment_success() -> str:
+    return _render_payment_return(
+        "Assinatura recebida",
+        "Estamos confirmando sua assinatura. O acesso PRO só será liberado após a confirmação segura.",
+        "success",
+    )
+
+
+@payments_bp.get("/pagamento/pendente")
+def payment_pending() -> str:
+    return _render_payment_return(
+        "Pagamento em processamento",
+        "Assim que o provedor confirmar a aprovação, seu acesso PRO será ativado.",
+        "pending",
+    )
+
+
+@payments_bp.get("/pagamento/falhou")
+def payment_failure() -> str:
+    return _render_payment_return(
+        "Pagamento não concluído",
+        "Seu plano não foi alterado. Você pode voltar aos planos e tentar novamente.",
+        "failure",
+    )
+
+
+def _render_payment_return(title: str, message: str, state: str) -> str:
+    return render_template(
+        "payment_return.html", title=title, message=message, payment_state=state
+    )
+
+
 def _checkout_error(message: str, status: int) -> tuple[Response, int] | Response:
-    if request.accept_mimetypes.best == "application/json":
+    if request.is_json or request.accept_mimetypes.best == "application/json":
         return jsonify({"ok": False, "error": message}), status
     return redirect(url_for("main.planos", checkout="error"), code=303)
 
 
-def _external_url(endpoint: str, **values: str) -> str:
+def _subscription_action_error(
+    message: str, status: int
+) -> tuple[Response, int] | Response:
+    if request.is_json or request.accept_mimetypes.best == "application/json":
+        return jsonify({"ok": False, "error": message}), status
+    return redirect(url_for("home.conta", subscription="error"), code=303)
+
+
+def _external_url(endpoint: str) -> str:
     base_url = str(current_app.config.get("BASE_URL") or "").rstrip("/")
-    path = url_for(endpoint, **values)
-    return (
-        f"{base_url}{path}" if base_url else url_for(endpoint, _external=True, **values)
-    )
+    path = url_for(endpoint)
+    return f"{base_url}{path}" if base_url else url_for(endpoint, _external=True)

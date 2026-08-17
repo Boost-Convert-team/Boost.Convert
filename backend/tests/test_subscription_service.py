@@ -37,7 +37,7 @@ class SubscriptionServiceTests(unittest.TestCase):
             user = self.user("legacy@example.com", "pro", "active")
             self.assertTrue(has_active_pro_subscription(user))
 
-    def test_active_stripe_subscription_grants_access_until_period_end(self):
+    def test_active_paid_entitlement_grants_access_until_period_end(self):
         period_end = datetime.now(timezone.utc) + timedelta(days=30)
         with self.app.app_context():
             db.create_all()
@@ -45,11 +45,9 @@ class SubscriptionServiceTests(unittest.TestCase):
             db.session.add(
                 Subscription(
                     user_id=user.id,
-                    provider="stripe",
+                    provider="mercado_pago",
                     provider_subscription_id="sub_active",
-                    stripe_price_id="price_pro",
                     status="active",
-                    current_period_end=period_end,
                     paid_through_at=period_end,
                 )
             )
@@ -65,10 +63,10 @@ class SubscriptionServiceTests(unittest.TestCase):
             db.session.add(
                 Subscription(
                     user_id=user.id,
-                    provider="stripe",
+                    provider="mercado_pago",
                     provider_subscription_id="sub_canceled",
                     status="canceled",
-                    current_period_end=datetime.now(timezone.utc) + timedelta(days=10),
+                    paid_through_at=datetime.now(timezone.utc) + timedelta(days=10),
                 )
             )
             db.session.commit()

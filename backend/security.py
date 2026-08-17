@@ -18,7 +18,7 @@ CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_EXEMPT_ENDPOINTS = {
     "webhook.legacy_webhook_disabled",
-    "webhook.receive_stripe_webhook",
+    "webhook.receive_mercado_pago_webhook",
 }
 
 
@@ -41,12 +41,13 @@ AUTH_RATE_LIMITS = {
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
-    "checkout.create_checkout_session": RateLimitRule(10, 60),
+    "payments.create_checkout": RateLimitRule(10, 60),
+    "payments.cancel_subscription": RateLimitRule(5, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
 PAYMENT_CREATION_ENDPOINTS = {
-    "checkout.create_checkout_session",
+    "payments.create_checkout",
 }
 PAYMENT_CREATION_RAW_LIMIT = RateLimitRule(30, 60)
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
@@ -65,6 +66,7 @@ NOINDEX_PATH_PREFIXES = (
     "/dashboard",
     "/login",
     "/logout",
+    "/pagamento",
     "/registrar",
     "/webhook",
     "/webhooks/",
@@ -213,7 +215,7 @@ def get_rate_limit_rule() -> RateLimitRule | None:
 
 def get_rate_limit_key() -> str:
     endpoint_id = request.endpoint or request.path
-    if endpoint_id.startswith("checkout.") and current_user.is_authenticated:
+    if endpoint_id.startswith("payments.") and current_user.is_authenticated:
         client_id = f"user:{current_user.get_id()}"
     else:
         client_id = request.remote_addr or "unknown"
@@ -312,7 +314,7 @@ def build_content_security_policy() -> str:
         "img-src 'self' data:",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
         "connect-src 'self'",
-        "frame-src https://checkout.stripe.com",
+        "frame-src 'none'",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

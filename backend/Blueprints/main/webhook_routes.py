@@ -1,49 +1,68 @@
-import stripe
-from Blueprints.services.subscription.stripe_webhook_handler import (
-    StripeWebhookError,
-    construct_event,
-    process_event,
-)
-from extensions import db
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
+
+from Blueprints.services.payments.mercado_pago_gateway import MercadoPagoGatewayError
+from Blueprints.services.payments.webhook_service import (
+    WebhookConfigurationError,
+    WebhookSignatureError,
+    WebhookValidationError,
+    process_subscription_notification,
+    validate_webhook_signature,
+)
+from extensions import db
 
 webhook_bp = Blueprint("webhook", __name__)
 
 
-@webhook_bp.post("/api/webhooks/stripe")
-def receive_stripe_webhook():
-    payload = request.get_data(cache=False)
-    signature = request.headers.get("Stripe-Signature", "")
+@webhook_bp.post("/webhooks/mercado-pago")
+def receive_mercado_pago_webhook():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "invalid_payload"}), 400
+
+    resource = payload.get("data")
+    if not isinstance(resource, dict):
+        return jsonify({"ok": False, "error": "invalid_resource"}), 400
+
+    query_resource_id = str(
+        request.args.get("data.id") or request.args.get("data_id") or ""
+    ).strip()
+    body_resource_id = str(resource.get("id") or "").strip()
+    if not query_resource_id or query_resource_id != body_resource_id:
+        return jsonify({"ok": False, "error": "invalid_resource"}), 400
+
+    request_id = request.headers.get("X-Request-Id", "")
     try:
-        event = construct_event(payload, signature)
-    except (ValueError, stripe.SignatureVerificationError):
-        current_app.logger.warning("stripe_webhook_invalid_signature")
-        return jsonify({"ok": False, "error": "invalid_signature"}), 400
-    except StripeWebhookError:
-        current_app.logger.error("stripe_webhook_not_configured")
+        validate_webhook_signature(
+            request.headers.get("X-Signature", ""),
+            request_id,
+            query_resource_id,
+        )
+    except WebhookConfigurationError:
+        current_app.logger.error("payment_webhook_configuration_missing")
         return jsonify({"ok": False, "error": "webhook_unavailable"}), 503
+    except WebhookSignatureError:
+        current_app.logger.warning("payment_webhook_invalid_signature")
+        return jsonify({"ok": False, "error": "invalid_signature"}), 401
 
     try:
-        result = process_event(event)
-    except StripeWebhookError as exc:
+        result = process_subscription_notification(
+            payload, query_resource_id, request_id=request_id
+        )
+    except WebhookValidationError as exc:
         db.session.rollback()
         current_app.logger.warning(
-            "stripe_webhook_rejected event_type=%s reason=%s",
-            getattr(event, "type", None) or event.get("type"),
-            type(exc).__name__,
+            "payment_webhook_rejected reason=%s", type(exc).__name__
         )
-        return jsonify({"ok": False, "error": "invalid_event"}), 400
-    except stripe.StripeError as exc:
+        return jsonify({"ok": False, "error": "invalid_subscription"}), 400
+    except MercadoPagoGatewayError:
         db.session.rollback()
-        current_app.logger.warning(
-            "stripe_webhook_api_failed error_type=%s", type(exc).__name__
-        )
+        current_app.logger.warning("payment_webhook_provider_unavailable")
         return jsonify({"ok": False, "error": "provider_unavailable"}), 503
     except SQLAlchemyError as exc:
         db.session.rollback()
         current_app.logger.error(
-            "stripe_webhook_database_failed error_type=%s", type(exc).__name__
+            "payment_webhook_database_failed error_type=%s", type(exc).__name__
         )
         return jsonify({"ok": False, "error": "database_unavailable"}), 503
 

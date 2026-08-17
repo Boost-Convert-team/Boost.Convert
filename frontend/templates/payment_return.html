@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | BoostConvert{% endblock %}
+{% block meta_description %}Acompanhe o retorno do pagamento do BoostConvert PRO.{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<main class="pricing-page">
+    <section class="pricing-hero" aria-labelledby="payment-return-title">
+        <div class="pricing-copy reveal" data-payment-state="{{ payment_state }}">
+            <div class="eyebrow pricing-eyebrow">
+                <i data-lucide="shield-check" aria-hidden="true"></i>
+                Retorno do pagamento
+            </div>
+            <h1 id="payment-return-title">{{ title }}</h1>
+            <p>{{ message }}</p>
+            <div class="plan-action">
+                <a class="button button-primary" href="{{ url_for('home.conta') }}">Ver minha conta</a>
+                <a class="button button-secondary" href="{{ url_for('main.planos') }}">Voltar aos planos</a>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

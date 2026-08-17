@@ -81,18 +81,17 @@ from Blueprints.converter_routes import (
     xlsx_json_bp,
     xlsx_pdf_bp,
 )
-from Blueprints.main.checkout_routes import checkout_bp
+from Blueprints.main.checkout_routes import payments_bp
 from Blueprints.main.home import home_bp
 from Blueprints.main.planos import planos_bp
 from Blueprints.main.webhook_routes import webhook_bp
-
 
 MAIN_BLUEPRINTS = (
     auth_bp,
     home_bp,
     planos_bp,
     webhook_bp,
-    checkout_bp,
+    payments_bp,
 )
 
 DOCUMENT_BLUEPRINTS = (

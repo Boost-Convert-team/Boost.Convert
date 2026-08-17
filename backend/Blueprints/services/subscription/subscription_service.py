@@ -6,7 +6,7 @@ from flask import current_app, has_app_context
 from models import Subscription
 from sqlalchemy.exc import SQLAlchemyError
 
-ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing", "past_due"}
+ACTIVE_SUBSCRIPTION_STATUSES = {"active"}
 MISSING_BILLING_SCHEMA_SQLSTATES = {"42P01", "42703"}
 MISSING_BILLING_SCHEMA_MARKERS = (
     "does not exist",
@@ -56,12 +56,12 @@ def get_pro_access_state(usuario, now: datetime | None = None) -> ProAccessState
         return ProAccessState(is_user_marked_pro(usuario), "transient")
 
     now = now or utc_now()
-    recurring = find_active_recurring_subscription(user_id, now)
-    if recurring is not None:
+    entitlement = find_active_paid_entitlement(user_id, now)
+    if entitlement is not None:
         return ProAccessState(
             True,
-            "recurring",
-            recurring.paid_through_at or recurring.current_period_end,
+            "payment",
+            entitlement.paid_through_at,
         )
 
     if is_user_marked_pro(usuario) and has_legacy_active_pro_without_subscription(
@@ -95,21 +95,21 @@ def synchronize_user_pro_status(
     return active
 
 
-def has_active_recurring_subscription(
+def has_active_paid_entitlement(
     user_id: int,
     now: datetime | None = None,
 ) -> bool:
-    return find_active_recurring_subscription(user_id, now or utc_now()) is not None
+    return find_active_paid_entitlement(user_id, now or utc_now()) is not None
 
 
-def find_active_recurring_subscription(
+def find_active_paid_entitlement(
     user_id: int,
     now: datetime,
 ) -> Subscription | None:
     return (
         Subscription.query.filter(
             Subscription.user_id == user_id,
-            Subscription.provider == "stripe",
+            Subscription.provider == "mercado_pago",
             Subscription.status.in_(ACTIVE_SUBSCRIPTION_STATUSES),
             Subscription.paid_through_at.isnot(None),
             Subscription.paid_through_at > now,

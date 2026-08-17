@@ -5,6 +5,11 @@
 
 {% block content %}
 <main class="account-page">
+    {% if request.args.get('subscription') == 'cancelled' %}
+    <p class="pricing-notice" role="status">Sua assinatura foi cancelada no Mercado Pago.</p>
+    {% elif request.args.get('subscription') == 'error' %}
+    <p class="pricing-notice" role="alert">Não foi possível atualizar sua assinatura. Tente novamente.</p>
+    {% endif %}
     <section class="account-workspace" id="conta">
         <div class="account-shell reveal">
             <header class="account-hero">
@@ -29,6 +34,10 @@
                     </div>
                     {% if account_workspace.is_pro %}
                         <a class="button button-secondary" href="{{ url_for('main.planos') }}">Gerenciar plano</a>
+                        <form method="post" action="{{ url_for('payments.cancel_subscription') }}">
+                            {% include "partials/csrf_field.html" %}
+                            <button class="button button-secondary" type="submit">Cancelar assinatura</button>
+                        </form>
                     {% else %}
                         <a class="button button-primary" href="{{ url_for('main.planos') }}">
                             Upgrade

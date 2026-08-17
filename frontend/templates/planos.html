@@ -5,12 +5,8 @@
 
 {% block content %}
 <main class="pricing-page">
-    {% if request.args.get('checkout') == 'success' %}
-    <p class="pricing-notice" role="status">Pagamento recebido. Seu acesso PRO será ativado assim que a Stripe confirmar a assinatura.</p>
-    {% elif request.args.get('checkout') == 'canceled' %}
-    <p class="pricing-notice" role="status">Checkout cancelado. Seu plano não foi alterado.</p>
-    {% elif request.args.get('checkout') == 'error' %}
-    <p class="pricing-notice" role="alert">O pagamento está temporariamente indisponível. Tente novamente em instantes.</p>
+    {% if request.args.get('checkout') == 'error' %}
+    <p class="pricing-notice" role="alert">A assinatura está temporariamente indisponível. Tente novamente em instantes.</p>
     {% endif %}
     <section class="pricing-hero" aria-labelledby="pricing-title">
         <div class="pricing-copy reveal">
@@ -64,7 +60,7 @@
                     <div class="plan-price-current">
                         <b>R$</b>
                         <strong>{{ config.PRO_PLAN_PRICE_DISPLAY }}</strong>
-                        <small>/ m&ecirc;s</small>
+                        <small>/ mês</small>
                     </div>
                 </div>
 
@@ -78,11 +74,17 @@
                 </ul>
 
                 <div class="plan-action">
-                    <form method="post" action="{{ url_for('checkout.create_checkout_session') }}">
+                    <form method="post"
+                          action="{{ url_for('payments.create_checkout') }}"
+                          data-payment-checkout
+                          data-login-url="{{ url_for('auth.login', next=url_for('main.planos')) }}">
                         {% include "partials/csrf_field.html" %}
-                    <button class="button button-primary plan-button" type="submit">
-                        Assinar BoostConvert PRO
-                    </button>
+                        <input type="hidden" name="plan" value="PRO">
+                        <input type="hidden" name="idempotency_key" value="{{ checkout_idempotency_key }}" data-payment-idempotency>
+                        <button class="button button-primary plan-button" type="submit" data-payment-button>
+                            Assinar BoostConvert PRO
+                        </button>
+                        <p class="plan-checkout-message" role="alert" aria-live="polite" data-payment-message></p>
                     </form>
                 </div>
                 <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Volume alto. Convers&otilde;es ilimitadas.</p>
@@ -100,8 +102,8 @@
             <article>
                 <span><i data-lucide="history" aria-hidden="true"></i></span>
                 <div>
-                    <h2>Cancele quando quiser</h2>
-                    <p>Sem burocracia</p>
+                    <h2>Assinatura no Mercado Pago</h2>
+                    <p>Checkout e cobranças recorrentes fora do BoostConvert</p>
                 </div>
             </article>
             <article>
@@ -114,4 +116,8 @@
         </aside>
     </section>
 </main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/payments.js') }}?v={{ js_version }}"></script>
 {% endblock %}

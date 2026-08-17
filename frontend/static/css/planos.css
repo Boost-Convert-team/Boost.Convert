@@ -342,6 +342,11 @@
     margin-top: 0;
 }
 
+.plan-action .plan-button:disabled {
+    cursor: wait;
+    opacity: .72;
+}
+
 .plan-checkout-message {
     min-height: 18px;
     margin: 8px 0 0;

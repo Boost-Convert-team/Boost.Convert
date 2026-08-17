@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime
-from typing import Any, Iterable, Mapping
+from typing import Any
 from urllib.parse import urlsplit
 
 from flask import current_app
-
 
 PUBLIC_ORIGIN = "https://boostconvert.com.br"
 SITE_NAME = "BoostConvert"
@@ -24,6 +24,7 @@ PRIVATE_PATH_PREFIXES = (
     "/dashboard",
     "/login",
     "/logout",
+    "/pagamento",
     "/registrar",
     "/webhook",
     "/webhooks/",
