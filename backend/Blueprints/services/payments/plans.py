@@ -4,6 +4,7 @@ from decimal import Decimal
 from flask import current_app
 
 PRO_PLAN_CODE = "PRO"
+LEGACY_PRO_PLAN_CODES = {"BOOSTCONVERT_PRO"}
 
 
 class InvalidPlanError(ValueError):
@@ -20,7 +21,7 @@ class PaymentPlan:
 
 def get_payment_plan(code: object) -> PaymentPlan:
     normalized_code = str(code or "").strip().upper()
-    if normalized_code != PRO_PLAN_CODE:
+    if normalized_code not in {PRO_PLAN_CODE, *LEGACY_PRO_PLAN_CODES}:
         raise InvalidPlanError("Plano de pagamento inválido.")
 
     return PaymentPlan(

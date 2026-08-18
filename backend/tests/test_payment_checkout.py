@@ -17,7 +17,7 @@ from Blueprints.services.payments.mercado_pago_client import (
     SubscriptionCheckout,
 )
 from extensions import db
-from models import Subscription, Usuario
+from models import Payment, Subscription, Usuario
 from security import CSRF_HEADER_NAME, CSRF_SESSION_KEY, init_security
 
 
@@ -140,6 +140,220 @@ class PaymentCheckoutTests(unittest.TestCase):
 
     @patch(
         "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
+    def test_legacy_pending_subscription_recovers_missing_checkout_url(
+        self, get_subscription
+    ):
+        with self.app.app_context():
+            subscription = self.subscription(
+                self.user_id,
+                "sub-legacy",
+                status="pending",
+                plan="BOOSTCONVERT_PRO",
+            )
+            get_subscription.return_value = self.provider_subscription(
+                subscription, "pending"
+            )
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("sub-legacy", response.json["checkout_url"])
+        with self.app.app_context():
+            stored = Subscription.query.filter_by(
+                provider_subscription_id="sub-legacy"
+            ).one()
+            self.assertEqual(stored.status, "pending")
+            self.assertEqual(stored.checkout_url, response.json["checkout_url"])
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.create_subscription_checkout"
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
+    def test_provider_canceled_subscription_does_not_block_new_checkout(
+        self, get_subscription, create_checkout
+    ):
+        with self.app.app_context():
+            old = self.subscription(self.user_id, "sub-old", status="pending")
+            get_subscription.return_value = self.provider_subscription(old, "canceled")
+        create_checkout.return_value = SubscriptionCheckout(
+            "sub-new",
+            "https://www.mercadopago.com.br/subscriptions/checkout?id=sub-new",
+            "pending",
+        )
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 201)
+        with self.app.app_context():
+            self.assertEqual(
+                Subscription.query.filter_by(provider_subscription_id="sub-old")
+                .one()
+                .status,
+                "canceled",
+            )
+            self.assertEqual(Subscription.query.count(), 2)
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.search_authorized_payments",
+        return_value=[],
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
+    def test_unpaid_authorized_subscription_offers_explicit_recovery(
+        self, get_subscription, _search_invoices
+    ):
+        with self.app.app_context():
+            subscription = self.subscription(self.user_id, "sub-unpaid")
+            get_subscription.return_value = self.provider_subscription(
+                subscription, "authorized"
+            )
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json["code"], "unpaid_subscription")
+        self.assertTrue(response.json["can_replace"])
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.create_subscription_checkout"
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.cancel_subscription"
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.search_authorized_payments",
+        return_value=[],
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
+    def test_explicit_recovery_cancels_unpaid_subscription_and_creates_checkout(
+        self, get_subscription, _search_invoices, cancel, create_checkout
+    ):
+        with self.app.app_context():
+            subscription = self.subscription(self.user_id, "sub-unpaid")
+            reference = subscription.external_reference
+            get_subscription.return_value = self.provider_subscription(
+                subscription, "authorized"
+            )
+        cancel.return_value = {
+            "id": "sub-unpaid",
+            "external_reference": reference,
+            "status": "canceled",
+        }
+        create_checkout.return_value = SubscriptionCheckout(
+            "sub-retry",
+            "https://www.mercadopago.com.br/subscriptions/checkout?id=sub-retry",
+            "pending",
+        )
+        self.login()
+
+        response = self.post_checkout(replace_unpaid_subscription=True)
+
+        self.assertEqual(response.status_code, 201)
+        cancel.assert_called_once_with("sub-unpaid")
+        with self.app.app_context():
+            old = Subscription.query.filter_by(
+                provider_subscription_id="sub-unpaid"
+            ).one()
+            self.assertEqual(old.status, "canceled")
+            self.assertEqual(Subscription.query.count(), 2)
+
+    def test_checkout_reconciles_approved_invoice_when_webhook_was_missed(self):
+        with self.app.app_context():
+            subscription = self.subscription(self.user_id, "sub-approved")
+            provider_subscription = self.provider_subscription(
+                subscription, "authorized"
+            )
+            invoice = {
+                "id": "501",
+                "preapproval_id": "sub-approved",
+                "external_reference": subscription.external_reference,
+                "transaction_amount": "25.90",
+                "currency_id": "BRL",
+                "date_created": "2026-08-17T12:00:00Z",
+                "debit_date": "2026-08-17T12:00:00Z",
+                "payment": {
+                    "id": "9001",
+                    "status": "approved",
+                    "status_detail": "accredited",
+                },
+            }
+        self.login()
+        with (
+            patch(
+                "Blueprints.services.payments.payment_service."
+                "MercadoPagoClient.get_subscription",
+                return_value=provider_subscription,
+            ),
+            patch(
+                "Blueprints.services.payments.payment_service."
+                "MercadoPagoClient.search_authorized_payments",
+                return_value=[invoice],
+            ),
+        ):
+            response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json["code"], "subscription_already_paid")
+        with self.app.app_context():
+            user = db.session.get(Usuario, self.user_id)
+            self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
+            self.assertEqual(Payment.query.count(), 1)
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.create_subscription_checkout"
+    )
+    def test_stale_interrupted_creation_is_replaced(self, create_checkout):
+        with self.app.app_context():
+            db.session.add(
+                Subscription(
+                    user_id=self.user_id,
+                    provider="mercado_pago",
+                    external_reference=f"boost:subscription:{uuid4()}",
+                    plan="PRO",
+                    status="creating",
+                    amount="25.90",
+                    currency="BRL",
+                    created_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+                )
+            )
+            db.session.commit()
+        create_checkout.return_value = SubscriptionCheckout(
+            "sub-recovered",
+            "https://www.mercadopago.com/subscriptions/checkout?id=sub-recovered",
+            "pending",
+        )
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 201)
+        with self.app.app_context():
+            statuses = [
+                row.status for row in Subscription.query.order_by(Subscription.id)
+            ]
+            self.assertEqual(statuses, ["error", "pending"])
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
         "MercadoPagoClient.create_subscription_checkout",
         side_effect=MercadoPagoError(
             operation="subscription_create",
@@ -226,7 +440,8 @@ class PaymentCheckoutTests(unittest.TestCase):
         self.assertNotIn("MERCADOPAGO_WEBHOOK_SECRET", content)
         self.assertNotIn("card_token_id", content)
         self.assertIn("window.location.assign(result.checkout_url)", payment_script)
-        self.assertIn("JSON.stringify({ plan_id: payload.plan_id })", payment_script)
+        self.assertIn("plan_id: payload.plan_id", payment_script)
+        self.assertIn("replace_unpaid_subscription", payment_script)
 
     def post_checkout(self, plan_id="PRO", idempotency_key=None, **extra):
         payload = {"plan_id": plan_id, **extra}
@@ -239,20 +454,50 @@ class PaymentCheckoutTests(unittest.TestCase):
             },
         )
 
-    def subscription(self, user_id, provider_id):
+    def subscription(
+        self,
+        user_id,
+        provider_id,
+        *,
+        status="active",
+        plan="PRO",
+        checkout_url=None,
+    ):
         subscription = Subscription(
             user_id=user_id,
             provider="mercado_pago",
             provider_subscription_id=provider_id,
             external_reference=f"boost:subscription:{uuid4()}",
-            plan="PRO",
-            status="active",
+            plan=plan,
+            status=status,
             amount="25.90",
             currency="BRL",
+            checkout_url=checkout_url,
         )
         db.session.add(subscription)
         db.session.commit()
         return subscription
+
+    @staticmethod
+    def provider_subscription(subscription, status):
+        return {
+            "id": subscription.provider_subscription_id,
+            "external_reference": subscription.external_reference,
+            "preapproval_plan_id": None,
+            "status": status,
+            "init_point": (
+                "https://www.mercadopago.com.br/subscriptions/checkout"
+                f"?preapproval_id={subscription.provider_subscription_id}"
+            ),
+            "date_created": "2026-08-17T12:00:00Z",
+            "next_payment_date": "2026-09-17T12:00:00Z",
+            "auto_recurring": {
+                "frequency": 1,
+                "frequency_type": "months",
+                "transaction_amount": 25.90,
+                "currency_id": "BRL",
+            },
+        }
 
     def login(self):
         with self.client.session_transaction() as session:

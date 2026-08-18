@@ -40,14 +40,45 @@ class MercadoPagoClientTests(unittest.TestCase):
                 "init_point": "https://www.mercadopago.com.br/subscriptions/checkout?id=sub-123",
             },
         )
-        result = self.client.create_subscription_checkout({"status": "pending"})
+        result = self.client.create_subscription_checkout(
+            {"status": "pending"}, idempotency_key="checkout-attempt-123"
+        )
         self.assertEqual(result.subscription_id, "sub-123")
         self.assertEqual(result.status, "pending")
         call = request_call.call_args
         self.assertEqual(
             call.args[:2], ("POST", "https://api.mercadopago.com/preapproval")
         )
+        self.assertEqual(
+            call.kwargs["headers"]["X-Idempotency-Key"], "checkout-attempt-123"
+        )
         self.assertEqual(call.kwargs["timeout"], 7)
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_authorized_payment_search_is_scoped_to_subscription(self, request_call):
+        request_call.return_value = self.response(
+            200,
+            {"paging": {"total": 1}, "results": [{"id": 501}]},
+        )
+
+        results = self.client.search_authorized_payments("sub-123")
+
+        self.assertEqual(results, [{"id": 501}])
+        call = request_call.call_args
+        self.assertEqual(
+            call.args[:2],
+            ("GET", "https://api.mercadopago.com/authorized_payments/search"),
+        )
+        self.assertEqual(call.kwargs["params"], {"preapproval_id": "sub-123"})
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_authorized_payment_search_rejects_malformed_results(self, request_call):
+        request_call.return_value = self.response(200, {"results": {"id": 501}})
+
+        with self.assertRaises(MercadoPagoError) as raised:
+            self.client.search_authorized_payments("sub-123")
+
+        self.assertEqual(raised.exception.provider_code, "invalid_response")
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
     def test_provider_http_errors_keep_safe_diagnostics(self, request_call):

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from flask import current_app
 from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError
 
 from Blueprints.services.payments.mercado_pago_client import (
     MercadoPagoClient,
     MercadoPagoError,
+    is_mercado_pago_checkout_url,
 )
 from Blueprints.services.payments.plans import PaymentPlan, get_payment_plan
 from Blueprints.services.subscription.subscription_service import (
+    as_utc,
+    has_active_paid_entitlement,
     synchronize_user_pro_status,
 )
 from extensions import db
@@ -28,7 +32,16 @@ class InvalidIdempotencyKeyError(ValueError):
 
 
 class CheckoutConflictError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "subscription_conflict",
+        can_replace: bool = False,
+    ) -> None:
+        self.code = code
+        self.can_replace = can_replace
+        super().__init__(message)
 
 
 class SubscriptionNotFoundError(LookupError):
@@ -48,6 +61,7 @@ def create_subscription_checkout(
     idempotency_key: object,
     back_url: str,
     *,
+    replace_unpaid_subscription: bool = False,
     client: MercadoPagoClient | None = None,
 ) -> CheckoutResult:
     plan = get_payment_plan(plan_code)
@@ -75,14 +89,13 @@ def create_subscription_checkout(
         .first()
     )
     if open_subscription is not None:
-        if open_subscription.checkout_url and open_subscription.status in {
-            "creating",
-            "pending",
-        }:
-            return CheckoutResult(
-                open_subscription.checkout_url, open_subscription.id, True
-            )
-        raise CheckoutConflictError("Você já possui uma assinatura em andamento.")
+        recovered_checkout = resolve_open_subscription(
+            open_subscription,
+            mercado_pago,
+            replace_unpaid_subscription=replace_unpaid_subscription,
+        )
+        if recovered_checkout is not None:
+            return recovered_checkout
 
     legacy_entitlement = Subscription.query.filter(
         Subscription.user_id == usuario.id,
@@ -121,7 +134,8 @@ def create_subscription_checkout(
 
     try:
         checkout = mercado_pago.create_subscription_checkout(
-            build_subscription_payload(subscription, usuario.email, plan, back_url)
+            build_subscription_payload(subscription, usuario.email, plan, back_url),
+            idempotency_key=normalized_key,
         )
     except MercadoPagoError:
         subscription.status = "error"
@@ -161,6 +175,128 @@ def cancel_current_subscription(
     provider_data = (client or MercadoPagoClient()).cancel_subscription(
         subscription.provider_subscription_id
     )
+    apply_confirmed_cancellation(subscription, provider_data)
+    synchronize_user_pro_status(usuario, False)
+    db.session.commit()
+    return subscription
+
+
+def resolve_open_subscription(
+    subscription: Subscription,
+    mercado_pago: MercadoPagoClient,
+    *,
+    replace_unpaid_subscription: bool,
+) -> CheckoutResult | None:
+    """Reconcile a local open record before blocking a new checkout."""
+    if subscription.provider_subscription_id is None:
+        if is_recent_checkout_creation(subscription):
+            raise CheckoutConflictError(
+                "A assinatura está sendo criada. Aguarde alguns instantes.",
+                code="subscription_creating",
+            )
+        mark_subscription_error(subscription)
+        db.session.commit()
+        return None
+
+    if subscription.status == "pending" and subscription.checkout_url:
+        return CheckoutResult(subscription.checkout_url, subscription.id, True)
+
+    try:
+        provider_subscription = mercado_pago.get_subscription(
+            subscription.provider_subscription_id
+        )
+    except MercadoPagoError as exc:
+        if exc.status != 404:
+            raise
+        mark_subscription_error(subscription)
+        db.session.commit()
+        return None
+
+    reconcile_provider_subscription(
+        subscription,
+        provider_subscription,
+        mercado_pago,
+    )
+
+    if subscription.status == "canceled":
+        db.session.commit()
+        return None
+
+    if subscription.status == "pending":
+        checkout_url = str(provider_subscription.get("init_point") or "").strip()
+        if not is_mercado_pago_checkout_url(checkout_url):
+            raise invalid_provider_response(
+                "A assinatura pendente não possui checkout válido."
+            )
+        subscription.checkout_url = checkout_url
+        db.session.commit()
+        return CheckoutResult(checkout_url, subscription.id, True)
+
+    if has_active_paid_entitlement(subscription.user_id):
+        db.session.commit()
+        raise CheckoutConflictError(
+            "Seu pagamento já foi aprovado e o acesso PRO está ativo.",
+            code="subscription_already_paid",
+        )
+
+    if subscription.status not in {"active", "paused"}:
+        raise invalid_provider_response("Status de assinatura desconhecido.")
+
+    if not replace_unpaid_subscription:
+        db.session.commit()
+        raise CheckoutConflictError(
+            "Existe uma assinatura anterior sem pagamento confirmado.",
+            code="unpaid_subscription",
+            can_replace=True,
+        )
+
+    provider_data = mercado_pago.cancel_subscription(
+        subscription.provider_subscription_id
+    )
+    apply_confirmed_cancellation(subscription, provider_data)
+    synchronize_user_pro_status(subscription.user, False)
+    db.session.commit()
+    return None
+
+
+def reconcile_provider_subscription(
+    subscription: Subscription,
+    provider_subscription: dict[str, object],
+    mercado_pago: MercadoPagoClient,
+) -> None:
+    """Reuse the webhook's strict provider contract for checkout recovery."""
+    from Blueprints.services.payments.webhook_service import (
+        WebhookValidationError,
+        refresh_user_access,
+        synchronize_authorized_payment,
+        synchronize_subscription_fields,
+        validate_provider_invoice,
+        validate_provider_subscription,
+    )
+
+    try:
+        validate_provider_subscription(
+            provider_subscription, subscription.provider_subscription_id
+        )
+        synchronize_subscription_fields(subscription, provider_subscription)
+        if subscription.status in {"active", "paused"}:
+            invoices = mercado_pago.search_authorized_payments(
+                subscription.provider_subscription_id
+            )
+            for invoice in invoices:
+                invoice_id = str(invoice.get("id") or "").strip()
+                validate_provider_invoice(invoice, invoice_id, subscription)
+                synchronize_authorized_payment(
+                    subscription, invoice, provider_subscription
+                )
+        refresh_user_access(subscription)
+    except (WebhookValidationError, ValueError) as exc:
+        raise invalid_provider_response(str(exc)) from exc
+
+
+def apply_confirmed_cancellation(
+    subscription: Subscription, provider_data: dict[str, object]
+) -> None:
     if (
         str(provider_data.get("id") or "") != subscription.provider_subscription_id
         or str(provider_data.get("external_reference") or "")
@@ -168,20 +304,41 @@ def cancel_current_subscription(
         or str(provider_data.get("status") or "").lower()
         not in {"canceled", "cancelled"}
     ):
-        raise MercadoPagoError(
+        raise invalid_provider_response(
+            "Mercado Pago não confirmou o cancelamento.",
             operation="subscription_cancel",
-            endpoint="/preapproval/{id}",
-            status=None,
-            provider_code="invalid_response",
-            provider_message="Mercado Pago não confirmou o cancelamento.",
         )
 
     subscription.status = "canceled"
     subscription.canceled_at = utc_now()
     subscription.updated_at = utc_now()
-    synchronize_user_pro_status(usuario, False)
-    db.session.commit()
-    return subscription
+
+
+def is_recent_checkout_creation(subscription: Subscription) -> bool:
+    created_at = as_utc(subscription.created_at) or as_utc(subscription.updated_at)
+    if created_at is None:
+        return False
+    timeout_seconds = int(
+        current_app.config.get("PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS", 120)
+    )
+    return created_at > utc_now() - timedelta(seconds=max(timeout_seconds, 1))
+
+
+def mark_subscription_error(subscription: Subscription) -> None:
+    subscription.status = "error"
+    subscription.updated_at = utc_now()
+
+
+def invalid_provider_response(
+    message: str, *, operation: str = "subscription_reconcile"
+) -> MercadoPagoError:
+    return MercadoPagoError(
+        operation=operation,
+        endpoint="/preapproval/{id}",
+        status=None,
+        provider_code="invalid_response",
+        provider_message=message,
+    )
 
 
 def reuse_checkout(

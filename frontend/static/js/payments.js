@@ -31,7 +31,10 @@
                     "X-CSRF-Token": String(payload._csrf_token || ""),
                     "X-Idempotency-Key": String(payload.idempotency_key || "")
                 },
-                body: JSON.stringify({ plan_id: payload.plan_id })
+                body: JSON.stringify({
+                    plan_id: payload.plan_id,
+                    replace_unpaid_subscription: form.dataset.replaceUnpaidSubscription === "true"
+                })
             });
             if (response.redirected && response.url.includes("/login")) {
                 window.location.assign(form.dataset.loginUrl || response.url);
@@ -39,13 +42,24 @@
             }
 
             const result = await readJson(response);
-            if (!response.ok) throw new Error(result.error || checkoutError(response.status));
+            if (!response.ok) {
+                const error = new Error(result.error || checkoutError(response.status));
+                error.canReplace = result.can_replace === true;
+                throw error;
+            }
             if (!isHostedCheckoutUrl(result.checkout_url)) {
                 throw new Error("O provedor retornou uma resposta inválida.");
             }
             window.location.assign(result.checkout_url);
         } catch (error) {
-            if (message) message.textContent = error.message || "Não foi possível iniciar sua assinatura.";
+            if (error.canReplace) {
+                form.dataset.replaceUnpaidSubscription = "true";
+                if (message) {
+                    message.textContent = "Há uma tentativa anterior sem pagamento confirmado. Clique em “Reiniciar pagamento” para cancelá-la e abrir um novo checkout.";
+                }
+            } else if (message) {
+                message.textContent = error.message || "Não foi possível iniciar sua assinatura.";
+            }
             renewIdempotencyKey(form);
             setLoading(button, message, false, true);
         }
@@ -90,8 +104,16 @@
     function setLoading(button, message, loading, preserveMessage) {
         button.disabled = loading;
         button.setAttribute("aria-busy", String(loading));
-        button.textContent = loading ? "Abrindo assinatura segura..." : DEFAULT_BUTTON_TEXT;
+        const readyText = formButtonText(button);
+        button.textContent = loading ? "Abrindo assinatura segura..." : readyText;
         if (message && !preserveMessage) message.textContent = "";
+    }
+
+    function formButtonText(button) {
+        const form = button.closest("form");
+        return form?.dataset.replaceUnpaidSubscription === "true"
+            ? "Reiniciar pagamento"
+            : DEFAULT_BUTTON_TEXT;
     }
 
     window.BoostPayments = { initPayments };

@@ -150,6 +150,9 @@ class Config:
     MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET")
     MERCADOPAGO_API_BASE_URL = "https://api.mercadopago.com"
     MERCADOPAGO_REQUEST_TIMEOUT_SECONDS = 10
+    PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS = get_int_env(
+        "PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS", 120
+    )
     PRO_PLAN_PRICE = Decimal("25.90")
     PRO_PLAN_PRICE_DISPLAY = "25,90"
     # Public SEO origin.  This must not depend on the inbound Host or proxy

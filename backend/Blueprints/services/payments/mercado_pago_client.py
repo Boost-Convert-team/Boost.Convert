@@ -51,10 +51,20 @@ class MercadoPagoClient:
         )
 
     def create_subscription_checkout(
-        self, payload: dict[str, Any]
+        self,
+        payload: dict[str, Any],
+        *,
+        idempotency_key: str | None = None,
     ) -> SubscriptionCheckout:
+        extra_headers = (
+            {"X-Idempotency-Key": idempotency_key} if idempotency_key else None
+        )
         response, response_status = self._request(
-            "subscription_create", "POST", "/preapproval", json=payload
+            "subscription_create",
+            "POST",
+            "/preapproval",
+            json=payload,
+            extra_headers=extra_headers,
         )
         subscription_id = normalize_resource_id(response.get("id"))
         checkout_url = str(response.get("init_point") or "").strip()
@@ -95,6 +105,27 @@ class MercadoPagoClient:
         response, _status = self._request("authorized_payment_get", "GET", path)
         return response
 
+    def search_authorized_payments(self, subscription_id: str) -> list[dict[str, Any]]:
+        normalized_id = require_resource_id(subscription_id)
+        response, response_status = self._request(
+            "authorized_payment_search",
+            "GET",
+            "/authorized_payments/search",
+            params={"preapproval_id": normalized_id},
+        )
+        results = response.get("results")
+        if not isinstance(results, list) or not all(
+            isinstance(item, dict) for item in results
+        ):
+            raise MercadoPagoError(
+                operation="authorized_payment_search",
+                endpoint="/authorized_payments/search",
+                status=response_status,
+                provider_code="invalid_response",
+                provider_message="Mercado Pago retornou uma lista de faturas invÃ¡lida.",
+            )
+        return results
+
     def _request(
         self,
         operation: str,
@@ -102,17 +133,22 @@ class MercadoPagoClient:
         path: str,
         *,
         json: dict[str, Any] | None = None,
+        params: dict[str, str] | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> tuple[dict[str, Any], int]:
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
+        if extra_headers:
+            headers.update(extra_headers)
         try:
             response = requests.request(
                 method,
                 f"{self.base_url}{path}",
                 headers=headers,
                 json=json,
+                params=params,
                 timeout=self.timeout,
             )
         except requests.Timeout as exc:

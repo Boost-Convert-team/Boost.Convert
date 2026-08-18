@@ -45,17 +45,26 @@ def create_checkout() -> tuple[Response, int] | Response:
     idempotency_key = request.headers.get("X-Idempotency-Key") or (body or {}).get(
         "idempotency_key"
     )
+    replace_unpaid_subscription = (body or {}).get(
+        "replace_unpaid_subscription"
+    ) is True
     try:
         result = create_subscription_checkout(
             current_user,
             plan,
             idempotency_key,
             _external_url("payments.payment_return"),
+            replace_unpaid_subscription=replace_unpaid_subscription,
         )
     except (InvalidPlanError, InvalidIdempotencyKeyError) as exc:
         return _checkout_error(str(exc), 400)
     except CheckoutConflictError as exc:
-        return _checkout_error(str(exc), 409)
+        return _checkout_error(
+            str(exc),
+            409,
+            code=exc.code,
+            can_replace=exc.can_replace,
+        )
     except MercadoPagoConfigurationError:
         current_app.logger.error(
             "payment_checkout_configuration_missing user_id=%s", current_user.id
@@ -139,9 +148,20 @@ def _render_payment_return(title: str, message: str, state: str) -> str:
     )
 
 
-def _checkout_error(message: str, status: int) -> tuple[Response, int] | Response:
+def _checkout_error(
+    message: str,
+    status: int,
+    *,
+    code: str | None = None,
+    can_replace: bool = False,
+) -> tuple[Response, int] | Response:
     if request.is_json or request.accept_mimetypes.best == "application/json":
-        return jsonify({"ok": False, "error": message}), status
+        payload: dict[str, object] = {"ok": False, "error": message}
+        if code:
+            payload["code"] = code
+        if can_replace:
+            payload["can_replace"] = True
+        return jsonify(payload), status
     return redirect(url_for("main.planos", checkout="error"), code=303)
 
 
