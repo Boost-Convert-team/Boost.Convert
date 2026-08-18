@@ -212,11 +212,20 @@ def resolve_open_subscription(
         db.session.commit()
         return None
 
-    reconcile_provider_subscription(
-        subscription,
-        provider_subscription,
-        mercado_pago,
-    )
+    try:
+        reconcile_provider_subscription(
+            subscription,
+            provider_subscription,
+            mercado_pago,
+        )
+    except MercadoPagoError as exc:
+        if not is_replaceable_pending_checkout(
+            subscription, provider_subscription, exc
+        ):
+            raise
+        mark_subscription_error(subscription)
+        db.session.commit()
+        return None
 
     if subscription.status == "canceled":
         db.session.commit()
@@ -327,6 +336,25 @@ def is_recent_checkout_creation(subscription: Subscription) -> bool:
 def mark_subscription_error(subscription: Subscription) -> None:
     subscription.status = "error"
     subscription.updated_at = utc_now()
+
+
+def is_replaceable_pending_checkout(
+    subscription: Subscription,
+    provider_subscription: dict[str, object],
+    error: MercadoPagoError,
+) -> bool:
+    """Allow a new checkout only for an unfunded legacy pending resource."""
+    return (
+        error.provider_code == "invalid_response"
+        and str(provider_subscription.get("id") or "")
+        == subscription.provider_subscription_id
+        and str(provider_subscription.get("external_reference") or "")
+        == subscription.external_reference
+        and str(provider_subscription.get("status") or "").strip().lower() == "pending"
+        and not provider_subscription.get("payment_method_id")
+        and not provider_subscription.get("card_id")
+        and subscription.paid_through_at is None
+    )
 
 
 def invalid_provider_response(

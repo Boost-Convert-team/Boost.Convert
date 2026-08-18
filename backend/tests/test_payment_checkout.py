@@ -176,6 +176,80 @@ class PaymentCheckoutTests(unittest.TestCase):
         "Blueprints.services.payments.payment_service."
         "MercadoPagoClient.get_subscription"
     )
+    def test_legacy_pending_checkout_with_old_price_is_replaced(
+        self, get_subscription, create_checkout
+    ):
+        with self.app.app_context():
+            old = self.subscription(
+                self.user_id,
+                "sub-old-price",
+                status="pending",
+                plan="BOOSTCONVERT_PRO",
+            )
+            provider_subscription = self.provider_subscription(old, "pending")
+            provider_subscription["auto_recurring"]["transaction_amount"] = 19.90
+            get_subscription.return_value = provider_subscription
+        create_checkout.return_value = SubscriptionCheckout(
+            "sub-current-price",
+            "https://www.mercadopago.com.br/subscriptions/checkout"
+            "?preapproval_id=sub-current-price",
+            "pending",
+        )
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 201)
+        create_payload = create_checkout.call_args.args[0]
+        self.assertEqual(create_payload["auto_recurring"]["transaction_amount"], 25.90)
+        with self.app.app_context():
+            old = Subscription.query.filter_by(
+                provider_subscription_id="sub-old-price"
+            ).one()
+            current = Subscription.query.filter_by(
+                provider_subscription_id="sub-current-price"
+            ).one()
+            self.assertEqual(old.status, "error")
+            self.assertEqual(current.status, "pending")
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.create_subscription_checkout"
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
+    def test_pending_checkout_with_wrong_reference_fails_closed(
+        self, get_subscription, create_checkout
+    ):
+        with self.app.app_context():
+            old = self.subscription(
+                self.user_id, "sub-wrong-reference", status="pending"
+            )
+            provider_subscription = self.provider_subscription(old, "pending")
+            provider_subscription["external_reference"] = "boost:subscription:other"
+            get_subscription.return_value = provider_subscription
+        self.login()
+
+        response = self.post_checkout()
+
+        self.assertEqual(response.status_code, 502)
+        create_checkout.assert_not_called()
+        with self.app.app_context():
+            stored = Subscription.query.filter_by(
+                provider_subscription_id="sub-wrong-reference"
+            ).one()
+            self.assertEqual(stored.status, "pending")
+
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.create_subscription_checkout"
+    )
+    @patch(
+        "Blueprints.services.payments.payment_service."
+        "MercadoPagoClient.get_subscription"
+    )
     def test_provider_canceled_subscription_does_not_block_new_checkout(
         self, get_subscription, create_checkout
     ):
