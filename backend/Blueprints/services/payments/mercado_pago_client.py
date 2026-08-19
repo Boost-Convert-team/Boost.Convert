@@ -87,7 +87,7 @@ class MercadoPagoClient:
     def cancel_subscription(self, subscription_id: str) -> dict[str, Any]:
         path = f"/preapproval/{require_resource_id(subscription_id)}"
         response, _status = self._request(
-            "subscription_cancel", "PUT", path, json={"status": "canceled"}
+            "subscription_cancel", "PUT", path, json={"status": "cancelled"}
         )
         return response
 

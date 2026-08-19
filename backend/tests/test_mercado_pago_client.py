@@ -81,6 +81,27 @@ class MercadoPagoClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.provider_code, "invalid_response")
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_subscription_cancel_uses_provider_supported_status(self, request_call):
+        request_call.return_value = self.response(
+            200,
+            {
+                "id": "sub-123",
+                "external_reference": "boost:subscription:123",
+                "status": "cancelled",
+            },
+        )
+
+        result = self.client.cancel_subscription("sub-123")
+
+        self.assertEqual(result["status"], "cancelled")
+        call = request_call.call_args
+        self.assertEqual(
+            call.args[:2],
+            ("PUT", "https://api.mercadopago.com/preapproval/sub-123"),
+        )
+        self.assertEqual(call.kwargs["json"], {"status": "cancelled"})
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
     def test_provider_http_errors_keep_safe_diagnostics(self, request_call):
         for status in (400, 401, 403, 500):
             with self.subTest(status=status):
