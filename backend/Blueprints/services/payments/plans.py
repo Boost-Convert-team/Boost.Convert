@@ -26,7 +26,7 @@ def get_payment_plan(code: object) -> PaymentPlan:
 
     return PaymentPlan(
         code=PRO_PLAN_CODE,
-        title="BoostConvert PRO mensal",
+        title="BoostConvert PRO por 30 dias",
         amount=Decimal(str(current_app.config["PRO_PLAN_PRICE"])).quantize(
             Decimal("0.01")
         ),

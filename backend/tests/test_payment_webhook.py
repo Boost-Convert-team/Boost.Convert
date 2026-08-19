@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -16,10 +16,10 @@ from Blueprints.main.webhook_routes import webhook_bp
 from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
     WebhookValidationError,
-    process_subscription_notification,
+    process_payment_notification,
 )
 from extensions import db
-from models import Payment, PaymentWebhookEvent, Subscription, Usuario
+from models import Payment, PaymentWebhookEvent, Usuario
 from security import init_security
 
 
@@ -56,134 +56,129 @@ class PaymentWebhookTests(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def test_authorized_subscription_without_paid_invoice_does_not_activate_pro(self):
+    def test_approved_payment_activates_pro_for_30_days(self):
         with self.app.app_context():
-            subscription = self.create_subscription()
-            gateway = self.gateway(
-                self.provider_subscription(subscription, "authorized")
+            payment = self.create_payment()
+            approved_at = datetime.now(timezone.utc)
+            remote = self.provider_payment(payment, "approved", approved_at=approved_at)
+            result = process_payment_notification(
+                self.event("evt-approved", payment.provider_payment_id),
+                payment.provider_payment_id,
+                client=self.gateway(remote),
             )
-            process_subscription_notification(
-                self.event("evt-sub", "subscription_preapproval", "sub-101"),
-                "sub-101",
-                client=gateway,
-            )
-            self.assertEqual(Subscription.query.one().status, "active")
-            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
-
-    def test_approved_recurring_invoice_activates_pro_until_next_charge(self):
-        with self.app.app_context():
-            subscription = self.create_subscription()
-            gateway = self.gateway(
-                self.provider_subscription(subscription, "authorized"),
-                self.provider_invoice(subscription, "approved", "501", "9001"),
-            )
-            result = process_subscription_notification(
-                self.event("evt-invoice", "subscription_authorized_payment", "501"),
-                "501",
-                client=gateway,
-            )
+            stored = Payment.query.one()
             self.assertEqual(result.status, "processed")
+            self.assertEqual(stored.status, "approved")
+            self.assertAlmostEqual(
+                (
+                    stored.premium_expires_at.replace(tzinfo=timezone.utc) - approved_at
+                ).total_seconds(),
+                30 * 86400,
+                delta=2,
+            )
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
-            stored = Subscription.query.one()
-            self.assertEqual(stored.latest_payment_status, "approved")
-            self.assertEqual(
-                stored.paid_through_at.replace(tzinfo=timezone.utc).isoformat(),
-                "2026-09-17T12:00:00+00:00",
-            )
-            self.assertEqual(Payment.query.one().provider_invoice_id, "501")
 
-    def test_rejected_renewal_does_not_extend_entitlement(self):
+    def test_pending_and_in_process_do_not_activate_pro(self):
         with self.app.app_context():
-            subscription = self.create_subscription()
-            subscription.paid_through_at = datetime.fromisoformat(
-                "2026-08-20T12:00:00+00:00"
-            )
-            db.session.commit()
-            gateway = self.gateway(
-                self.provider_subscription(subscription, "authorized"),
-                self.provider_invoice(subscription, "rejected", "502", "9002"),
-            )
-            process_subscription_notification(
-                self.event("evt-rejected", "subscription_authorized_payment", "502"),
-                "502",
-                client=gateway,
-            )
-            self.assertEqual(Subscription.query.one().latest_payment_status, "rejected")
-            self.assertEqual(
-                Subscription.query.one()
-                .paid_through_at.replace(tzinfo=timezone.utc)
-                .isoformat(),
-                "2026-08-20T12:00:00+00:00",
-            )
-
-    def test_duplicate_event_is_idempotent(self):
-        with self.app.app_context():
-            subscription = self.create_subscription()
-            gateway = self.gateway(
-                self.provider_subscription(subscription, "authorized"),
-                self.provider_invoice(subscription, "approved", "503", "9003"),
-            )
-            event = self.event(
-                "evt-duplicate", "subscription_authorized_payment", "503"
-            )
-            process_subscription_notification(event, "503", client=gateway)
-            duplicate = process_subscription_notification(event, "503", client=gateway)
-            self.assertTrue(duplicate.duplicate)
-            self.assertEqual(Payment.query.count(), 1)
-            self.assertEqual(PaymentWebhookEvent.query.count(), 1)
-            gateway.get_authorized_payment.assert_called_once()
-
-    def test_tampered_amount_is_rejected(self):
-        with self.app.app_context():
-            subscription = self.create_subscription()
-            invoice = self.provider_invoice(subscription, "approved", "504", "9004")
-            invoice["transaction_amount"] = "1.00"
-            gateway = self.gateway(
-                self.provider_subscription(subscription, "authorized"), invoice
-            )
-            with self.assertRaises(WebhookValidationError):
-                process_subscription_notification(
-                    self.event(
-                        "evt-tampered", "subscription_authorized_payment", "504"
-                    ),
-                    "504",
-                    client=gateway,
+            for index, status in enumerate(("pending", "in_process")):
+                payment = self.create_payment(payment_id=str(2000 + index))
+                process_payment_notification(
+                    self.event(f"evt-{status}", payment.provider_payment_id),
+                    payment.provider_payment_id,
+                    client=self.gateway(self.provider_payment(payment, status)),
                 )
             self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
 
-    @patch(
-        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription"
-    )
-    def test_route_validates_signature_and_fetches_official_subscription(
-        self, get_subscription
-    ):
+    def test_rejected_payment_does_not_activate_pro(self):
         with self.app.app_context():
-            subscription = self.create_subscription()
-            get_subscription.return_value = self.provider_subscription(
-                subscription, "authorized"
+            payment = self.create_payment()
+            process_payment_notification(
+                self.event("evt-rejected", payment.provider_payment_id),
+                payment.provider_payment_id,
+                client=self.gateway(self.provider_payment(payment, "rejected")),
             )
-        payload = self.event("evt-route", "subscription_preapproval", "sub-101")
-        request_id = "request-108"
-        timestamp = "1742505638683"
-        manifest = f"id:sub-101;request-id:{request_id};ts:{timestamp};"
-        digest = hmac.new(
-            b"test-webhook-secret", manifest.encode(), hashlib.sha256
-        ).hexdigest()
-        response = self.client.post(
-            "/webhooks/mercado-pago?data.id=sub-101",
-            json=payload,
-            headers={
-                "X-Request-Id": request_id,
-                "X-Signature": f"ts={timestamp},v1={digest}",
-            },
+            self.assertEqual(Payment.query.one().status, "rejected")
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
+
+    def test_duplicate_event_is_idempotent(self):
+        with self.app.app_context():
+            payment = self.create_payment()
+            gateway = self.gateway(self.provider_payment(payment, "approved"))
+            event = self.event("evt-duplicate", payment.provider_payment_id)
+            process_payment_notification(
+                event, payment.provider_payment_id, client=gateway
+            )
+            expiration = Payment.query.one().premium_expires_at
+            duplicate = process_payment_notification(
+                event, payment.provider_payment_id, client=gateway
+            )
+            self.assertTrue(duplicate.duplicate)
+            self.assertEqual(Payment.query.one().premium_expires_at, expiration)
+            self.assertEqual(PaymentWebhookEvent.query.count(), 1)
+            gateway.get_payment.assert_called_once()
+
+    def test_distinct_update_event_does_not_add_another_30_days(self):
+        with self.app.app_context():
+            payment = self.create_payment()
+            remote = self.provider_payment(payment, "approved")
+            gateway = self.gateway(remote)
+            process_payment_notification(
+                self.event("evt-created", payment.provider_payment_id),
+                payment.provider_payment_id,
+                client=gateway,
+            )
+            expiration = Payment.query.one().premium_expires_at
+            process_payment_notification(
+                self.event("evt-updated", payment.provider_payment_id),
+                payment.provider_payment_id,
+                client=gateway,
+            )
+            self.assertEqual(Payment.query.one().premium_expires_at, expiration)
+            self.assertEqual(PaymentWebhookEvent.query.count(), 2)
+
+    def test_tampered_amount_is_rejected(self):
+        with self.app.app_context():
+            payment = self.create_payment()
+            remote = self.provider_payment(payment, "approved")
+            remote["transaction_amount"] = "1.00"
+            with self.assertRaises(WebhookValidationError):
+                process_payment_notification(
+                    self.event("evt-tampered", payment.provider_payment_id),
+                    payment.provider_payment_id,
+                    client=self.gateway(remote),
+                )
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
+
+    def test_wrong_external_reference_is_rejected(self):
+        with self.app.app_context():
+            payment = self.create_payment()
+            remote = self.provider_payment(payment, "approved")
+            remote["external_reference"] = "boost:payment:other"
+            with self.assertRaises(WebhookValidationError):
+                process_payment_notification(
+                    self.event("evt-reference", payment.provider_payment_id),
+                    payment.provider_payment_id,
+                    client=self.gateway(remote),
+                )
+
+    @patch("Blueprints.services.payments.webhook_service.MercadoPagoClient.get_payment")
+    def test_route_validates_signature_and_fetches_official_payment(self, get_payment):
+        with self.app.app_context():
+            payment = self.create_payment()
+            payment_id = payment.provider_payment_id
+            get_payment.return_value = self.provider_payment(payment, "approved")
+        response = self.signed_webhook(
+            self.event("evt-route", payment_id), payment_id, "request-108"
         )
         self.assertEqual(response.status_code, 200)
-        get_subscription.assert_called_once_with("sub-101")
+        get_payment.assert_called_once_with(payment_id)
+        with self.app.app_context():
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
 
     def test_invalid_signature_changes_nothing(self):
         response = self.client.post(
-            "/webhooks/mercado-pago?data.id=sub-101",
-            json=self.event("evt-invalid", "subscription_preapproval", "sub-101"),
+            "/webhooks/mercado-pago?data.id=1001",
+            json=self.event("evt-invalid", "1001"),
             headers={
                 "X-Request-Id": "request-109",
                 "X-Signature": "ts=1742505638683,v1=invalid",
@@ -193,84 +188,61 @@ class PaymentWebhookTests(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(PaymentWebhookEvent.query.count(), 0)
 
-    def test_subscription_statuses_are_synchronized(self):
-        expected = {
-            "pending": "pending",
-            "authorized": "active",
-            "paused": "paused",
-            "canceled": "canceled",
-        }
-        with self.app.app_context():
-            subscription = self.create_subscription()
-            for index, (provider_status, local_status) in enumerate(expected.items()):
-                gateway = self.gateway(
-                    self.provider_subscription(subscription, provider_status)
-                )
-                process_subscription_notification(
-                    self.event(
-                        f"evt-status-{index}",
-                        "subscription_preapproval",
-                        "sub-101",
-                    ),
-                    "sub-101",
-                    client=gateway,
-                )
-                self.assertEqual(Subscription.query.one().status, local_status)
-
-    def test_irrelevant_event_is_ignored_without_provider_call(self):
+    def test_subscription_event_is_ignored_without_provider_call(self):
         with self.app.app_context():
             gateway = Mock()
-            result = process_subscription_notification(
-                self.event("evt-payment", "payment", "9001"),
-                "9001",
+            result = process_payment_notification(
+                self.event("evt-subscription", "sub-101", "subscription_preapproval"),
+                "sub-101",
                 client=gateway,
             )
             self.assertEqual(result.status, "ignored")
-            gateway.get_subscription.assert_not_called()
-            gateway.get_authorized_payment.assert_not_called()
+            gateway.get_payment.assert_not_called()
 
-    def test_missing_local_subscription_is_rejected(self):
+    def test_missing_local_payment_is_rejected(self):
         with self.app.app_context():
             remote = {
-                "id": "sub-unknown",
-                "preapproval_plan_id": None,
-                "external_reference": "boost:subscription:unknown",
-                "status": "authorized",
-                "auto_recurring": {
-                    "frequency": 1,
-                    "frequency_type": "months",
-                    "transaction_amount": "25.90",
-                    "currency_id": "BRL",
-                },
+                "id": 9999,
+                "external_reference": "boost:payment:unknown",
             }
             with self.assertRaises(WebhookValidationError):
-                process_subscription_notification(
-                    self.event(
-                        "evt-unknown", "subscription_preapproval", "sub-unknown"
-                    ),
-                    "sub-unknown",
+                process_payment_notification(
+                    self.event("evt-unknown", "9999"),
+                    "9999",
                     client=self.gateway(remote),
                 )
 
     @patch(
-        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription",
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_payment",
         side_effect=MercadoPagoError(
-            operation="subscription_get",
-            endpoint="/preapproval/sub-missing",
+            operation="payment_get",
+            endpoint="/v1/payments/9999",
             status=404,
             provider_code="not_found",
             provider_message="resource not found",
         ),
     )
-    def test_missing_provider_resource_returns_controlled_retry(
-        self, _get_subscription
-    ):
-        payload = self.event(
-            "evt-missing-provider", "subscription_preapproval", "sub-missing"
+    def test_missing_provider_resource_returns_controlled_retry(self, _get_payment):
+        response = self.signed_webhook(
+            self.event("evt-missing", "9999"), "9999", "request-missing"
         )
-        response = self.signed_webhook(payload, "sub-missing", "request-missing")
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json["error"], "provider_unavailable")
+
+    def test_refund_revokes_only_refunded_payment_access(self):
+        with self.app.app_context():
+            payment = self.create_payment(status="approved")
+            payment.premium_expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+            payment.user.plano = "pro"
+            payment.user.status_assinatura = "active"
+            db.session.commit()
+            process_payment_notification(
+                self.event("evt-refund", payment.provider_payment_id),
+                payment.provider_payment_id,
+                client=self.gateway(self.provider_payment(payment, "refunded")),
+            )
+            self.assertEqual(Payment.query.one().status, "refunded")
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
 
     def signed_webhook(self, payload, resource_id, request_id):
         timestamp = "1742505638683"
@@ -287,70 +259,58 @@ class PaymentWebhookTests(unittest.TestCase):
             },
         )
 
-    def create_subscription(self):
-        subscription = Subscription(
+    def create_payment(self, payment_id="1001", status="pending"):
+        attempt_id = str(uuid4())
+        payment = Payment(
             user_id=self.user_id,
             provider="mercado_pago",
-            provider_subscription_id="sub-101",
-            external_reference=f"boost:subscription:{uuid4()}",
+            provider_payment_id=payment_id,
+            external_reference=f"boost:payment:{self.user_id}:{attempt_id}",
             plan="PRO",
-            status="pending",
+            attempt_id=attempt_id,
+            idempotency_key=attempt_id,
+            payment_method="credit_card",
+            status=status,
             amount="25.90",
             currency="BRL",
         )
-        db.session.add(subscription)
+        db.session.add(payment)
         db.session.commit()
-        return subscription
+        return payment
 
-    @staticmethod
-    def provider_subscription(subscription, status):
+    def provider_payment(self, payment, status, approved_at=None):
+        approved_at = approved_at or datetime.now(timezone.utc)
         return {
-            "id": subscription.provider_subscription_id,
-            "preapproval_plan_id": None,
-            "external_reference": subscription.external_reference,
+            "id": int(payment.provider_payment_id),
             "status": status,
-            "date_created": "2026-08-17T12:00:00Z",
-            "next_payment_date": "2026-09-17T12:00:00Z",
-            "auto_recurring": {
-                "frequency": 1,
-                "frequency_type": "months",
-                "transaction_amount": "25.90",
-                "currency_id": "BRL",
-            },
-        }
-
-    @staticmethod
-    def provider_invoice(subscription, status, invoice_id, payment_id):
-        return {
-            "id": int(invoice_id),
-            "preapproval_id": subscription.provider_subscription_id,
-            "external_reference": subscription.external_reference,
+            "status_detail": "accredited" if status == "approved" else status,
             "transaction_amount": "25.90",
             "currency_id": "BRL",
-            "date_created": "2026-08-17T11:59:00Z",
-            "debit_date": "2026-08-17T12:00:00Z",
-            "status": "scheduled",
-            "payment": {
-                "id": int(payment_id),
-                "status": status,
-                "status_detail": "accredited" if status == "approved" else status,
+            "payment_method_id": "visa",
+            "payment_type_id": "credit_card",
+            "external_reference": payment.external_reference,
+            "metadata": {
+                "user_id": payment.user_id,
+                "plan": "PRO",
+                "attempt_id": payment.attempt_id,
             },
+            "date_created": approved_at.isoformat(),
+            "date_approved": approved_at.isoformat(),
         }
 
     @staticmethod
-    def event(event_id, event_type, resource_id):
+    def event(event_id, resource_id, event_type="payment"):
         return {
             "id": event_id,
             "type": event_type,
-            "action": "updated",
+            "action": f"{event_type}.updated",
             "data": {"id": resource_id},
         }
 
     @staticmethod
-    def gateway(provider_subscription, provider_invoice=None):
+    def gateway(provider_payment):
         gateway = Mock()
-        gateway.get_subscription.return_value = provider_subscription
-        gateway.get_authorized_payment.return_value = provider_invoice
+        gateway.get_payment.return_value = provider_payment
         return gateway
 
 

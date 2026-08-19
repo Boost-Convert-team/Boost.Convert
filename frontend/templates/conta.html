@@ -34,10 +34,10 @@
                     </div>
                     {% if account_workspace.is_pro %}
                         <a class="button button-secondary" href="{{ url_for('main.planos') }}">Gerenciar plano</a>
-                        <form method="post" action="{{ url_for('payments.cancel_subscription') }}">
+                        {% if account_workspace.can_cancel_subscription %}<form method="post" action="{{ url_for('payments.cancel_subscription') }}">
                             {% include "partials/csrf_field.html" %}
                             <button class="button button-secondary" type="submit">Cancelar assinatura</button>
-                        </form>
+                        </form>{% endif %}
                     {% else %}
                         <a class="button button-primary" href="{{ url_for('main.planos') }}">
                             Upgrade

@@ -9,24 +9,28 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
+from extensions import db
 from flask import current_app
+from models import Payment, PaymentWebhookEvent, Subscription
+from sqlalchemy.exc import IntegrityError
 
 from Blueprints.services.payments.mercado_pago_client import MercadoPagoClient
 from Blueprints.services.payments.payment_service import (
     PROVIDER,
+    ProviderPaymentValidationError,
     map_subscription_status,
+    synchronize_payment_from_provider,
 )
 from Blueprints.services.payments.plans import get_payment_plan
 from Blueprints.services.subscription.subscription_service import (
     as_utc,
     synchronize_user_pro_status,
 )
-from extensions import db
-from models import Payment, PaymentWebhookEvent, Subscription
 
 SUBSCRIPTION_EVENT = "subscription_preapproval"
 AUTHORIZED_PAYMENT_EVENT = "subscription_authorized_payment"
 SUPPORTED_EVENT_TYPES = {SUBSCRIPTION_EVENT, AUTHORIZED_PAYMENT_EVENT}
+PAYMENT_EVENT = "payment"
 
 
 class WebhookValidationError(ValueError):
@@ -91,6 +95,79 @@ def build_provider_event_id(event_type: str, event_marker: str) -> str:
         return event_id
     digest = hashlib.sha256(event_id.encode("utf-8")).hexdigest()
     return f"{event_type}:{digest}"[:120]
+
+
+def process_payment_notification(
+    payload: dict[str, Any],
+    resource_id: str,
+    *,
+    request_id: str = "",
+    client: MercadoPagoClient | None = None,
+) -> WebhookResult:
+    event_type = str(payload.get("type") or "").strip()
+    if event_type != PAYMENT_EVENT:
+        return WebhookResult(event_type or "unknown", "ignored", False)
+
+    event_marker = str(payload.get("id") or request_id or "").strip()
+    normalized_resource_id = str(resource_id or "").strip()
+    if not event_marker or not normalized_resource_id:
+        raise WebhookValidationError("Notificação de pagamento inválida.")
+    provider_event_id = build_provider_event_id(event_type, event_marker)
+    existing_event = PaymentWebhookEvent.query.filter_by(
+        provider=PROVIDER, provider_event_id=provider_event_id
+    ).first()
+    if existing_event is not None:
+        return WebhookResult(event_type, existing_event.status, True)
+
+    provider_data = (client or MercadoPagoClient()).get_payment(normalized_resource_id)
+    provider_payment_id = str(provider_data.get("id") or "").strip()
+    external_reference = str(provider_data.get("external_reference") or "").strip()
+    payment = (
+        Payment.query.filter_by(
+            provider=PROVIDER, provider_payment_id=provider_payment_id
+        )
+        .with_for_update()
+        .first()
+    )
+    if payment is None and external_reference:
+        payment = (
+            Payment.query.filter_by(
+                provider=PROVIDER, external_reference=external_reference
+            )
+            .with_for_update()
+            .first()
+        )
+    if payment is None or payment.payment_method != "credit_card":
+        raise WebhookValidationError("Pagamento local desconhecido.")
+    try:
+        synchronize_payment_from_provider(
+            payment,
+            provider_data,
+            expected_payment_id=normalized_resource_id,
+        )
+    except ProviderPaymentValidationError as exc:
+        raise WebhookValidationError(str(exc)) from exc
+
+    event = PaymentWebhookEvent(
+        provider=PROVIDER,
+        provider_event_id=provider_event_id,
+        event_type=event_type,
+        resource_id=normalized_resource_id,
+        status="processed",
+        payload=payload,
+    )
+    db.session.add(event)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        duplicate = PaymentWebhookEvent.query.filter_by(
+            provider=PROVIDER, provider_event_id=provider_event_id
+        ).first()
+        if duplicate is None:
+            raise
+        return WebhookResult(event_type, duplicate.status, True)
+    return WebhookResult(event_type, event.status, False)
 
 
 def process_subscription_notification(

@@ -1,8 +1,27 @@
 from __future__ import annotations
 
+from uuid import UUID, uuid4
+
+from Blueprints.services.payments.mercado_pago_client import (
+    MercadoPagoConfigurationError,
+    MercadoPagoError,
+)
+from Blueprints.services.payments.payment_service import (
+    CardPaymentValidationError,
+    InvalidIdempotencyKeyError,
+    ProviderPaymentValidationError,
+    SubscriptionNotFoundError,
+    build_card_payment_response,
+    cancel_current_subscription,
+    create_card_payment,
+    reconcile_payment,
+)
+from Blueprints.services.payments.plans import get_payment_plan
+from extensions import db
 from flask import (
     Blueprint,
     Response,
+    abort,
     current_app,
     jsonify,
     redirect,
@@ -11,21 +30,9 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
+from models import Payment
 from sqlalchemy.exc import SQLAlchemyError
-
-from Blueprints.services.payments.mercado_pago_client import (
-    MercadoPagoConfigurationError,
-    MercadoPagoError,
-)
-from Blueprints.services.payments.payment_service import (
-    CheckoutConflictError,
-    InvalidIdempotencyKeyError,
-    SubscriptionNotFoundError,
-    cancel_current_subscription,
-    create_subscription_checkout,
-)
-from Blueprints.services.payments.plans import InvalidPlanError
-from extensions import db
+from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
 payments_bp = Blueprint("payments", __name__)
 
@@ -34,37 +41,46 @@ payments_bp = Blueprint("payments", __name__)
 @payments_bp.get("/checkout-pro")
 @login_required
 def checkout() -> Response:
-    return redirect(url_for("main.planos"))
+    plan = get_payment_plan("PRO")
+    return render_template(
+        "checkout_card.html",
+        plan=plan,
+        price_display=f"R$ {plan.amount:.2f}".replace(".", ","),
+        mercado_pago_public_key=str(
+            current_app.config.get("MERCADOPAGO_PUBLIC_KEY") or ""
+        ).strip(),
+        mercado_pago_max_installments=int(
+            current_app.config.get("MERCADOPAGO_MAX_INSTALLMENTS", 12)
+        ),
+        payer_email=current_user.email,
+        payment_idempotency_key=str(uuid4()),
+    )
 
 
 @payments_bp.post("/api/payments/checkout")
 @login_required
 def create_checkout() -> tuple[Response, int] | Response:
-    body = request.get_json(silent=True) if request.is_json else request.form
-    plan = (body or {}).get("plan_id")
-    idempotency_key = request.headers.get("X-Idempotency-Key") or (body or {}).get(
-        "idempotency_key"
-    )
-    replace_unpaid_subscription = (body or {}).get(
-        "replace_unpaid_subscription"
-    ) is True
+    if not request.is_json:
+        return _checkout_error("Content-Type application/json é obrigatório.", 415)
     try:
-        result = create_subscription_checkout(
+        body = request.get_json()
+    except (BadRequest, UnsupportedMediaType):
+        return _checkout_error("JSON inválido.", 400)
+    idempotency_key = request.headers.get("X-Idempotency-Key")
+    try:
+        payment = create_card_payment(
             current_user,
-            plan,
+            body,
             idempotency_key,
-            _external_url("payments.payment_return"),
-            replace_unpaid_subscription=replace_unpaid_subscription,
         )
-    except (InvalidPlanError, InvalidIdempotencyKeyError) as exc:
+    except (InvalidIdempotencyKeyError, CardPaymentValidationError) as exc:
         return _checkout_error(str(exc), 400)
-    except CheckoutConflictError as exc:
-        return _checkout_error(
-            str(exc),
-            409,
-            code=exc.code,
-            can_replace=exc.can_replace,
+    except ProviderPaymentValidationError:
+        db.session.rollback()
+        current_app.logger.warning(
+            "mercadopago_payment_contract_rejected user_id=%s", current_user.id
         )
+        return _checkout_error("Não foi possível validar o pagamento.", 502)
     except MercadoPagoConfigurationError:
         current_app.logger.error(
             "payment_checkout_configuration_missing user_id=%s", current_user.id
@@ -73,13 +89,13 @@ def create_checkout() -> tuple[Response, int] | Response:
     except MercadoPagoError as exc:
         db.session.rollback()
         _log_mercado_pago_error(
-            "mercadopago_subscription_create_failed",
+            "mercadopago_payment_create_failed",
             exc,
             user_id=current_user.id,
             plan="PRO",
         )
         return _checkout_error(
-            "Não foi possível iniciar sua assinatura. Tente novamente.", 502
+            "Não foi possível processar o pagamento. Tente novamente.", 502
         )
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -88,10 +104,46 @@ def create_checkout() -> tuple[Response, int] | Response:
         )
         return _checkout_error("Pagamento temporariamente indisponível.", 503)
 
-    if request.is_json or request.accept_mimetypes.best == "application/json":
-        status = 200 if result.reused else 201
-        return jsonify({"checkout_url": result.checkout_url}), status
-    return redirect(result.checkout_url, code=303)
+    result = build_card_payment_response(payment)
+    result["redirect_url"] = url_for(
+        "payments.payment_status_page", attempt_id=payment.attempt_id
+    )
+    if payment.status in {"rejected", "canceled", "refunded", "charged_back"}:
+        result["error"] = "Pagamento recusado. Confira os dados e tente novamente."
+        return jsonify(result), 422
+    return jsonify(result), 201 if payment.status == "approved" else 202
+
+
+@payments_bp.get("/pagamento/status")
+@login_required
+def payment_status_page() -> Response:
+    payment = get_user_payment_or_404(request.args.get("attempt_id"))
+    return render_template(
+        "payment_status.html",
+        payment=payment,
+        approved=payment.status == "approved"
+        and payment.premium_expires_at is not None,
+    )
+
+
+@payments_bp.get("/api/payments/<attempt_id>/status")
+@login_required
+def payment_status(attempt_id: str) -> tuple[Response, int]:
+    payment = get_user_payment_or_404(attempt_id)
+    try:
+        reconcile_payment(payment)
+    except ProviderPaymentValidationError:
+        db.session.rollback()
+        return _checkout_error("Não foi possível validar o pagamento.", 502)
+    except MercadoPagoError as exc:
+        db.session.rollback()
+        _log_mercado_pago_error(
+            "mercadopago_payment_status_failed",
+            exc,
+            user_id=current_user.id,
+        )
+        return _checkout_error("Status temporariamente indisponível.", 503)
+    return jsonify(build_card_payment_response(payment)), 200
 
 
 @payments_bp.post("/api/subscriptions/cancel")
@@ -136,8 +188,8 @@ def cancel_subscription() -> tuple[Response, int] | Response:
 @payments_bp.get("/pagamento/retorno")
 def payment_return() -> str:
     return _render_payment_return(
-        "Assinatura recebida",
-        "Estamos confirmando sua assinatura com o Mercado Pago. O acesso PRO só será liberado após a confirmação segura da cobrança.",
+        "Pagamento recebido",
+        "Estamos confirmando o pagamento com o Mercado Pago. O acesso PRO só será liberado após a confirmação segura.",
         "pending",
     )
 
@@ -165,6 +217,22 @@ def _checkout_error(
     return redirect(url_for("main.planos", checkout="error"), code=303)
 
 
+def get_user_payment_or_404(attempt_id: object) -> Payment:
+    try:
+        normalized_attempt_id = str(UUID(str(attempt_id or "").strip()))
+    except (ValueError, AttributeError):
+        abort(404)
+    payment = Payment.query.filter_by(
+        user_id=current_user.id,
+        provider="mercado_pago",
+        attempt_id=normalized_attempt_id,
+        payment_method="credit_card",
+    ).first()
+    if payment is None:
+        abort(404)
+    return payment
+
+
 def _subscription_action_error(
     message: str, status: int
 ) -> tuple[Response, int] | Response:
@@ -187,14 +255,12 @@ def _log_mercado_pago_error(
     plan: str | None = None,
 ) -> None:
     current_app.logger.warning(
-        "%s status=%s operation=%s endpoint=%s provider_code=%s "
-        "provider_message=%s user_id=%s plan=%s",
+        "%s status=%s operation=%s endpoint=%s provider_code=%s user_id=%s plan=%s",
         event,
         error.status if error.status is not None else "none",
         error.operation,
         error.endpoint,
         error.provider_code,
-        error.provider_message,
         user_id,
         plan or "none",
     )

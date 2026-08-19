@@ -34,7 +34,8 @@ class SecurityMiddlewareTests(unittest.TestCase):
         response = self.client.get("/")
 
         content_security_policy = response.headers["Content-Security-Policy"]
-        self.assertIn("frame-src 'none'", content_security_policy)
+        self.assertIn("https://sdk.mercadopago.com", content_security_policy)
+        self.assertIn("frame-src https://*.mercadopago.com", content_security_policy)
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("geolocation=()", response.headers["Permissions-Policy"])
@@ -62,12 +63,12 @@ class SecurityMiddlewareTests(unittest.TestCase):
         self.app.config.update(MERCADOPAGO_WEBHOOK_SECRET=None)
 
         response = self.client.post(
-            "/webhooks/mercado-pago?data.id=sub-123",
+            "/webhooks/mercado-pago?data.id=123",
             json={
                 "id": 1,
-                "type": "subscription_preapproval",
+                "type": "payment",
                 "action": "updated",
-                "data": {"id": "sub-123"},
+                "data": {"id": "123"},
             },
             headers={"X-Signature": "invalid"},
         )

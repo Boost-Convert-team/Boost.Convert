@@ -5,7 +5,7 @@ import os
 from flask import session
 from flask_login import current_user
 
-from models import ConversionJob
+from models import ConversionJob, Subscription
 from Blueprints.services.subscription.access_service import FREE_DAILY_LIMIT, as_utc, get_usage_status, is_pro_user, utc_now
 
 
@@ -34,6 +34,12 @@ def get_authenticated_workspace_identity():
     usage_status = get_usage_status(usuario=current_user)
     is_pro = is_pro_user(current_user)
     plan = "BoostConvert PRO" if is_pro else "FREE"
+    can_cancel_subscription = Subscription.query.filter(
+        Subscription.user_id == current_user.id,
+        Subscription.provider == "mercado_pago",
+        Subscription.provider_subscription_id.isnot(None),
+        Subscription.status.in_({"active", "paused", "pending"}),
+    ).first() is not None
     return {
         "jobs_query": ConversionJob.query.filter_by(user_id=current_user.id),
         "profile": {
@@ -41,6 +47,7 @@ def get_authenticated_workspace_identity():
             "email": current_user.email,
             "plan": plan,
             "is_pro": is_pro,
+            "can_cancel_subscription": can_cancel_subscription,
             "daily_used": usage_status.used,
             "daily_limit": None if is_pro else FREE_DAILY_LIMIT,
             "daily_remaining": usage_status.remaining if not is_pro else "Ilimitado",
@@ -61,6 +68,7 @@ def get_anonymous_workspace_identity():
             "email": "Entre para sincronizar seu workspace",
             "plan": "FREE",
             "is_pro": False,
+            "can_cancel_subscription": False,
             "daily_used": usage_status.used,
             "daily_limit": FREE_DAILY_LIMIT,
             "daily_remaining": usage_status.remaining,

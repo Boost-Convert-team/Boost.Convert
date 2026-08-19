@@ -150,6 +150,10 @@ class Config:
     MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET")
     MERCADOPAGO_API_BASE_URL = "https://api.mercadopago.com"
     MERCADOPAGO_REQUEST_TIMEOUT_SECONDS = 10
+    MERCADOPAGO_MAX_INSTALLMENTS = get_int_env("MERCADOPAGO_MAX_INSTALLMENTS", 12)
+    MERCADOPAGO_RECONCILE_INTERVAL_SECONDS = get_int_env(
+        "MERCADOPAGO_RECONCILE_INTERVAL_SECONDS", 10
+    )
     PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS = get_int_env(
         "PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS", 120
     )
@@ -189,6 +193,7 @@ def should_auto_create_db(app):
 def validate_payment_config(app):
     """Fail closed when production billing configuration is incomplete."""
     required = (
+        "MERCADOPAGO_PUBLIC_KEY",
         "MERCADOPAGO_ACCESS_TOKEN",
         "MERCADOPAGO_WEBHOOK_URL",
         "MERCADOPAGO_WEBHOOK_SECRET",

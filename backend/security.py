@@ -309,12 +309,12 @@ def should_noindex_response(response: Response) -> bool:
 def build_content_security_policy() -> str:
     directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://unpkg.com",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com https://*.mlstatic.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-        "img-src 'self' data:",
+        "img-src 'self' data: https://*.mercadopago.com https://*.mercadopago.com.br https://*.mlstatic.com",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self'",
-        "frame-src 'none'",
+        "connect-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br https://*.mlstatic.com",
+        "frame-src https://*.mercadopago.com https://*.mercadopago.com.br",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

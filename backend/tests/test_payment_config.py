@@ -32,6 +32,7 @@ class PaymentConfigTests(unittest.TestCase):
         app.config.update(
             APP_ENV="production",
             BASE_URL="https://boostconvert.com.br",
+            MERCADOPAGO_PUBLIC_KEY="public-key",
             MERCADOPAGO_ACCESS_TOKEN="not-logged",
             MERCADOPAGO_WEBHOOK_URL=(
                 "https://boostconvert.com.br/webhooks/mercado-pago"

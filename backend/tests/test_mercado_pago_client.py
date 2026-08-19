@@ -31,26 +31,25 @@ class MercadoPagoClientTests(unittest.TestCase):
         self.context.pop()
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
-    def test_checkout_created_with_official_init_point(self, request_call):
+    def test_payment_creation_uses_v1_payments_and_idempotency(self, request_call):
         request_call.return_value = self.response(
             201,
             {
-                "id": "sub-123",
+                "id": 123456,
                 "status": "pending",
-                "init_point": "https://www.mercadopago.com.br/subscriptions/checkout?id=sub-123",
             },
         )
-        result = self.client.create_subscription_checkout(
-            {"status": "pending"}, idempotency_key="checkout-attempt-123"
+        result = self.client.create_payment(
+            {"token": "not-logged"}, idempotency_key="payment-attempt-123"
         )
-        self.assertEqual(result.subscription_id, "sub-123")
-        self.assertEqual(result.status, "pending")
+        self.assertEqual(result["id"], 123456)
+        self.assertEqual(result["status"], "pending")
         call = request_call.call_args
         self.assertEqual(
-            call.args[:2], ("POST", "https://api.mercadopago.com/preapproval")
+            call.args[:2], ("POST", "https://api.mercadopago.com/v1/payments")
         )
         self.assertEqual(
-            call.kwargs["headers"]["X-Idempotency-Key"], "checkout-attempt-123"
+            call.kwargs["headers"]["X-Idempotency-Key"], "payment-attempt-123"
         )
         self.assertEqual(call.kwargs["timeout"], 7)
 
@@ -70,6 +69,18 @@ class MercadoPagoClientTests(unittest.TestCase):
             ("GET", "https://api.mercadopago.com/authorized_payments/search"),
         )
         self.assertEqual(call.kwargs["params"], {"preapproval_id": "sub-123"})
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_payment_get_uses_official_resource(self, request_call):
+        request_call.return_value = self.response(
+            200, {"id": 123456, "status": "approved"}
+        )
+        result = self.client.get_payment("123456")
+        self.assertEqual(result["status"], "approved")
+        self.assertEqual(
+            request_call.call_args.args[:2],
+            ("GET", "https://api.mercadopago.com/v1/payments/123456"),
+        )
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
     def test_authorized_payment_search_rejects_malformed_results(self, request_call):
@@ -113,11 +124,13 @@ class MercadoPagoClientTests(unittest.TestCase):
                     },
                 )
                 with self.assertRaises(MercadoPagoError) as raised:
-                    self.client.create_subscription_checkout({"status": "pending"})
+                    self.client.create_payment(
+                        {"token": "not-logged"}, idempotency_key="attempt"
+                    )
                 error = raised.exception
                 self.assertEqual(error.status, status)
-                self.assertEqual(error.operation, "subscription_create")
-                self.assertEqual(error.endpoint, "/preapproval")
+                self.assertEqual(error.operation, "payment_create")
+                self.assertEqual(error.endpoint, "/v1/payments")
                 self.assertEqual(error.provider_code, f"provider_{status}")
                 self.assertNotIn("private-test-token", str(error))
 
@@ -127,17 +140,17 @@ class MercadoPagoClientTests(unittest.TestCase):
     )
     def test_timeout_is_controlled(self, _request_call):
         with self.assertRaises(MercadoPagoError) as raised:
-            self.client.create_subscription_checkout({"status": "pending"})
+            self.client.create_payment(
+                {"token": "not-logged"}, idempotency_key="attempt"
+            )
         self.assertEqual(raised.exception.provider_code, "timeout")
         self.assertIsNone(raised.exception.status)
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
-    def test_response_without_checkout_url_is_rejected(self, request_call):
-        request_call.return_value = self.response(
-            201, {"id": "sub-123", "status": "pending"}
-        )
+    def test_payment_methods_reject_malformed_response(self, request_call):
+        request_call.return_value = self.response(200, {"id": "visa"})
         with self.assertRaises(MercadoPagoError) as raised:
-            self.client.create_subscription_checkout({"status": "pending"})
+            self.client.get_payment_methods()
         self.assertEqual(raised.exception.provider_code, "invalid_response")
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")

@@ -1,15 +1,14 @@
-from flask import Blueprint, current_app, jsonify, request
-from sqlalchemy.exc import SQLAlchemyError
-
 from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
     WebhookConfigurationError,
     WebhookSignatureError,
     WebhookValidationError,
-    process_subscription_notification,
+    process_payment_notification,
     validate_webhook_signature,
 )
 from extensions import db
+from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy.exc import SQLAlchemyError
 
 webhook_bp = Blueprint("webhook", __name__)
 
@@ -46,7 +45,7 @@ def receive_mercado_pago_webhook():
         return jsonify({"ok": False, "error": "invalid_signature"}), 401
 
     try:
-        result = process_subscription_notification(
+        result = process_payment_notification(
             payload, query_resource_id, request_id=request_id
         )
     except WebhookValidationError as exc:
@@ -54,17 +53,16 @@ def receive_mercado_pago_webhook():
         current_app.logger.warning(
             "payment_webhook_rejected reason=%s", type(exc).__name__
         )
-        return jsonify({"ok": False, "error": "invalid_subscription"}), 400
+        return jsonify({"ok": False, "error": "invalid_payment"}), 400
     except MercadoPagoError as exc:
         db.session.rollback()
         current_app.logger.warning(
             "mercadopago_webhook_sync_failed status=%s operation=%s endpoint=%s "
-            "provider_code=%s provider_message=%s resource_id=%s",
+            "provider_code=%s resource_id=%s",
             exc.status if exc.status is not None else "none",
             exc.operation,
             exc.endpoint,
             exc.provider_code,
-            exc.provider_message,
             query_resource_id,
         )
         return jsonify({"ok": False, "error": "provider_unavailable"}), 503

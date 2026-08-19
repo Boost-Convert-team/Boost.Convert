@@ -79,6 +79,53 @@ class MercadoPagoClient:
             )
         return SubscriptionCheckout(subscription_id, checkout_url, status)
 
+    def create_payment(
+        self,
+        payload: dict[str, Any],
+        *,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        response, _status = self._request(
+            "payment_create",
+            "POST",
+            "/v1/payments",
+            json=payload,
+            extra_headers={"X-Idempotency-Key": idempotency_key},
+        )
+        return response
+
+    def get_payment(self, payment_id: str) -> dict[str, Any]:
+        normalized_id = str(payment_id or "").strip()
+        if not normalized_id.isdigit():
+            raise MercadoPagoError(
+                operation="payment_get",
+                endpoint="/v1/payments/{id}",
+                status=None,
+                provider_code="invalid_resource_id",
+                provider_message="ID de pagamento inválido.",
+            )
+        response, _status = self._request(
+            "payment_get", "GET", f"/v1/payments/{normalized_id}"
+        )
+        return response
+
+    def get_payment_methods(self) -> list[dict[str, Any]]:
+        response, _status = self._request(
+            "payment_methods_get",
+            "GET",
+            "/v1/payment_methods",
+            expected_response_type=list,
+        )
+        if not all(isinstance(item, dict) for item in response):
+            raise MercadoPagoError(
+                operation="payment_methods_get",
+                endpoint="/v1/payment_methods",
+                status=None,
+                provider_code="invalid_response",
+                provider_message="Mercado Pago retornou meios de pagamento inválidos.",
+            )
+        return response
+
     def get_subscription(self, subscription_id: str) -> dict[str, Any]:
         path = f"/preapproval/{require_resource_id(subscription_id)}"
         response, _status = self._request("subscription_get", "GET", path)
@@ -135,7 +182,8 @@ class MercadoPagoClient:
         json: dict[str, Any] | None = None,
         params: dict[str, str] | None = None,
         extra_headers: dict[str, str] | None = None,
-    ) -> tuple[dict[str, Any], int]:
+        expected_response_type: type = dict,
+    ) -> tuple[Any, int]:
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
@@ -178,7 +226,7 @@ class MercadoPagoClient:
                 provider_code=provider_code,
                 provider_message=provider_message,
             )
-        if not isinstance(data, dict):
+        if not isinstance(data, expected_response_type):
             raise MercadoPagoError(
                 operation=operation,
                 endpoint=path,
