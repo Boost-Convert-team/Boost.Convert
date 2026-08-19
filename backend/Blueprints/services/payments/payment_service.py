@@ -73,7 +73,19 @@ def create_subscription_checkout(
         provider=PROVIDER, checkout_idempotency_key=normalized_key
     ).first()
     if existing is not None:
-        return reuse_checkout(existing, usuario.id, plan)
+        if existing.user_id != usuario.id or existing.plan != plan.code:
+            raise CheckoutConflictError("Chave de idempotencia ja utilizada.")
+        if existing.status not in OPEN_SUBSCRIPTION_STATUSES:
+            return reuse_checkout(existing, usuario.id, plan)
+        recovered_checkout = resolve_open_subscription(
+            existing,
+            mercado_pago,
+            replace_unpaid_subscription=replace_unpaid_subscription,
+        )
+        if recovered_checkout is not None:
+            return recovered_checkout
+        existing.checkout_idempotency_key = None
+        db.session.flush()
 
     open_subscription = (
         Subscription.query.filter(
@@ -198,9 +210,6 @@ def resolve_open_subscription(
         db.session.commit()
         return None
 
-    if subscription.status == "pending" and subscription.checkout_url:
-        return CheckoutResult(subscription.checkout_url, subscription.id, True)
-
     try:
         provider_subscription = mercado_pago.get_subscription(
             subscription.provider_subscription_id
@@ -223,8 +232,11 @@ def resolve_open_subscription(
             subscription, provider_subscription, exc
         ):
             raise
-        mark_subscription_error(subscription)
-        db.session.commit()
+        provider_data = mercado_pago.cancel_subscription(
+            subscription.provider_subscription_id
+        )
+        apply_confirmed_cancellation(subscription, provider_data)
+        synchronize_user_pro_status(subscription.user, False)
         return None
 
     if subscription.status == "canceled":
@@ -237,6 +249,13 @@ def resolve_open_subscription(
             raise invalid_provider_response(
                 "A assinatura pendente não possui checkout válido."
             )
+        if not is_recent_pending_checkout(subscription):
+            provider_data = mercado_pago.cancel_subscription(
+                subscription.provider_subscription_id
+            )
+            apply_confirmed_cancellation(subscription, provider_data)
+            synchronize_user_pro_status(subscription.user, False)
+            return None
         subscription.checkout_url = checkout_url
         db.session.commit()
         return CheckoutResult(checkout_url, subscription.id, True)
@@ -248,7 +267,14 @@ def resolve_open_subscription(
             code="subscription_already_paid",
         )
 
-    if subscription.status not in {"active", "paused"}:
+    if subscription.status == "active":
+        db.session.commit()
+        raise CheckoutConflictError(
+            "Existe uma assinatura autorizada sem pagamento confirmado.",
+            code="unpaid_subscription",
+        )
+
+    if subscription.status != "paused":
         raise invalid_provider_response("Status de assinatura desconhecido.")
 
     if not replace_unpaid_subscription:
@@ -325,6 +351,20 @@ def apply_confirmed_cancellation(
 
 def is_recent_checkout_creation(subscription: Subscription) -> bool:
     created_at = as_utc(subscription.created_at) or as_utc(subscription.updated_at)
+    if created_at is None:
+        return False
+    timeout_seconds = int(
+        current_app.config.get("PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS", 120)
+    )
+    return created_at > utc_now() - timedelta(seconds=max(timeout_seconds, 1))
+
+
+def is_recent_pending_checkout(subscription: Subscription) -> bool:
+    created_at = (
+        as_utc(subscription.created_at)
+        or as_utc(subscription.started_at)
+        or as_utc(subscription.updated_at)
+    )
     if created_at is None:
         return False
     timeout_seconds = int(
