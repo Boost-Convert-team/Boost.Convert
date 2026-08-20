@@ -215,10 +215,14 @@ def _external_url(endpoint: str) -> str:
 
 def _log_gateway_error(event: str, error: MercadoPagoRequestError) -> None:
     current_app.logger.warning(
-        "%s http_status=%s provider_code=%s operation=%s user_id=%s plan=PRO",
+        "%s http_status=%s provider_error=%s provider_message=%s "
+        "provider_causes=%s request_id=%s operation=%s user_id=%s plan=PRO",
         event,
         error.status if error.status is not None else "none",
-        error.provider_code,
+        error.provider_error,
+        error.provider_message,
+        error.provider_causes_log,
+        error.request_id,
         error.operation,
         current_user.id,
     )

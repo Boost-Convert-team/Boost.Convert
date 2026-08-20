@@ -53,10 +53,14 @@ def receive_mercado_pago_webhook():
         db.session.rollback()
         current_app.logger.warning(
             "mercadopago_webhook_sync_failed status=%s operation=%s "
-            "provider_code=%s resource_id=%s",
+            "provider_error=%s provider_message=%s provider_causes=%s "
+            "request_id=%s resource_id=%s",
             exc.status if exc.status is not None else "none",
             exc.operation,
-            exc.provider_code,
+            exc.provider_error,
+            exc.provider_message,
+            exc.provider_causes_log,
+            exc.request_id,
             query_id,
         )
         return jsonify({"ok": False, "error": "provider_unavailable"}), 503

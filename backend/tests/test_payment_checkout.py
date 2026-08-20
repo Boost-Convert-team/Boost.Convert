@@ -100,6 +100,22 @@ class PaymentCheckoutTests(unittest.TestCase):
             self.assertEqual(payload["reason"], "BoostConvert PRO")
             self.assertEqual(payload["status"], "authorized")
             self.assertEqual(
+                payload["back_url"],
+                "https://boostconvert.com.br/pagamento/retorno",
+            )
+            self.assertEqual(
+                set(payload),
+                {
+                    "reason",
+                    "external_reference",
+                    "payer_email",
+                    "card_token_id",
+                    "auto_recurring",
+                    "status",
+                    "back_url",
+                },
+            )
+            self.assertEqual(
                 payload["auto_recurring"],
                 {
                     "frequency": 1,
@@ -108,6 +124,20 @@ class PaymentCheckoutTests(unittest.TestCase):
                     "currency_id": "BRL",
                 },
             )
+            self.assertIsInstance(
+                payload["auto_recurring"]["transaction_amount"], float
+            )
+            for payment_field in (
+                "installments",
+                "payment_method_id",
+                "issuer_id",
+                "statement_descriptor",
+                "payer",
+                "transaction_amount",
+                "metadata",
+                "notification_url",
+            ):
+                self.assertNotIn(payment_field, payload)
             self.assertNotIn("temporary-card-token", str(subscription.__dict__))
 
     def test_same_attempt_creates_only_one_provider_subscription(self):
@@ -250,6 +280,58 @@ class PaymentCheckoutTests(unittest.TestCase):
         self.assertEqual(payload["auto_recurring"]["transaction_amount"], 25.9)
         with self.app.app_context():
             self.assertEqual(Subscription.query.one().user_id, self.user_id)
+
+    def test_checkout_provider_error_log_is_sanitized(self):
+        self.login()
+        gateway_error = MercadoPagoRequestError(
+            "subscription_create",
+            400,
+            "bad_request",
+            "Authorization=Bearer APP_USR-access-secret",
+            [
+                {
+                    "code": "invalid_card_token",
+                    "description": (
+                        "card_token_id=temporary-card-token CVV=984 "
+                        "Webhook Secret=webhook-secret"
+                    ),
+                }
+            ],
+            "request-123",
+        )
+        with (
+            patch(
+                "Blueprints.services.payments.subscription_service."
+                "MercadoPagoGateway"
+            ) as gateway_class,
+            self.assertLogs(self.app.logger, level="WARNING") as captured,
+        ):
+            gateway_class.return_value.create_subscription.side_effect = gateway_error
+            response = self.client.post(
+                "/api/payments/checkout",
+                json={"token": "temporary-card-token"},
+                headers={
+                    **self.csrf_headers(),
+                    "X-Idempotency-Key": str(uuid4()),
+                },
+            )
+
+        self.assertEqual(response.status_code, 422)
+        log_output = "\n".join(captured.output)
+        self.assertIn("provider_error=bad_request", log_output)
+        self.assertIn("request_id=request-123", log_output)
+        for secret in (
+            "card_token_id",
+            "temporary-card-token",
+            "APP_USR-access-secret",
+            "private-token",
+            "Authorization",
+            "webhook-secret",
+            "Webhook Secret",
+            "CVV",
+            "984",
+        ):
+            self.assertNotIn(secret, log_output)
 
     def test_frontend_uses_card_brick_and_one_installment(self):
         template = (FRONTEND_ROOT / "templates" / "checkout_card.html").read_text(

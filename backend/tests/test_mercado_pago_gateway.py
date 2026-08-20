@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import requests
 from flask import Flask
+from mercadopago.errors import MPBadRequestError
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -92,6 +93,59 @@ class MercadoPagoGatewayTests(unittest.TestCase):
             MercadoPagoGateway(sdk).create_subscription({}, "idem")
         self.assertEqual(raised.exception.status, 422)
         self.assertEqual(raised.exception.provider_code, "bad_card_token")
+
+    def test_bad_request_preserves_safe_official_sdk_details(self):
+        sdk = Mock()
+        sdk_error = MPBadRequestError(
+            400,
+            {
+                "message": "The recurring payment data is invalid",
+                "error": "bad_request",
+                "cause": [
+                    {
+                        "code": "invalid_frequency",
+                        "description": "Frequency must be greater than zero",
+                        "ignored_provider_field": "must-not-be-copied",
+                    }
+                ],
+            },
+        )
+        sdk_error.request_id = "request-123"
+        sdk.preapproval.return_value.create.side_effect = sdk_error
+
+        with self.assertRaises(MercadoPagoRequestError) as raised:
+            MercadoPagoGateway(sdk).create_subscription({}, "idem")
+
+        error = raised.exception
+        self.assertEqual(error.status, 400)
+        self.assertEqual(error.provider_error, "bad_request")
+        self.assertEqual(
+            error.provider_message, "The recurring payment data is invalid"
+        )
+        self.assertEqual(
+            error.provider_causes,
+            (
+                {
+                    "code": "invalid_frequency",
+                    "description": "Frequency must be greater than zero",
+                },
+            ),
+        )
+        self.assertEqual(error.request_id, "request-123")
+
+    def test_bad_request_uses_cause_code_when_error_field_is_empty(self):
+        sdk = Mock()
+        sdk.preapproval.return_value.create.side_effect = MPBadRequestError(
+            400,
+            {
+                "message": "Invalid request",
+                "cause": [{"code": "payer_email_invalid"}],
+            },
+        )
+        with self.assertRaises(MercadoPagoRequestError) as raised:
+            MercadoPagoGateway(sdk).create_subscription({}, "idem")
+        self.assertEqual(raised.exception.provider_error, "payer_email_invalid")
+        self.assertNotEqual(raised.exception.provider_error, "sdk_error")
 
     def test_http_status_mapping(self):
         cases = {
