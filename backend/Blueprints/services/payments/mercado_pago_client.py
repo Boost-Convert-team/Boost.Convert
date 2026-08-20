@@ -38,6 +38,12 @@ class SubscriptionCheckout:
     status: str
 
 
+@dataclass(frozen=True)
+class AuthorizedSubscription:
+    subscription_id: str
+    status: str
+
+
 class MercadoPagoClient:
     def __init__(self) -> None:
         self.access_token = str(
@@ -78,6 +84,31 @@ class MercadoPagoClient:
                 provider_message="Mercado Pago não retornou id e init_point válidos.",
             )
         return SubscriptionCheckout(subscription_id, checkout_url, status)
+
+    def create_authorized_subscription(
+        self,
+        payload: dict[str, Any],
+        *,
+        idempotency_key: str,
+    ) -> AuthorizedSubscription:
+        response, response_status = self._request(
+            "subscription_create",
+            "POST",
+            "/preapproval",
+            json=payload,
+            extra_headers={"X-Idempotency-Key": idempotency_key},
+        )
+        subscription_id = normalize_resource_id(response.get("id"))
+        status = str(response.get("status") or "").strip().lower()
+        if not subscription_id or not status:
+            raise MercadoPagoError(
+                operation="subscription_create",
+                endpoint="/preapproval",
+                status=response_status,
+                provider_code="invalid_response",
+                provider_message="Mercado Pago não retornou id e status válidos.",
+            )
+        return AuthorizedSubscription(subscription_id, status)
 
     def create_payment(
         self,

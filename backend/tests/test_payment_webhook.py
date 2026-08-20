@@ -17,9 +17,10 @@ from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
     WebhookValidationError,
     process_payment_notification,
+    process_subscription_notification,
 )
 from extensions import db
-from models import Payment, PaymentWebhookEvent, Usuario
+from models import Payment, PaymentWebhookEvent, Subscription, Usuario
 from security import init_security
 
 
@@ -199,6 +200,101 @@ class PaymentWebhookTests(unittest.TestCase):
             self.assertEqual(result.status, "ignored")
             gateway.get_payment.assert_not_called()
 
+    def test_subscription_preapproval_updates_subscription_without_granting_access(
+        self,
+    ):
+        with self.app.app_context():
+            subscription = self.create_subscription()
+            gateway = self.subscription_gateway(subscription)
+            result = process_subscription_notification(
+                self.event(
+                    "evt-subscription",
+                    subscription.provider_subscription_id,
+                    "subscription_preapproval",
+                ),
+                subscription.provider_subscription_id,
+                client=gateway,
+            )
+            self.assertEqual(result.status, "processed")
+            self.assertEqual(Subscription.query.one().status, "active")
+            self.assertIsNone(Subscription.query.one().paid_through_at)
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "free")
+
+    def test_authorized_payment_event_creates_recurring_payment_and_grants_access(self):
+        with self.app.app_context():
+            subscription = self.create_subscription()
+            gateway = self.subscription_gateway(subscription, invoice_status="approved")
+            result = process_subscription_notification(
+                self.event(
+                    "evt-invoice",
+                    "501",
+                    "subscription_authorized_payment",
+                ),
+                "501",
+                client=gateway,
+            )
+            self.assertEqual(result.status, "processed")
+            stored_subscription = Subscription.query.one()
+            recurring_payment = Payment.query.one()
+            self.assertEqual(stored_subscription.latest_payment_status, "approved")
+            self.assertIsNotNone(stored_subscription.paid_through_at)
+            self.assertEqual(recurring_payment.payment_method, "recurring_subscription")
+            self.assertEqual(recurring_payment.provider_invoice_id, "501")
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
+
+    @patch(
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription"
+    )
+    def test_route_dispatches_subscription_preapproval(self, get_subscription):
+        with self.app.app_context():
+            subscription = self.create_subscription()
+            resource_id = subscription.provider_subscription_id
+            get_subscription.return_value = self.provider_subscription(subscription)
+        response = self.signed_webhook(
+            self.event(
+                "evt-subscription-route",
+                resource_id,
+                "subscription_preapproval",
+            ),
+            resource_id,
+            "request-subscription",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["event_type"], "subscription_preapproval")
+        get_subscription.assert_called_once_with(resource_id)
+
+    @patch(
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_subscription"
+    )
+    @patch(
+        "Blueprints.services.payments.webhook_service.MercadoPagoClient.get_authorized_payment"
+    )
+    def test_route_dispatches_subscription_authorized_payment(
+        self, get_authorized_payment, get_subscription
+    ):
+        with self.app.app_context():
+            subscription = self.create_subscription()
+            gateway = self.subscription_gateway(subscription, invoice_status="approved")
+            get_subscription.return_value = gateway.get_subscription.return_value
+            get_authorized_payment.return_value = (
+                gateway.get_authorized_payment.return_value
+            )
+        response = self.signed_webhook(
+            self.event(
+                "evt-invoice-route",
+                "501",
+                "subscription_authorized_payment",
+            ),
+            "501",
+            "request-invoice",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["event_type"], "subscription_authorized_payment")
+        get_authorized_payment.assert_called_once_with("501")
+        get_subscription.assert_called_once_with("sub-101")
+        with self.app.app_context():
+            self.assertEqual(db.session.get(Usuario, self.user_id).plano, "pro")
+
     def test_missing_local_payment_is_rejected(self):
         with self.app.app_context():
             remote = {
@@ -277,6 +373,62 @@ class PaymentWebhookTests(unittest.TestCase):
         db.session.add(payment)
         db.session.commit()
         return payment
+
+    def create_subscription(self):
+        attempt_id = str(uuid4())
+        subscription = Subscription(
+            user_id=self.user_id,
+            provider="mercado_pago",
+            provider_subscription_id="sub-101",
+            external_reference=f"boost:subscription:{self.user_id}:{attempt_id}",
+            checkout_idempotency_key=attempt_id,
+            plan="PRO",
+            status="creating",
+            amount="25.90",
+            currency="BRL",
+        )
+        db.session.add(subscription)
+        db.session.commit()
+        return subscription
+
+    @staticmethod
+    def provider_subscription(subscription):
+        now = datetime.now(timezone.utc)
+        return {
+            "id": subscription.provider_subscription_id,
+            "external_reference": subscription.external_reference,
+            "status": "authorized",
+            "auto_recurring": {
+                "frequency": 1,
+                "frequency_type": "months",
+                "transaction_amount": "25.90",
+                "currency_id": "BRL",
+            },
+            "date_created": now.isoformat(),
+            "next_payment_date": (now + timedelta(days=30)).isoformat(),
+        }
+
+    def subscription_gateway(self, subscription, invoice_status="pending"):
+        now = datetime.now(timezone.utc)
+        gateway = Mock()
+        gateway.get_subscription.return_value = self.provider_subscription(subscription)
+        gateway.get_authorized_payment.return_value = {
+            "id": 501,
+            "preapproval_id": subscription.provider_subscription_id,
+            "external_reference": subscription.external_reference,
+            "transaction_amount": "25.90",
+            "currency_id": "BRL",
+            "date_created": now.isoformat(),
+            "debit_date": now.isoformat(),
+            "payment": {
+                "id": 2001,
+                "status": invoice_status,
+                "status_detail": (
+                    "accredited" if invoice_status == "approved" else invoice_status
+                ),
+            },
+        }
+        return gateway
 
     def provider_payment(self, payment, status, approved_at=None):
         approved_at = approved_at or datetime.now(timezone.utc)

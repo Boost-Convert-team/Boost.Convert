@@ -1,14 +1,17 @@
+from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy.exc import SQLAlchemyError
+
 from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
 from Blueprints.services.payments.webhook_service import (
+    SUPPORTED_EVENT_TYPES,
     WebhookConfigurationError,
     WebhookSignatureError,
     WebhookValidationError,
     process_payment_notification,
+    process_subscription_notification,
     validate_webhook_signature,
 )
 from extensions import db
-from flask import Blueprint, current_app, jsonify, request
-from sqlalchemy.exc import SQLAlchemyError
 
 webhook_bp = Blueprint("webhook", __name__)
 
@@ -45,9 +48,12 @@ def receive_mercado_pago_webhook():
         return jsonify({"ok": False, "error": "invalid_signature"}), 401
 
     try:
-        result = process_payment_notification(
-            payload, query_resource_id, request_id=request_id
+        processor = (
+            process_subscription_notification
+            if str(payload.get("type") or "").strip() in SUPPORTED_EVENT_TYPES
+            else process_payment_notification
         )
+        result = processor(payload, query_resource_id, request_id=request_id)
     except WebhookValidationError as exc:
         db.session.rollback()
         current_app.logger.warning(

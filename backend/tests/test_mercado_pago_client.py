@@ -54,6 +54,47 @@ class MercadoPagoClientTests(unittest.TestCase):
         self.assertEqual(call.kwargs["timeout"], 7)
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_authorized_subscription_uses_preapproval_without_init_point(
+        self, request_call
+    ):
+        request_call.return_value = self.response(
+            201,
+            {
+                "id": "sub-123",
+                "status": "authorized",
+            },
+        )
+
+        result = self.client.create_authorized_subscription(
+            {"card_token_id": "not-logged", "status": "authorized"},
+            idempotency_key="subscription-attempt-123",
+        )
+
+        self.assertEqual(result.subscription_id, "sub-123")
+        self.assertEqual(result.status, "authorized")
+        call = request_call.call_args
+        self.assertEqual(
+            call.args[:2], ("POST", "https://api.mercadopago.com/preapproval")
+        )
+        self.assertEqual(
+            call.kwargs["headers"]["X-Idempotency-Key"],
+            "subscription-attempt-123",
+        )
+        self.assertNotIn("init_point", request_call.return_value.json.return_value)
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_authorized_subscription_requires_id_and_status(self, request_call):
+        for response_data in ({"status": "authorized"}, {"id": "sub-123"}):
+            with self.subTest(response_data=response_data):
+                request_call.return_value = self.response(201, response_data)
+                with self.assertRaises(MercadoPagoError) as raised:
+                    self.client.create_authorized_subscription(
+                        {"card_token_id": "not-logged"},
+                        idempotency_key="subscription-attempt-123",
+                    )
+                self.assertEqual(raised.exception.provider_code, "invalid_response")
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
     def test_authorized_payment_search_is_scoped_to_subscription(self, request_call):
         request_call.return_value = self.response(
             200,
@@ -114,7 +155,7 @@ class MercadoPagoClientTests(unittest.TestCase):
 
     @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
     def test_provider_http_errors_keep_safe_diagnostics(self, request_call):
-        for status in (400, 401, 403, 500):
+        for status in (400, 401, 403, 422, 500):
             with self.subTest(status=status):
                 request_call.return_value = self.response(
                     status,
@@ -131,6 +172,29 @@ class MercadoPagoClientTests(unittest.TestCase):
                 self.assertEqual(error.status, status)
                 self.assertEqual(error.operation, "payment_create")
                 self.assertEqual(error.endpoint, "/v1/payments")
+                self.assertEqual(error.provider_code, f"provider_{status}")
+                self.assertNotIn("private-test-token", str(error))
+
+    @patch("Blueprints.services.payments.mercado_pago_client.requests.request")
+    def test_subscription_http_errors_keep_safe_diagnostics(self, request_call):
+        for status in (400, 401, 403, 422, 500):
+            with self.subTest(status=status):
+                request_call.return_value = self.response(
+                    status,
+                    {
+                        "error": f"provider_{status}",
+                        "message": f"provider message {status}",
+                    },
+                )
+                with self.assertRaises(MercadoPagoError) as raised:
+                    self.client.create_authorized_subscription(
+                        {"card_token_id": "not-logged"},
+                        idempotency_key="attempt",
+                    )
+                error = raised.exception
+                self.assertEqual(error.status, status)
+                self.assertEqual(error.operation, "subscription_create")
+                self.assertEqual(error.endpoint, "/preapproval")
                 self.assertEqual(error.provider_code, f"provider_{status}")
                 self.assertNotIn("private-test-token", str(error))
 

@@ -6,9 +6,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID, uuid4
 
-from extensions import db
 from flask import current_app
-from models import Payment, Subscription
 from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError
 
@@ -17,13 +15,19 @@ from Blueprints.services.payments.mercado_pago_client import (
     MercadoPagoError,
     is_mercado_pago_checkout_url,
 )
-from Blueprints.services.payments.plans import PaymentPlan, get_payment_plan
+from Blueprints.services.payments.plans import (
+    PRO_SUBSCRIPTION_MAX_INSTALLMENTS,
+    PaymentPlan,
+    get_payment_plan,
+)
 from Blueprints.services.subscription.subscription_service import (
     as_utc,
     find_latest_paid_expiration,
     has_active_paid_entitlement,
     synchronize_user_pro_status,
 )
+from extensions import db
+from models import Payment, Subscription
 
 PROVIDER = "mercado_pago"
 OPEN_SUBSCRIPTION_STATUSES = {"creating", "pending", "active", "paused"}
@@ -109,7 +113,7 @@ def create_card_payment(
     payload: dict[str, Any] = {
         "token": validated["token"],
         "transaction_amount": float(plan.amount),
-        "description": "BoostConvert PRO - 30 dias",
+        "description": plan.title,
         "installments": validated["installments"],
         "payment_method_id": validated["payment_method_id"],
         "payer": payer,
@@ -141,6 +145,134 @@ def create_card_payment(
         payment.status,
     )
     return payment
+
+
+def create_card_subscription(
+    usuario,
+    card_data: object,
+    idempotency_key: object,
+    back_url: str,
+    *,
+    client: MercadoPagoClient | None = None,
+) -> Subscription:
+    """Create the monthly PRO subscription without persisting card data."""
+    plan = get_payment_plan("PRO")
+    normalized_key = normalize_idempotency_key(idempotency_key)
+    validated = validate_card_subscription_request(card_data)
+    mercado_pago = client or MercadoPagoClient()
+
+    lock_checkout_for_user(usuario.id)
+    subscription = Subscription.query.filter_by(
+        provider=PROVIDER, checkout_idempotency_key=normalized_key
+    ).first()
+    if subscription is not None:
+        validate_subscription_attempt_owner(subscription, usuario.id, plan)
+        if subscription.provider_subscription_id:
+            return subscription
+        validate_credit_payment_method(mercado_pago, validated["payment_method_id"])
+    else:
+        open_subscription = find_open_subscription(usuario.id)
+        if open_subscription is not None:
+            recovered = resolve_open_subscription(
+                open_subscription,
+                mercado_pago,
+                replace_unpaid_subscription=False,
+            )
+            if recovered is not None:
+                raise CheckoutConflictError(
+                    "Existe uma assinatura anterior aguardando conclusão."
+                )
+        if has_active_paid_entitlement(usuario.id):
+            raise CheckoutConflictError(
+                "Seu acesso PRO atual ainda está vigente. Assine após o vencimento."
+            )
+        validate_credit_payment_method(mercado_pago, validated["payment_method_id"])
+
+        subscription = Subscription(
+            user_id=usuario.id,
+            provider=PROVIDER,
+            external_reference=f"boost:subscription:{usuario.id}:{normalized_key}",
+            checkout_idempotency_key=normalized_key,
+            plan=plan.code,
+            status="creating",
+            amount=plan.amount,
+            currency=plan.currency,
+        )
+        db.session.add(subscription)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            subscription = Subscription.query.filter_by(
+                provider=PROVIDER, checkout_idempotency_key=normalized_key
+            ).first()
+            if subscription is None:
+                raise
+            validate_subscription_attempt_owner(subscription, usuario.id, plan)
+            if subscription.provider_subscription_id:
+                return subscription
+
+    try:
+        provider_subscription = mercado_pago.create_authorized_subscription(
+            build_authorized_subscription_payload(
+                subscription,
+                usuario.email,
+                plan,
+                back_url,
+                validated["token"],
+            ),
+            idempotency_key=normalized_key,
+        )
+    except MercadoPagoError:
+        subscription.status = "error"
+        subscription.updated_at = utc_now()
+        db.session.commit()
+        raise
+
+    subscription.provider_subscription_id = provider_subscription.subscription_id
+    subscription.checkout_url = None
+    subscription.status = map_subscription_status(provider_subscription.status)
+    subscription.started_at = subscription.started_at or utc_now()
+    subscription.updated_at = utc_now()
+    db.session.commit()
+    current_app.logger.info(
+        "mercadopago_subscription_created user_id=%s subscription_id=%s status=%s",
+        usuario.id,
+        subscription.provider_subscription_id,
+        subscription.status,
+    )
+    return subscription
+
+
+def validate_card_subscription_request(card_data: object) -> dict[str, str]:
+    if not isinstance(card_data, dict):
+        raise CardPaymentValidationError("Envie os dados do cartão em JSON.")
+    if set(card_data) - CARD_REQUEST_KEYS:
+        raise CardPaymentValidationError("O pagamento contém campos não permitidos.")
+    if "installments" in card_data:
+        try:
+            installments = int(card_data["installments"])
+        except (TypeError, ValueError):
+            installments = 0
+        if installments != PRO_SUBSCRIPTION_MAX_INSTALLMENTS:
+            raise CardPaymentValidationError(
+                "A assinatura mensal aceita somente pagamento em 1x."
+            )
+    return {
+        "token": normalize_limited_string(card_data.get("token"), "token", 2048),
+        "payment_method_id": normalize_limited_string(
+            card_data.get("payment_method_id"), "payment_method_id", 50
+        ).lower(),
+    }
+
+
+def validate_subscription_attempt_owner(
+    subscription: Subscription, user_id: int, plan: PaymentPlan
+) -> None:
+    if subscription.user_id != user_id or subscription.plan != plan.code:
+        raise CardPaymentValidationError(
+            "Chave de idempotência pertence a outra assinatura."
+        )
 
 
 def validate_card_request(card_data: object) -> dict[str, Any]:
@@ -440,19 +572,7 @@ def create_subscription_checkout(
         existing.checkout_idempotency_key = None
         db.session.flush()
 
-    open_subscription = (
-        Subscription.query.filter(
-            Subscription.user_id == usuario.id,
-            Subscription.provider == PROVIDER,
-            Subscription.status.in_(OPEN_SUBSCRIPTION_STATUSES),
-            or_(
-                Subscription.provider_subscription_id.is_(None),
-                ~Subscription.provider_subscription_id.like(LEGACY_CHECKOUT_PREFIX),
-            ),
-        )
-        .order_by(Subscription.id.desc())
-        .first()
-    )
+    open_subscription = find_open_subscription(usuario.id)
     if open_subscription is not None:
         recovered_checkout = resolve_open_subscription(
             open_subscription,
@@ -682,6 +802,38 @@ def reconcile_provider_subscription(
         raise invalid_provider_response(str(exc)) from exc
 
 
+def reconcile_subscription(
+    subscription: Subscription,
+    *,
+    client: MercadoPagoClient | None = None,
+) -> Subscription:
+    if not subscription.provider_subscription_id:
+        return subscription
+    mercado_pago = client or MercadoPagoClient()
+    provider_subscription = mercado_pago.get_subscription(
+        subscription.provider_subscription_id
+    )
+    reconcile_provider_subscription(subscription, provider_subscription, mercado_pago)
+    db.session.commit()
+    return subscription
+
+
+def find_open_subscription(user_id: int) -> Subscription | None:
+    return (
+        Subscription.query.filter(
+            Subscription.user_id == user_id,
+            Subscription.provider == PROVIDER,
+            Subscription.status.in_(OPEN_SUBSCRIPTION_STATUSES),
+            or_(
+                Subscription.provider_subscription_id.is_(None),
+                ~Subscription.provider_subscription_id.like(LEGACY_CHECKOUT_PREFIX),
+            ),
+        )
+        .order_by(Subscription.id.desc())
+        .first()
+    )
+
+
 def apply_confirmed_cancellation(
     subscription: Subscription, provider_data: dict[str, object]
 ) -> None:
@@ -781,9 +933,35 @@ def build_subscription_payload(
     back_url: str,
 ) -> dict[str, object]:
     return {
+        **build_subscription_base_payload(subscription, payer_email, plan, back_url),
+        "status": "pending",
+    }
+
+
+def build_authorized_subscription_payload(
+    subscription: Subscription,
+    payer_email: str,
+    plan: PaymentPlan,
+    back_url: str,
+    card_token_id: str,
+) -> dict[str, object]:
+    return {
+        **build_subscription_base_payload(subscription, payer_email, plan, back_url),
+        "card_token_id": card_token_id,
+        "status": "authorized",
+    }
+
+
+def build_subscription_base_payload(
+    subscription: Subscription,
+    payer_email: str,
+    plan: PaymentPlan,
+    back_url: str,
+) -> dict[str, object]:
+    return {
         "reason": plan.title,
         "external_reference": subscription.external_reference,
-        "payer_email": payer_email,
+        "payer_email": str(payer_email).strip().lower(),
         "auto_recurring": {
             "frequency": 1,
             "frequency_type": "months",
@@ -791,7 +969,24 @@ def build_subscription_payload(
             "currency_id": plan.currency,
         },
         "back_url": back_url,
-        "status": "pending",
+    }
+
+
+def build_card_subscription_response(
+    subscription: Subscription,
+) -> dict[str, object]:
+    paid_through_at = as_utc(subscription.paid_through_at)
+    approved = (
+        subscription.status == "active"
+        and paid_through_at is not None
+        and paid_through_at > utc_now()
+    )
+    return {
+        "ok": subscription.status not in {"canceled", "error"},
+        "attempt_id": subscription.checkout_idempotency_key,
+        "subscription_id": subscription.provider_subscription_id,
+        "status": subscription.latest_payment_status or subscription.status,
+        "approved": approved,
     }
 
 

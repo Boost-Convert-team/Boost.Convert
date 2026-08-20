@@ -37,7 +37,7 @@
                     visual: { style: { theme: "default" } },
                     paymentMethods: {
                         types: { excluded: ["debit_card", "prepaid_card"] },
-                        maxInstallments: Number(config.dataset.maxInstallments || 12)
+                        maxInstallments: Math.min(Number(config.dataset.maxInstallments || 1), 1)
                     }
                 },
                 callbacks: {
@@ -94,7 +94,6 @@
             token: String(formData?.token || ""),
             payment_method_id: String(formData?.payment_method_id || ""),
             issuer_id: String(formData?.issuer_id || ""),
-            installments: Number(formData?.installments || 0),
             payer: {}
         };
         if (payer.identification?.type && payer.identification?.number) {
@@ -141,7 +140,7 @@
 
     function renderApprovedStatus(page, status) {
         status.dataset.status = "approved";
-        status.textContent = "Pagamento aprovado. Seu BoostConvert PRO está ativo por 30 dias.";
+        status.textContent = "Pagamento aprovado. Sua assinatura BoostConvert PRO mensal está ativa.";
         const accountLink = page.querySelector("[data-payment-account-link]");
         if (accountLink) accountLink.hidden = false;
     }

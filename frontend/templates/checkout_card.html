@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Cartão de crédito | BoostConvert PRO{% endblock %}
-{% block meta_description %}Ative o BoostConvert PRO por 30 dias com pagamento seguro por cartão de crédito.{% endblock %}
+{% block meta_description %}Assine o BoostConvert PRO mensal com pagamento seguro por cartão de crédito.{% endblock %}
 {% block meta_robots %}noindex, nofollow{% endblock %}
 
 {% block extra_head %}
@@ -13,8 +13,8 @@
     <header class="checkout-heading reveal">
         <span class="eyebrow"><i data-lucide="shield-check" aria-hidden="true"></i> Pagamento seguro</span>
         <h1>Ative o BoostConvert PRO</h1>
-        <p>Pagamento único por cartão de crédito. Sem renovação automática.</p>
-        <strong>{{ price_display }} / 30 dias</strong>
+        <p>Assinatura mensal por cartão de crédito, com renovação automática.</p>
+        <strong>{{ price_display }} / mês</strong>
     </header>
 
     <section class="card-checkout-panel reveal" aria-labelledby="card-checkout-title">
@@ -22,7 +22,7 @@
             <span class="card-checkout-icon"><i data-lucide="credit-card" aria-hidden="true"></i></span>
             <div>
                 <h2 id="card-checkout-title">Cartão de crédito</h2>
-                <p>Os dados do cartão são coletados e protegidos pelo Mercado Pago.</p>
+                <p>1x de {{ price_display }} por mês. Os dados do cartão são protegidos pelo Mercado Pago.</p>
             </div>
         </div>
         {% if mercado_pago_public_key %}

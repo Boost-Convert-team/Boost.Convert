@@ -14,7 +14,10 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from Blueprints.main.checkout_routes import payments_bp
 from Blueprints.main.tools_registry import build_tool_counts
-from Blueprints.services.payments.mercado_pago_client import MercadoPagoError
+from Blueprints.services.payments.mercado_pago_client import (
+    AuthorizedSubscription,
+    MercadoPagoError,
+)
 from extensions import db
 from models import Payment, Subscription, Usuario
 from security import CSRF_HEADER_NAME, CSRF_SESSION_KEY, init_security
@@ -38,7 +41,7 @@ class PaymentCheckoutTests(unittest.TestCase):
             MERCADOPAGO_WEBHOOK_SECRET="webhook-secret",
             MERCADOPAGO_API_BASE_URL="https://api.mercadopago.com",
             MERCADOPAGO_REQUEST_TIMEOUT_SECONDS=10,
-            MERCADOPAGO_MAX_INSTALLMENTS=12,
+            MERCADOPAGO_MAX_INSTALLMENTS=5,
             PRO_PLAN_PRICE="25.90",
             BASE_URL="https://boostconvert.com.br",
             CSRF_ENABLED=True,
@@ -84,11 +87,7 @@ class PaymentCheckoutTests(unittest.TestCase):
             "terms_page",
         ):
             home.add_url_rule(f"/stub/{endpoint}", endpoint, lambda: "stub")
-        home.add_url_rule(
-            "/stub/converter/<slug>",
-            "converter_tool",
-            lambda slug: slug,
-        )
+        home.add_url_rule("/stub/converter/<slug>", "converter_tool", lambda slug: slug)
         auth = Blueprint("auth", __name__)
         auth.add_url_rule("/login", "login", lambda: "login")
         auth.add_url_rule("/logout", "logout", lambda: "logout")
@@ -112,9 +111,9 @@ class PaymentCheckoutTests(unittest.TestCase):
             db.drop_all()
 
     def test_checkout_requires_authentication(self):
-        self.assertEqual(self.post_payment().status_code, 401)
+        self.assertEqual(self.post_checkout().status_code, 401)
 
-    def test_checkout_page_renders_card_brick_with_public_key_only(self):
+    def test_checkout_page_limits_card_brick_to_one_installment(self):
         self.login()
         response = self.client.get("/checkout-pro")
         body = response.get_data(as_text=True)
@@ -122,78 +121,101 @@ class PaymentCheckoutTests(unittest.TestCase):
         self.assertIn("https://sdk.mercadopago.com/js/v2", body)
         self.assertIn("APP_USR-public-key", body)
         self.assertNotIn("APP_USR-private-token", body)
-        self.assertIn("cardPaymentBrick_container", body)
+        self.assertIn('data-max-installments="1"', body)
+        self.assertIn("R$ 25,90 / mês", body)
 
-    def test_approved_payment_uses_server_amount_email_and_idempotency(self):
+    def test_checkout_creates_authorized_monthly_subscription(self):
         self.login()
-        with self.provider(status="approved") as create_payment:
-            key = str(uuid4())
-            response = self.post_payment(
+        key = str(uuid4())
+        with (
+            self.provider() as create_subscription,
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_payment"
+            ) as create_payment,
+        ):
+            response = self.post_checkout(
                 key=key,
                 transaction_amount=1,
                 payer={"email": "attacker@example.com"},
             )
-        self.assertEqual(response.status_code, 201)
-        payload = create_payment.call_args.args[0]
-        self.assertEqual(payload["transaction_amount"], 25.90)
-        self.assertEqual(payload["payer"]["email"], "buyer@example.com")
-        self.assertEqual(create_payment.call_args.kwargs["idempotency_key"], key)
-        self.assertTrue(response.json["approved"])
-        with self.app.app_context():
-            payment = Payment.query.one()
-            user = db.session.get(Usuario, self.user_id)
-            self.assertEqual(str(payment.amount), "25.90")
-            self.assertEqual((user.plano, user.status_assinatura), ("pro", "active"))
-            self.assertIsNotNone(payment.premium_expires_at)
 
-    def test_external_reference_and_metadata_correlate_attempt(self):
+        self.assertEqual(response.status_code, 202)
+        create_payment.assert_not_called()
+        payload = create_subscription.call_args.args[0]
+        recurring = payload["auto_recurring"]
+        self.assertEqual(payload["reason"], "BoostConvert PRO mensal")
+        self.assertEqual(payload["payer_email"], "buyer@example.com")
+        self.assertEqual(payload["card_token_id"], "short-lived-token")
+        self.assertEqual(payload["status"], "authorized")
+        self.assertEqual(
+            payload["back_url"], "https://boostconvert.com.br/pagamento/retorno"
+        )
+        self.assertEqual(recurring["frequency"], 1)
+        self.assertEqual(recurring["frequency_type"], "months")
+        self.assertEqual(recurring["transaction_amount"], 25.90)
+        self.assertEqual(recurring["currency_id"], "BRL")
+        self.assertNotIn("installments", payload)
+        self.assertNotIn("transaction_amount", payload)
+        self.assertNotIn("statement_descriptor", payload)
+        self.assertEqual(create_subscription.call_args.kwargs["idempotency_key"], key)
+        with self.app.app_context():
+            subscription = Subscription.query.one()
+            self.assertEqual(
+                subscription.external_reference,
+                f"boost:subscription:{self.user_id}:{key}",
+            )
+            self.assertEqual(subscription.provider_subscription_id, "sub-1001")
+            self.assertEqual(subscription.status, "active")
+            self.assertIsNone(subscription.checkout_url)
+            self.assertEqual(Payment.query.count(), 0)
+        self.assert_user_free()
+
+    def test_checkout_accepts_payload_without_installments(self):
+        self.login()
+        with self.provider() as create_subscription:
+            response = self.post_checkout(include_installments=False)
+        self.assertEqual(response.status_code, 202)
+        self.assertNotIn("installments", create_subscription.call_args.args[0])
+
+    def test_more_than_one_installment_is_rejected_before_subscription_creation(self):
+        self.login()
+        with patch(
+            "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription"
+        ) as create_subscription:
+            response = self.post_checkout(installments=2)
+        self.assertEqual(response.status_code, 400)
+        create_subscription.assert_not_called()
+
+    def test_authorized_subscription_does_not_activate_pro_without_paid_invoice(self):
+        self.login()
+        with self.provider(status="authorized"):
+            response = self.post_checkout()
+        self.assertFalse(response.json["approved"])
+        self.assertEqual(response.json["status"], "active")
+        self.assert_user_free()
+
+    def test_same_key_creates_only_one_provider_subscription(self):
         self.login()
         key = str(uuid4())
-        with self.provider() as create_payment:
-            response = self.post_payment(key=key)
-        payload = create_payment.call_args.args[0]
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(payload["metadata"]["attempt_id"], key)
-        self.assertEqual(payload["metadata"]["user_id"], self.user_id)
-        self.assertEqual(payload["metadata"]["plan"], "PRO")
-        self.assertEqual(
-            payload["external_reference"], f"boost:payment:{self.user_id}:{key}"
-        )
-
-    def test_pending_payment_does_not_activate_pro(self):
-        self.login()
-        with self.provider(status="pending"):
-            response = self.post_payment()
-        self.assertEqual(response.status_code, 202)
-        self.assertFalse(response.json["approved"])
-        self.assert_user_free()
-
-    def test_in_process_payment_does_not_activate_pro(self):
-        self.login()
-        with self.provider(status="in_process"):
-            response = self.post_payment()
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(response.json["status"], "in_process")
-        self.assert_user_free()
-
-    def test_rejected_payment_does_not_activate_pro(self):
-        self.login()
-        with self.provider(status="rejected"):
-            response = self.post_payment()
-        self.assertEqual(response.status_code, 422)
-        self.assertIn("Pagamento recusado", response.json["error"])
-        self.assert_user_free()
+        with self.provider() as create_subscription:
+            first = self.post_checkout(key=key)
+            second = self.post_checkout(key=key, token="another-short-lived-token")
+        self.assertEqual((first.status_code, second.status_code), (202, 202))
+        create_subscription.assert_called_once()
+        with self.app.app_context():
+            self.assertEqual(Subscription.query.count(), 1)
+            self.assertEqual(Payment.query.count(), 0)
 
     def test_invalid_idempotency_key_is_rejected_before_provider(self):
         self.login()
         with patch(
-            "Blueprints.services.payments.payment_service.MercadoPagoClient.create_payment"
-        ) as create_payment:
-            response = self.post_payment(key="not-a-uuid")
+            "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription"
+        ) as create_subscription:
+            response = self.post_checkout(key="not-a-uuid")
         self.assertEqual(response.status_code, 400)
-        create_payment.assert_not_called()
+        create_subscription.assert_not_called()
 
-    def test_debit_card_is_rejected_before_payment_creation(self):
+    def test_debit_card_is_rejected_before_subscription_creation(self):
         self.login()
         with (
             patch(
@@ -203,30 +225,19 @@ class PaymentCheckoutTests(unittest.TestCase):
                 ],
             ),
             patch(
-                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_payment"
-            ) as create_payment,
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription"
+            ) as create_subscription,
         ):
-            response = self.post_payment()
+            response = self.post_checkout()
         self.assertEqual(response.status_code, 400)
-        create_payment.assert_not_called()
+        create_subscription.assert_not_called()
 
-    def test_same_key_creates_only_one_provider_payment(self):
-        self.login()
-        key = str(uuid4())
-        with self.provider() as create_payment:
-            first = self.post_payment(key=key)
-            second = self.post_payment(key=key, token="another-short-lived-token")
-        self.assertEqual((first.status_code, second.status_code), (202, 202))
-        create_payment.assert_called_once()
-        with self.app.app_context():
-            self.assertEqual(Payment.query.count(), 1)
-
-    def test_provider_failure_preserves_attempt_without_sensitive_logs(self):
+    def test_provider_failure_preserves_subscription_without_sensitive_logs(self):
         self.login()
         sensitive_token = "card-token-must-not-appear"
         error = MercadoPagoError(
-            operation="payment_create",
-            endpoint="/v1/payments",
+            operation="subscription_create",
+            endpoint="/preapproval",
             status=503,
             provider_code="service_unavailable",
             provider_message="temporary failure",
@@ -237,155 +248,118 @@ class PaymentCheckoutTests(unittest.TestCase):
                 return_value=self.credit_methods(),
             ),
             patch(
-                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_payment",
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription",
                 side_effect=error,
             ),
             self.assertLogs(self.app.logger.name, level="WARNING") as logs,
         ):
-            response = self.post_payment(token=sensitive_token)
+            response = self.post_checkout(token=sensitive_token)
+        output = " ".join(logs.output)
         self.assertEqual(response.status_code, 502)
-        self.assertNotIn(sensitive_token, " ".join(logs.output))
+        self.assertIn("mercadopago_subscription_create_failed", output)
+        self.assertIn("operation=subscription_create", output)
+        self.assertIn("endpoint=/preapproval", output)
+        self.assertNotIn(sensitive_token, output)
         self.assertNotIn("temporary failure", response.get_data(as_text=True))
         with self.app.app_context():
-            self.assertEqual(Payment.query.one().status, "creating")
-
-    def test_provider_wrong_amount_fails_closed(self):
-        self.login()
-        with self.provider(amount="1.00"):
-            response = self.post_payment()
-        self.assertEqual(response.status_code, 502)
-        self.assert_user_free()
+            self.assertEqual(Subscription.query.one().status, "error")
+            self.assertEqual(Payment.query.count(), 0)
 
     def test_card_token_and_card_number_are_never_persisted(self):
         self.login()
         token = "short-lived-card-token"
         with self.provider():
-            self.post_payment(token=token)
+            self.post_checkout(token=token)
         with self.app.app_context():
             values = " ".join(
                 str(value)
-                for value in vars(Payment.query.one()).values()
+                for value in vars(Subscription.query.one()).values()
                 if value is not None
             )
         self.assertNotIn(token, values)
         self.assertNotIn("4111111111111111", values)
 
-    def test_status_endpoint_reconciles_pending_to_approved(self):
+    def test_subscription_status_reconciles_approved_invoice_and_activates_pro(self):
         self.login()
-        with self.provider(status="pending"):
-            created = self.post_payment()
-        attempt_id = created.json["attempt_id"]
+        key = str(uuid4())
+        with self.provider():
+            created = self.post_checkout(key=key)
+        self.assertEqual(created.status_code, 202)
         with self.app.app_context():
-            payment = Payment.query.filter_by(attempt_id=attempt_id).one()
-            payment.last_provider_sync_at = datetime.now(timezone.utc) - timedelta(
-                minutes=1
-            )
-            db.session.commit()
-        with patch(
-            "Blueprints.services.payments.payment_service.MercadoPagoClient.get_payment",
-            return_value=self.remote_payment(
-                attempt_id, self.user_id, status="approved"
+            subscription = Subscription.query.one()
+            remote_subscription = self.remote_subscription(subscription)
+            remote_invoice = self.remote_invoice(subscription, status="approved")
+        with (
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.get_subscription",
+                return_value=remote_subscription,
+            ),
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.search_authorized_payments",
+                return_value=[remote_invoice],
             ),
         ):
-            response = self.client.get(f"/api/payments/{attempt_id}/status")
+            response = self.client.get(f"/api/subscriptions/{key}/status")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json["approved"])
+        self.assertEqual(response.json["status"], "approved")
+        with self.app.app_context():
+            payment = Payment.query.one()
+            self.assertEqual(payment.payment_method, "recurring_subscription")
+            self.assertEqual(payment.provider_invoice_id, "501")
         self.assert_user_pro()
 
-    def test_status_endpoint_cannot_read_another_users_payment(self):
+    def test_subscription_status_cannot_read_another_users_attempt(self):
         with self.app.app_context():
-            payment = self.local_payment(self.other_user_id)
-            attempt_id = payment.attempt_id
+            subscription = self.local_subscription(self.other_user_id)
+            attempt_id = subscription.checkout_idempotency_key
         self.login()
         self.assertEqual(
-            self.client.get(f"/api/payments/{attempt_id}/status").status_code,
+            self.client.get(f"/api/subscriptions/{attempt_id}/status").status_code,
             404,
         )
 
-    def test_early_renewal_preserves_remaining_days(self):
-        self.login()
-        existing_expiration = datetime.now(timezone.utc) + timedelta(days=10)
+    def test_active_legacy_entitlement_blocks_duplicate_subscription(self):
         with self.app.app_context():
-            existing = self.local_payment(self.user_id, status="approved")
-            existing.provider_payment_id = "1000001"
-            existing.premium_expires_at = existing_expiration
+            subscription = self.local_subscription(self.user_id, status="active")
+            subscription.paid_through_at = datetime.now(timezone.utc) + timedelta(
+                days=10
+            )
+            remote = self.remote_subscription(subscription)
             db.session.commit()
-        with self.provider(status="approved", payment_id="1000002"):
-            self.post_payment()
-        with self.app.app_context():
-            newest = Payment.query.filter_by(provider_payment_id="1000002").one()
-            difference = (
-                newest.premium_expires_at.replace(tzinfo=timezone.utc)
-                - existing_expiration
-            )
-            self.assertAlmostEqual(difference.total_seconds(), 30 * 86400, delta=2)
-
-    def test_refunded_payment_removes_access(self):
         self.login()
-        with self.provider(status="approved"):
-            created = self.post_payment()
-        attempt_id = created.json["attempt_id"]
-        with self.app.app_context():
-            payment_id = (
-                Payment.query.filter_by(attempt_id=attempt_id).one().provider_payment_id
-            )
-        with patch(
-            "Blueprints.services.payments.payment_service.MercadoPagoClient.get_payment",
-            return_value=self.remote_payment(
-                attempt_id, self.user_id, status="refunded", payment_id=payment_id
+        with (
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.get_subscription",
+                return_value=remote,
             ),
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.search_authorized_payments",
+                return_value=[],
+            ),
+            patch(
+                "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription"
+            ) as create_subscription,
         ):
-            with self.app.app_context():
-                payment = Payment.query.filter_by(attempt_id=attempt_id).one()
-                payment.status = "pending"
-                payment.last_provider_sync_at = datetime.now(timezone.utc) - timedelta(
-                    minutes=1
-                )
-                db.session.commit()
-            response = self.client.get(f"/api/payments/{attempt_id}/status")
-        self.assertEqual(response.json["status"], "refunded")
-        self.assert_user_free()
+            response = self.post_checkout()
+        self.assertEqual(response.status_code, 409)
+        create_subscription.assert_not_called()
 
-    def test_legacy_subscription_does_not_block_new_one_time_payment(self):
-        with self.app.app_context():
-            db.session.add(
-                Subscription(
-                    user_id=self.user_id,
-                    provider="mercado_pago",
-                    provider_subscription_id="legacy-sub",
-                    external_reference="boost:subscription:legacy",
-                    status="pending",
-                )
-            )
-            db.session.commit()
-        self.login()
-        with self.provider():
-            response = self.post_payment()
-        self.assertEqual(response.status_code, 202)
-        with self.app.app_context():
-            self.assertEqual(Subscription.query.count(), 1)
-            self.assertEqual(Payment.query.count(), 1)
-
-    def test_canceling_legacy_subscription_keeps_valid_payment_access(self):
+    def test_canceling_subscription_keeps_valid_legacy_payment_access(self):
         with self.app.app_context():
             payment = self.local_payment(self.user_id, status="approved")
             payment.provider_payment_id = "1000099"
             payment.premium_expires_at = datetime.now(timezone.utc) + timedelta(days=20)
-            subscription = Subscription(
-                user_id=self.user_id,
-                provider="mercado_pago",
-                provider_subscription_id="legacy-active",
-                external_reference="boost:subscription:legacy-active",
-                status="active",
-            )
-            db.session.add(subscription)
+            subscription = self.local_subscription(self.user_id, status="active")
+            subscription_id = subscription.provider_subscription_id
+            reference = subscription.external_reference
             db.session.commit()
         self.login()
         with patch(
             "Blueprints.services.payments.payment_service.MercadoPagoClient.cancel_subscription",
             return_value={
-                "id": "legacy-active",
-                "external_reference": "boost:subscription:legacy-active",
+                "id": subscription_id,
+                "external_reference": reference,
                 "status": "cancelled",
             },
         ):
@@ -395,7 +369,16 @@ class PaymentCheckoutTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assert_user_pro()
 
-    def test_frontend_contract_is_card_brick_credit_only(self):
+    def test_legacy_payment_status_endpoint_remains_available(self):
+        with self.app.app_context():
+            payment = self.local_payment(self.user_id)
+            attempt_id = payment.attempt_id
+        self.login()
+        response = self.client.get(f"/api/payments/{attempt_id}/status")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["attempt_id"], attempt_id)
+
+    def test_frontend_contract_is_card_brick_credit_only_and_one_installment(self):
         script = (FRONTEND_ROOT / "static" / "js" / "payments.js").read_text(
             encoding="utf-8"
         )
@@ -405,70 +388,87 @@ class PaymentCheckoutTests(unittest.TestCase):
         )
         self.assertIn('bricksBuilder.create("cardPayment"', script)
         self.assertIn('excluded: ["debit_card", "prepaid_card"]', script)
+        self.assertIn(
+            "Math.min(Number(config.dataset.maxInstallments || 1), 1)", script
+        )
+        self.assertNotIn("installments:", script)
         self.assertIn('"X-Idempotency-Key": idempotencyKey', script)
         self.assertIn("cardSubmissionInFlight", script)
         self.assertNotIn("MERCADOPAGO_ACCESS_TOKEN", script + templates)
         self.assertNotIn("subscriptions/checkout", script + templates)
         self.assertNotIn("result.checkout_url", script)
 
-    def provider(self, **overrides):
+    def provider(self, *, status="authorized", subscription_id="sub-1001"):
         create_patch = patch(
-            "Blueprints.services.payments.payment_service.MercadoPagoClient.create_payment"
+            "Blueprints.services.payments.payment_service.MercadoPagoClient.create_authorized_subscription",
+            return_value=AuthorizedSubscription(subscription_id, status),
         )
         methods_patch = patch(
             "Blueprints.services.payments.payment_service.MercadoPagoClient.get_payment_methods",
             return_value=self.credit_methods(),
         )
-        create_payment = create_patch.start()
+        create_subscription = create_patch.start()
         methods_patch.start()
-
-        def response(payload, *, idempotency_key):
-            return self.remote_payment(
-                idempotency_key,
-                self.user_id,
-                external_reference=payload["external_reference"],
-                payment_method_id=payload["payment_method_id"],
-                **overrides,
-            )
-
-        create_payment.side_effect = response
         self.addCleanup(create_patch.stop)
         self.addCleanup(methods_patch.stop)
-        return _MockContext(create_payment)
+        return _MockContext(create_subscription)
 
     @staticmethod
     def credit_methods():
         return [{"id": "visa", "payment_type_id": "credit_card", "status": "active"}]
 
     @staticmethod
-    def remote_payment(
-        attempt_id,
-        user_id,
-        *,
-        status="pending",
-        amount="25.90",
-        payment_id="1000001",
-        external_reference=None,
-        payment_method_id="visa",
-    ):
+    def remote_subscription(subscription):
         return {
-            "id": int(payment_id),
-            "status": status,
-            "status_detail": "accredited" if status == "approved" else status,
-            "transaction_amount": amount,
-            "currency_id": "BRL",
-            "payment_method_id": payment_method_id,
-            "payment_type_id": "credit_card",
-            "external_reference": external_reference
-            or f"boost:payment:{user_id}:{attempt_id}",
-            "metadata": {
-                "user_id": user_id,
-                "plan": "PRO",
-                "attempt_id": attempt_id,
+            "id": subscription.provider_subscription_id,
+            "external_reference": subscription.external_reference,
+            "status": "authorized",
+            "auto_recurring": {
+                "frequency": 1,
+                "frequency_type": "months",
+                "transaction_amount": "25.90",
+                "currency_id": "BRL",
             },
             "date_created": datetime.now(timezone.utc).isoformat(),
-            "date_approved": datetime.now(timezone.utc).isoformat(),
+            "next_payment_date": (
+                datetime.now(timezone.utc) + timedelta(days=30)
+            ).isoformat(),
         }
+
+    @staticmethod
+    def remote_invoice(subscription, status="pending"):
+        now = datetime.now(timezone.utc)
+        return {
+            "id": 501,
+            "preapproval_id": subscription.provider_subscription_id,
+            "external_reference": subscription.external_reference,
+            "transaction_amount": "25.90",
+            "currency_id": "BRL",
+            "date_created": now.isoformat(),
+            "debit_date": now.isoformat(),
+            "payment": {
+                "id": 2001,
+                "status": status,
+                "status_detail": "accredited" if status == "approved" else status,
+            },
+        }
+
+    def local_subscription(self, user_id, status="pending"):
+        attempt_id = str(uuid4())
+        subscription = Subscription(
+            user_id=user_id,
+            provider="mercado_pago",
+            provider_subscription_id=f"sub-{attempt_id}",
+            external_reference=f"boost:subscription:{user_id}:{attempt_id}",
+            checkout_idempotency_key=attempt_id,
+            plan="PRO",
+            status=status,
+            amount="25.90",
+            currency="BRL",
+        )
+        db.session.add(subscription)
+        db.session.commit()
+        return subscription
 
     def local_payment(self, user_id, status="pending"):
         attempt_id = str(uuid4())
@@ -488,15 +488,16 @@ class PaymentCheckoutTests(unittest.TestCase):
         db.session.commit()
         return payment
 
-    def post_payment(self, key=None, **overrides):
+    def post_checkout(self, key=None, include_installments=True, **overrides):
         payload = {
             "token": overrides.pop("token", "short-lived-token"),
             "payment_method_id": "visa",
             "issuer_id": "123",
-            "installments": 1,
             "payer": {"email": "browser@example.com"},
             **overrides,
         }
+        if include_installments and "installments" not in payload:
+            payload["installments"] = 1
         return self.client.post(
             "/api/payments/checkout",
             json=payload,
