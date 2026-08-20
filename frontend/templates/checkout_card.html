@@ -34,7 +34,6 @@
              data-csrf-token="{{ csrf_token() }}"
              data-idempotency-key="{{ payment_idempotency_key }}"
              data-amount="{{ plan.amount }}"
-             data-max-installments="{{ mercado_pago_max_installments }}"
              data-payer-email="{{ payer_email }}"
              hidden></div>
         {% else %}

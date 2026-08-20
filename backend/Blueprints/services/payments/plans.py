@@ -5,7 +5,6 @@ from flask import current_app
 
 PRO_PLAN_CODE = "PRO"
 LEGACY_PRO_PLAN_CODES = {"BOOSTCONVERT_PRO"}
-PRO_SUBSCRIPTION_MAX_INSTALLMENTS = 1
 
 
 class InvalidPlanError(ValueError):
@@ -27,7 +26,7 @@ def get_payment_plan(code: object) -> PaymentPlan:
 
     return PaymentPlan(
         code=PRO_PLAN_CODE,
-        title="BoostConvert PRO mensal",
+        title="BoostConvert PRO",
         amount=Decimal(str(current_app.config["PRO_PLAN_PRICE"])).quantize(
             Decimal("0.01")
         ),

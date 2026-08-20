@@ -37,7 +37,7 @@
                     visual: { style: { theme: "default" } },
                     paymentMethods: {
                         types: { excluded: ["debit_card", "prepaid_card"] },
-                        maxInstallments: Math.min(Number(config.dataset.maxInstallments || 1), 1)
+                        maxInstallments: 1
                     }
                 },
                 callbacks: {
@@ -61,7 +61,7 @@
                             });
                             const result = await readJson(response);
                             if (!response.ok) {
-                                idempotencyKey = createUuid();
+                                if ([400, 422].includes(response.status)) idempotencyKey = createUuid();
                                 throw new Error(result.error || "Não foi possível processar o pagamento.");
                             }
                             if (!result.redirect_url) {
@@ -89,20 +89,7 @@
     }
 
     function buildCardPayload(formData) {
-        const payer = formData && typeof formData.payer === "object" ? formData.payer : {};
-        const payload = {
-            token: String(formData?.token || ""),
-            payment_method_id: String(formData?.payment_method_id || ""),
-            issuer_id: String(formData?.issuer_id || ""),
-            payer: {}
-        };
-        if (payer.identification?.type && payer.identification?.number) {
-            payload.payer.identification = {
-                type: String(payer.identification.type),
-                number: String(payer.identification.number)
-            };
-        }
-        return payload;
+        return { token: String(formData?.token || "") };
     }
 
     function initPaymentStatusPolling() {
