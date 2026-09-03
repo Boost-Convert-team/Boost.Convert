@@ -11,7 +11,9 @@ from .office_pdf_fallback import convert_docx_to_pdf_fallback
 
 def convert_docx_pdf(input_path: PathLike, output_path: PathLike) -> None:
     try:
-        convert_docx_to_pdf_fallback(input_path, output_path)
+        from docx2pdf import convert
+
+        convert(input_path, output_path)
         if _has_pdf_output(output_path):
             return
     except Exception:
@@ -25,9 +27,7 @@ def convert_docx_pdf(input_path: PathLike, output_path: PathLike) -> None:
         pass
 
     try:
-        from docx2pdf import convert
-
-        convert(input_path, output_path)
+        convert_docx_to_pdf_fallback(input_path, output_path)
         if _has_pdf_output(output_path):
             return
     except Exception:

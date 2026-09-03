@@ -251,29 +251,53 @@ class LibreOfficeServiceTests(unittest.TestCase):
                     libreoffice_service.find_converted_file,
                 )
 
-    def test_docx_converter_keeps_libreoffice_fallback(self) -> None:
+    def test_docx_converter_uses_libreoffice_when_word_is_unavailable(self) -> None:
         module = import_converter("docx_to_pdf_service")
         runner = Mock()
+        fallback = Mock()
+        docx2pdf = types.SimpleNamespace(
+            convert=Mock(side_effect=RuntimeError("Word unavailable"))
+        )
 
         with (
-            patch.object(
-                module,
-                "convert_docx_to_pdf_fallback",
-                side_effect=RuntimeError("fallback failed"),
-            ),
+            patch.dict(sys.modules, {"docx2pdf": docx2pdf}),
+            patch.object(module, "convert_docx_to_pdf_fallback", fallback),
             patch.object(module, "run_libreoffice_conversion", runner),
             patch.object(module, "_has_pdf_output", return_value=True),
         ):
             module.convert_docx_pdf("input.docx", "output.pdf")
 
         runner.assert_called_once_with("input.docx", "output.pdf", "pdf")
+        fallback.assert_not_called()
 
-    def test_docx_converter_uses_python_fallback_without_office(self) -> None:
+    def test_docx_converter_prefers_word_over_lossy_fallback(self) -> None:
+        module = import_converter("docx_to_pdf_service")
+        runner = Mock()
+        fallback = Mock()
+        docx2pdf = types.SimpleNamespace(convert=Mock())
+
+        with (
+            patch.dict(sys.modules, {"docx2pdf": docx2pdf}),
+            patch.object(module, "run_libreoffice_conversion", runner),
+            patch.object(module, "convert_docx_to_pdf_fallback", fallback),
+            patch.object(module, "_has_pdf_output", return_value=True),
+        ):
+            module.convert_docx_pdf("input.docx", "output.pdf")
+
+        docx2pdf.convert.assert_called_once_with("input.docx", "output.pdf")
+        runner.assert_not_called()
+        fallback.assert_not_called()
+
+    def test_docx_converter_uses_python_fallback_only_without_office(self) -> None:
         module = import_converter("docx_to_pdf_service")
         fallback = Mock()
         runner = Mock(side_effect=RuntimeError("LibreOffice nao encontrado."))
+        docx2pdf = types.SimpleNamespace(
+            convert=Mock(side_effect=RuntimeError("Word unavailable"))
+        )
 
         with (
+            patch.dict(sys.modules, {"docx2pdf": docx2pdf}),
             patch.object(module, "run_libreoffice_conversion", runner),
             patch.object(module, "convert_docx_to_pdf_fallback", fallback),
             patch.object(module, "_has_pdf_output", return_value=True),
@@ -281,7 +305,7 @@ class LibreOfficeServiceTests(unittest.TestCase):
             module.convert_docx_pdf("input.docx", "output.pdf")
 
         fallback.assert_called_once_with("input.docx", "output.pdf")
-        runner.assert_not_called()
+        runner.assert_called_once_with("input.docx", "output.pdf", "pdf")
 
     def test_xlsx_converter_uses_python_fallback_without_office(self) -> None:
         module = import_converter("xlsx_to_pdf_service")
