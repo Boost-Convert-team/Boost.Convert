@@ -24,6 +24,7 @@ from Blueprints.services.convertions_services.errors.conversion_errors import (
 from Blueprints.services.convertions_services.runtime.job_queue import process_conversion_job
 
 RESULTS = []
+QA_PDF_PASSWORD = "qa-senha-123"
 
 def main():
     test_dir = Path(tempfile.mkdtemp(prefix="boost_converter_qa_"))
@@ -32,9 +33,12 @@ def main():
         Config.SQLALCHEMY_DATABASE_URI = f"sqlite:///{test_dir / 'qa.sqlite'}"
         Config.SQLALCHEMY_ENGINE_OPTIONS = {}
         app = create_app()
+        # The app has its own CSRF check and a per-minute rate limit; this script posts
+        # dozens of uploads in a row, so both are turned off here.
         app.config.update(
             TESTING=True
-            ,WTF_CSRF_ENABLED=False
+            ,CSRF_ENABLED=False
+            ,RATE_LIMIT_ENABLED=False
         )
         app.instance_path = str(test_dir / "instance")
         Path(app.instance_path).mkdir(parents=True, exist_ok=True)
@@ -89,6 +93,9 @@ def create_samples(test_dir):
     samples_dir.mkdir(parents=True, exist_ok=True)
 
     create_pdf(samples_dir / "sample.pdf")
+    create_pdf_with_image(samples_dir / "sample_image.pdf", samples_dir)
+    create_protected_pdf(samples_dir / "protected.pdf")
+    create_pptx(samples_dir / "sample.pdf", samples_dir / "sample.pptx")
     create_docx(samples_dir / "sample.docx")
     create_xlsx(samples_dir / "sample.xlsx")
     create_image(samples_dir / "sample.jpg", "JPEG")
@@ -107,6 +114,9 @@ def create_samples(test_dir):
 
     return {
         "pdf": samples_dir / "sample.pdf",
+        "pdf_image": samples_dir / "sample_image.pdf",
+        "pdf_protected": samples_dir / "protected.pdf",
+        "pptx": samples_dir / "sample.pptx",
         "docx": samples_dir / "sample.docx",
         "xlsx": samples_dir / "sample.xlsx",
         "jpg": samples_dir / "sample.jpg",
@@ -142,6 +152,30 @@ def create_pdf(path):
     page.insert_text((72, 125), "A 10")
     document.save(path)
     document.close()
+
+def create_pdf_with_image(path, samples_dir):
+    import pymupdf
+
+    image_path = samples_dir / "embedded.png"
+    create_image(image_path, "PNG")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_image(pymupdf.Rect(72, 72, 272, 272), filename=str(image_path))
+    document.save(path)
+    document.close()
+
+def create_protected_pdf(path):
+    import pymupdf
+
+    document = pymupdf.open()
+    document.new_page().insert_text((72, 72), "Boost Converter QA protegido")
+    document.save(path, encryption=pymupdf.PDF_ENCRYPT_AES_256, owner_pw=QA_PDF_PASSWORD, user_pw=QA_PDF_PASSWORD)
+    document.close()
+
+def create_pptx(pdf_path, path):
+    from Blueprints.services.convertions_services.documents.pdf_to_pptx_service import convert_pdf_pptx
+
+    convert_pdf_pptx(pdf_path, path)
 
 def create_docx(path):
     from docx import Document
@@ -276,6 +310,11 @@ def test_single_tool_conversions(client, samples):
         "/convert/md-to-docx": samples["md"],
         "/convert/md-to-pdf": samples["md"],
         "/convert/pdf-compress": samples["pdf"],
+        "/convert/pdf-extract-images": samples["pdf_image"],
+        "/convert/pdf-protect": (samples["pdf"], {"pdf_password": QA_PDF_PASSWORD}),
+        "/convert/pdf-rotate": (samples["pdf"], {"rotation_angle": "90"}),
+        "/convert/pdf-unlock": (samples["pdf_protected"], {"pdf_password": QA_PDF_PASSWORD}),
+        "/convert/pptx-to-pdf": samples["pptx"],
         "/convert/pdf-edit": (samples["pdf"], {"edit_text": "QA"}),
         "/convert/pdf-merge": [samples["pdf"], samples["pdf"]],
         "/convert/pdf-split": samples["pdf"],
@@ -372,10 +411,19 @@ def test_free_file_count_limit(client, samples):
     record(
         "/convert/txt-to-docx",
         "free_three_files_requires_upgrade",
-        upgrade_response.status_code in (302, 303)
-        and upgrade_response.headers.get("Location", "").endswith("/planos"),
+        is_redirect_to_plans(upgrade_response),
         f"status={upgrade_response.status_code}, location={upgrade_response.headers.get('Location', '')}",
     )
+
+    merge_ok = post_files(client, "/convert/pdf-merge", [samples["pdf"]] * 32)
+    record("/convert/pdf-merge", "free_32_pdfs", merge_ok.status_code in (302, 303) and not is_redirect_to_plans(merge_ok),
+           f"status={merge_ok.status_code}, location={merge_ok.headers.get('Location', '')}")
+    merge_over = post_files(client, "/convert/pdf-merge", [samples["pdf"]] * 33)
+    record("/convert/pdf-merge", "free_33_pdfs_requires_upgrade", is_redirect_to_plans(merge_over),
+           f"status={merge_over.status_code}, location={merge_over.headers.get('Location', '')}")
+
+def is_redirect_to_plans(response):
+    return response.status_code in (302, 303) and response.headers.get("Location", "").endswith("/planos")
 
 def test_error_message_sanitizer():
     technical_error = FileNotFoundError(
@@ -419,8 +467,59 @@ def run_conversion(client, route, paths, form=None):
     record(route, "conversion", ok, detail)
 
     if ok:
+        format_ok, format_detail = validate_output(job.output_path, job.output_filename)
+        record(route, "output_format", format_ok, format_detail)
+
+    if ok:
         response = client.get(f"/conversions/{job.id}/download")
         record(route, "download", response.status_code == 200 and len(response.data) > 0, f"status={response.status_code}")
+
+BINARY_SIGNATURES = {
+    "pdf": [(0, b"%PDF-")],
+    "png": [(0, b"\x89PNG")],
+    "jpg": [(0, b"\xff\xd8\xff")],
+    "gif": [(0, b"GIF8")],
+    "webp": [(0, b"RIFF"), (8, b"WEBP")],
+    "zip": [(0, b"PK")],
+    "docx": [(0, b"PK")],
+    "xlsx": [(0, b"PK")],
+    "pptx": [(0, b"PK")],
+    "wav": [(0, b"RIFF"), (8, b"WAVE")],
+    "avi": [(0, b"RIFF"), (8, b"AVI ")],
+    "flac": [(0, b"fLaC")],
+    "mp4": [(4, b"ftyp")],
+    "mov": [(4, b"ftyp")],
+    "mkv": [(0, b"\x1a\x45\xdf\xa3")],
+    "webm": [(0, b"\x1a\x45\xdf\xa3")],
+}
+
+def validate_output(output_path, output_filename):
+    """Checks that the file really is the promised format, not just that it is not empty."""
+    extension = output_filename.rsplit(".", 1)[-1].lower()
+    data = Path(output_path).read_bytes()
+    if extension in BINARY_SIGNATURES:
+        ok = all(data[offset:offset + len(signature)] == signature for offset, signature in BINARY_SIGNATURES[extension])
+        return ok, f"{extension} signature={'ok' if ok else data[:12]!r}"
+    if extension == "mp3":
+        ok = data[:3] == b"ID3" or (data[0] == 0xFF and data[1] & 0xE0 == 0xE0)
+        return ok, f"mp3 header={data[:4]!r}"
+    try:
+        text = data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return False, f"{extension} is not UTF-8 text"
+    if extension == "json":
+        import json
+
+        try:
+            json.loads(text)
+        except ValueError as error:
+            return False, f"invalid json: {error}"
+        return True, "json parses"
+    if extension == "svg":
+        return "<svg" in text, "svg root element"
+    if extension in {"html", "htm"}:
+        return "<html" in text.lower() or "<body" in text.lower(), "html document"
+    return bool(text.strip()), f"{extension} has text"
 
 def post_files(client, route, paths, form=None):
     upload_files = []

@@ -16,7 +16,7 @@ TOOLS: ToolRegistry = {
         {"name": "WMA -> MP3", "route": "/convert/wma-to-mp3", "accept": ".wma"},
     ],
     "Documentos": [
-        {"name": "Juntar PDF", "route": "/convert/pdf-merge", "accept": ".pdf", "multiple": True},
+        {"name": "Juntar PDF", "route": "/convert/pdf-merge", "accept": ".pdf"},
         {"name": "Dividir PDF", "route": "/convert/pdf-split", "accept": ".pdf"},
         {"name": "Comprimir PDF", "route": "/convert/pdf-compress", "accept": ".pdf"},
         {"name": "Rotacionar PDF", "route": "/convert/pdf-rotate", "accept": ".pdf", "aliases": "girar pdf virar pdf rotacionar paginas"},
@@ -30,7 +30,7 @@ TOOLS: ToolRegistry = {
         {"name": "DOCX -> PDF", "route": "/convert/docx-to-pdf", "accept": ".docx"},
         {"name": "DOCX -> TXT", "route": "/convert/docx-to-txt", "accept": ".docx"},
         {"name": "DOCX -> XLSX", "route": "/convert/docx-to-xlsx", "accept": ".docx"},
-        {"name": "Arquivos -> ZIP", "route": "/convert/files-to-zip", "accept": ".pdf,.doc,.docx,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.txt,.csv,.json,.md,.html,.jpg,.jpeg,.png,.webp,.heic,.svg,.mp3,.wav,.mp4,.mov,.mkv,.avi,.webm,.zip", "multiple": True, "icon": "archive", "aliases": "zip compactar arquivos comprimir pasta arquivo pacote download"},
+        {"name": "Arquivos -> ZIP", "route": "/convert/files-to-zip", "accept": ".pdf,.doc,.docx,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.txt,.csv,.json,.md,.html,.jpg,.jpeg,.png,.webp,.heic,.svg,.mp3,.wav,.mp4,.mov,.mkv,.avi,.webm,.zip", "icon": "archive", "aliases": "zip compactar arquivos comprimir pasta arquivo pacote download"},
         {"name": "HTML -> DOCX", "route": "/convert/html-to-docx", "accept": ".html,.htm"},
         {"name": "HTML -> PDF", "route": "/convert/html-to-pdf", "accept": ".html,.htm"},
         {"name": "JPG -> PDF", "route": "/convert/jpg-to-pdf", "accept": ".jpg,.jpeg"},
@@ -67,7 +67,7 @@ TOOLS: ToolRegistry = {
     "Imagens": [
         {"name": "HEIC -> JPG", "route": "/convert/heic-to-jpg", "accept": ".heic"},
         {"name": "HEIC -> PNG", "route": "/convert/heic-to-png", "accept": ".heic"},
-        {"name": "Imagens -> PDF", "route": "/convert/images-to-pdf", "accept": ".jpg,.jpeg,.png,.webp,.heic", "multiple": True, "icon": "file-image", "aliases": "imagem para pdf imagens para pdf foto para pdf jpg png webp heic scanner"},
+        {"name": "Imagens -> PDF", "route": "/convert/images-to-pdf", "accept": ".jpg,.jpeg,.png,.webp,.heic", "icon": "file-image", "aliases": "imagem para pdf imagens para pdf foto para pdf jpg png webp heic scanner"},
         {"name": "JPG -> PNG", "route": "/convert/jpg-to-png", "accept": ".jpg,.jpeg"},
         {"name": "JPG -> SVG", "route": "/convert/jpg-to-svg", "accept": ".jpg,.jpeg"},
         {"name": "JPG -> WEBP", "route": "/convert/jpg-to-webp", "accept": ".jpg,.jpeg"},

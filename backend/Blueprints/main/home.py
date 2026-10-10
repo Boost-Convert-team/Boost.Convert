@@ -212,16 +212,12 @@ def build_tool_page_seo(tool, slug):
     )
     limit_info = get_tool_limit_info(tool)
     real_limits = [
+        f"Até {limit_info['free_file_count_limit']} arquivos por envio no Free e "
+        f"{limit_info['pro_file_count_limit']} no Pro.",
         f"Plano gratuito: arquivos de até {limit_info['free_upload_limit_label']} nesta categoria.",
         f"Plano Pro: arquivos de até {limit_info['pro_upload_limit_label']} nesta categoria.",
         f"Plano gratuito: até {limit_info['free_daily_limit']} conversões a cada 24 horas.",
     ]
-    if tool.get("multiple"):
-        real_limits.append(
-            "Envios múltiplos: até "
-            f"{limit_info['free_file_count_limit']} arquivos no Free e "
-            f"{limit_info['pro_file_count_limit']} no Pro."
-        )
 
     seo = build_seo(
         title=record.title,

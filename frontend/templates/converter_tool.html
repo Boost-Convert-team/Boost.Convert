@@ -67,6 +67,7 @@
 
     {% set how_to = seo_data.how_to|default([], true) %}
     {% set benefits = seo_data.benefits|default([], true) %}
+    {% set limitations = seo_data.limitations|default([], true) %}
     {% set security_text = seo_data.security_text|default('', true) %}
 
     <div class="tool-seo-content">
@@ -135,6 +136,20 @@
                             </li>
                         {% endfor %}
                     {% endif %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if limitations %}
+            <section class="tool-content-section reveal" aria-labelledby="tool-limits-title">
+                <div class="tool-content-heading">
+                    <span class="tool-content-kicker">Limites</span>
+                    <h2 id="tool-limits-title">Limites e cuidados</h2>
+                </div>
+                <ul class="tool-benefit-grid">
+                    {% for limitation in limitations %}
+                        <li class="tool-benefit-card"><i data-lucide="gauge" aria-hidden="true"></i><p>{{ limitation }}</p></li>
+                    {% endfor %}
                 </ul>
             </section>
         {% endif %}
