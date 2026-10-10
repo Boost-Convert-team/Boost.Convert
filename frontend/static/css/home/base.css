@@ -43,7 +43,6 @@
 .price-editorial,
 .integrations-stage,
 .suite-section,
-.dark-cta,
 .home-plans,
 .account-workspace {
     scroll-margin-top: 112px;
@@ -55,4 +54,3 @@
 .home-page p {
     letter-spacing: 0;
 }
-

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import fitz
+import pymupdf
 from docx import Document
 
 
@@ -54,7 +54,7 @@ class HtmlConversionTests(unittest.TestCase):
             ):
                 convert_html_pdf(input_path, output_path)
 
-            with fitz.open(output_path) as document:
+            with pymupdf.open(output_path) as document:
                 text = "\n".join(page.get_text() for page in document)
 
         self.assertIn("Boost HTML", text)

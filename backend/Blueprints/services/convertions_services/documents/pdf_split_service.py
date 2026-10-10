@@ -1,17 +1,17 @@
 import os
 import tempfile
 import zipfile
-import fitz
+import pymupdf
 
 def convert_pdf_split(input_path, output_path, options=None):
-    with fitz.open(input_path) as source_pdf:
+    with pymupdf.open(input_path) as source_pdf:
         page_groups = parse_page_ranges((options or {}).get("page_ranges"), source_pdf.page_count)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             split_paths = []
 
             for index, page_indexes in enumerate(page_groups, start=1):
-                split_pdf = fitz.open()
+                split_pdf = pymupdf.open()
 
                 try:
                     for page_index in page_indexes:

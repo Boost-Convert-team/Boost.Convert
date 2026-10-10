@@ -1,6 +1,6 @@
 import zipfile
 from pathlib import Path
-import fitz
+import pymupdf
 
 EMU_PER_POINT = 12700
 RENDER_ZOOM = 2
@@ -8,7 +8,7 @@ RENDER_ZOOM = 2
 def convert_pdf_pptx(input_path, output_path):
     pages = []
 
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         if document.page_count == 0:
             raise RuntimeError("PDF sem paginas para converter em PPTX.")
 
@@ -39,7 +39,7 @@ def _fit_size(width, height, max_width, max_height):
     return int(round(width * scale)), int(round(height * scale))
 
 def _render_page(page):
-    matrix = fitz.Matrix(RENDER_ZOOM, RENDER_ZOOM)
+    matrix = pymupdf.Matrix(RENDER_ZOOM, RENDER_ZOOM)
     pixmap = page.get_pixmap(matrix=matrix, alpha=False)
     return pixmap.tobytes("png")
 

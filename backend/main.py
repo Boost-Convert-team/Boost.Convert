@@ -7,7 +7,7 @@ from extensions import db
 app = create_app()
 
 if __name__ == "__main__":
-    if should_auto_create_db(app):
+    if should_auto_create_db():
         with app.app_context():
             db.create_all()
     app.run(

@@ -1,11 +1,11 @@
 import zipfile
-import fitz
+import pymupdf
 
 def convert_pdf_extract_images(input_path, output_path):
     found_images = False
     seen_images = set()
 
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as archive:
             for page_index, page in enumerate(document, start=1):
                 for image_index, image_info in enumerate(page.get_images(full=True), start=1):

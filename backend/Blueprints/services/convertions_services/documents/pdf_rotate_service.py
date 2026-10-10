@@ -1,4 +1,4 @@
-import fitz
+import pymupdf
 
 def convert_pdf_rotate(input_path, output_path, options=None):
     options = options or {}
@@ -7,7 +7,7 @@ def convert_pdf_rotate(input_path, output_path, options=None):
     if angle not in {90, 180, 270}:
         raise ValueError("Rotacao invalida.")
 
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         pages = sorted(
             {
                 page_index

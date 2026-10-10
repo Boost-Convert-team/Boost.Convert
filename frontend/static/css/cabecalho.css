@@ -337,10 +337,6 @@
     display: none;
 }
 
-.mega-tool-all {
-    background: rgba(255, 244, 232, .36);
-}
-
 .mega-view-all {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 14px;

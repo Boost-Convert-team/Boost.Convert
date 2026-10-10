@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import fitz
+import pymupdf
 from docx import Document
 from docx.enum.section import WD_ORIENT
 from docx.oxml import OxmlElement
@@ -126,7 +126,7 @@ class OfficePdfFallbackTests(unittest.TestCase):
 
 
 def extract_pdf_text(path: Path) -> str:
-    with fitz.open(path) as document:
+    with pymupdf.open(path) as document:
         return "\n".join(page.get_text("text") for page in document)
 
 

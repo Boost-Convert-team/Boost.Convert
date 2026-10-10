@@ -434,7 +434,7 @@ def contact_page():
             "name": "Instagram",
             "description": "Perfil público do BoostConvert no Instagram.",
             "url": "https://www.instagram.com/boost.convert/",
-            "icon": "instagram",
+            "icon": "camera",
             "external": True,
         }
     ]

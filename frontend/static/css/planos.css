@@ -52,21 +52,6 @@
     font-weight: 600;
 }
 
-.pricing-save {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 30px;
-    margin-top: 20px;
-    padding: 0 18px;
-    border-radius: 999px;
-    background: rgba(240, 138, 36, .10);
-    color: var(--orange-deep);
-    font-family: var(--font-ui);
-    font-size: 14px;
-    font-weight: 700;
-}
-
 .pricing-stage {
     display: grid;
     grid-template-columns: minmax(0, .98fr) minmax(0, 1.02fr);
@@ -226,28 +211,11 @@
     gap: 6px;
 }
 
-.plan-price-promo {
-    grid-template-columns: 1fr;
-    align-items: start;
-    gap: 10px;
-}
-
-.plan-price-before {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.plan-price-before span,
 .plan-price-current span {
     padding: 0;
     font-size: 15px;
     line-height: 1;
     font-weight: 600;
-}
-
-.plan-pro .plan-price .plan-price-before span {
-    color: #929292;
 }
 
 .plan-price-current b {
@@ -257,17 +225,6 @@
     font-size: 21px;
     line-height: 1;
     font-weight: 800;
-}
-
-.plan-price-old {
-    color: #9c9c9c;
-    font-family: var(--font-ui);
-    font-size: 15px;
-    line-height: 1;
-    font-weight: 700;
-    text-decoration-line: line-through;
-    text-decoration-thickness: 2px;
-    text-decoration-color: currentColor;
 }
 
 .plan-pro .plan-price strong,
@@ -317,15 +274,6 @@
     background: var(--orange);
     color: #fff;
     stroke-width: 3;
-}
-
-.plan-list .is-disabled {
-    color: #a3a3a3;
-}
-
-.plan-list .is-disabled svg {
-    background: #d4d4d4;
-    color: #fff;
 }
 
 .plan-button,

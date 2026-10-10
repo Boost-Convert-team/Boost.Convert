@@ -133,9 +133,9 @@ def create_samples(test_dir):
     }
 
 def create_pdf(path):
-    import fitz
+    import pymupdf
 
-    document = fitz.open()
+    document = pymupdf.open()
     page = document.new_page()
     page.insert_text((72, 72), "Boost Converter QA")
     page.insert_text((72, 100), "Item Valor")

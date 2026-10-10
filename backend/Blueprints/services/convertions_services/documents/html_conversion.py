@@ -190,18 +190,18 @@ def build_printable_html(content: str, base_dir: Path) -> str:
 
 
 def render_html_pdf_with_pymupdf_story(content: str, input_path: PathLike, output_path: PathLike) -> None:
-    import fitz
+    import pymupdf
 
     base_dir = Path(input_path).resolve().parent
-    archive = fitz.Archive(str(base_dir))
-    story = fitz.Story(
+    archive = pymupdf.Archive(str(base_dir))
+    story = pymupdf.Story(
         build_printable_html(content, base_dir),
         archive=archive,
     )
-    mediabox = fitz.paper_rect("a4")
+    mediabox = pymupdf.paper_rect("a4")
     content_box = mediabox + (54, 54, -54, -54)
 
-    def rectfn(rect_num: int, filled: fitz.Rect) -> tuple[fitz.Rect, fitz.Rect, None]:
+    def rectfn(rect_num: int, filled: pymupdf.Rect) -> tuple[pymupdf.Rect, pymupdf.Rect, None]:
         return mediabox, content_box, None
 
     document = story.write_with_links(rectfn)
@@ -212,11 +212,11 @@ def render_html_pdf_with_pymupdf_story(content: str, input_path: PathLike, outpu
 
 
 def render_text_pdf_fallback(content: str, output_path: PathLike) -> None:
-    import fitz
+    import pymupdf
 
     text = extract_plain_text(content).strip() or "Arquivo HTML sem texto visivel."
-    document = fitz.open()
-    page_width, page_height = fitz.paper_size("a4")
+    document = pymupdf.open()
+    page_width, page_height = pymupdf.paper_size("a4")
     margin = 54
     font_size = 11
     line_height = 15

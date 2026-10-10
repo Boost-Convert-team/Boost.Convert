@@ -145,7 +145,6 @@ class Config:
     CONVERSION_FILE_RETENTION_MINUTES = get_int_env(
         "CONVERSION_FILE_RETENTION_MINUTES", 15
     )
-    AI_TRANSCRIPT_RETENTION_MINUTES = get_int_env("AI_TRANSCRIPT_RETENTION_MINUTES", 15)
     CONVERSION_CLEANUP_INTERVAL_MINUTES = get_int_env(
         "CONVERSION_CLEANUP_INTERVAL_MINUTES", 5
     )
@@ -157,9 +156,5 @@ class Config:
     )
 
 
-def should_auto_create_db(app):
-    if os.getenv("AUTO_CREATE_DB") == "1":
-        return True
-    if os.getenv("AUTO_CREATE_DB") == "0":
-        return False
-    return False
+def should_auto_create_db():
+    return os.getenv("AUTO_CREATE_DB") == "1"

@@ -1,7 +1,7 @@
-import fitz
+import pymupdf
 
 def convert_pdf_compress(input_path, output_path, options=None):
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         document.save(
              output_path
             ,garbage=4

@@ -1,4 +1,4 @@
-import fitz
+import pymupdf
 
 def convert_pdf_edit(input_path, output_path, options=None):
     options = options or {}
@@ -6,7 +6,7 @@ def convert_pdf_edit(input_path, output_path, options=None):
 
     if not edit_text: raise ValueError("Informe um texto para adicionar ao PDF.")
 
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         page_number = int(options.get("edit_page", "1"))
 
         if page_number < 1 or page_number > document.page_count: 

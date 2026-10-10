@@ -1,15 +1,15 @@
 import os
 import zipfile
-import fitz
+import pymupdf
 
 def convert_pdf_png(input_path, output_path):
     zoom = get_pdf_render_zoom()
 
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as archive:
             for page_index, page in enumerate(document, start=1):
                 pixmap = page.get_pixmap(
-                     matrix=fitz.Matrix(zoom, zoom)
+                     matrix=pymupdf.Matrix(zoom, zoom)
                     ,alpha=True
                 )
                 archive.writestr(f"page_{page_index}.png", pixmap.tobytes("png"))

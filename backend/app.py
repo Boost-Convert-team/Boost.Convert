@@ -1,3 +1,4 @@
+import mimetypes
 from functools import lru_cache
 from pathlib import Path
 
@@ -31,6 +32,9 @@ migrate = Migrate()
 
 def create_app() -> Flask:
     configure_media_dependencies()
+    # Python < 3.13 has no built-in .webp type; without it the hero and team
+    # images are served as application/octet-stream next to nosniff.
+    mimetypes.add_type("image/webp", ".webp")
 
     app = Flask(
         __name__,

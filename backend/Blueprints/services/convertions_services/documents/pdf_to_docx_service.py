@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import Union
 
-import fitz
+import pymupdf
 from pdf2docx import Converter
 
 
@@ -99,7 +99,7 @@ def convert_pdf_docx(input_path: PathLike, output_path: PathLike) -> None:
 
 
 def inspect_pdf_complexity(input_path: PathLike) -> PdfComplexityProfile:
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         page_count = len(document)
         if page_count == 0:
             return PdfComplexityProfile(0, 0, 0)
@@ -161,12 +161,12 @@ def convert_pdf_to_visual_docx(input_path: PathLike, output_path: PathLike, dpi:
     document = Document()
     configure_visual_docx_defaults(document)
 
-    with fitz.open(input_path) as pdf:
+    with pymupdf.open(input_path) as pdf:
         if len(pdf) == 0:
             raise RuntimeError("PDF sem paginas para converter.")
 
         configure_visual_docx_section(document.sections[0], pdf[0].rect)
-        matrix = fitz.Matrix(render_dpi / 72, render_dpi / 72)
+        matrix = pymupdf.Matrix(render_dpi / 72, render_dpi / 72)
 
         for page_index, page in enumerate(pdf):
             paragraph = document.add_paragraph()

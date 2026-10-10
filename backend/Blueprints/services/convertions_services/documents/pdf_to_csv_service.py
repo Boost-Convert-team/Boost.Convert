@@ -1,8 +1,8 @@
 import csv
-import fitz
+import pymupdf
 
 def convert_pdf_csv(input_path, output_path):
-    with fitz.open(input_path) as document:
+    with pymupdf.open(input_path) as document:
         rows = [
             [page.number + 1, page.get_text("text", sort=True)]
             for page in document

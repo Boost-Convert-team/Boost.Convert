@@ -27,7 +27,6 @@ class UsageStatus:
     percent: int
     reset_at: datetime | None
     reset_in: str | None
-    is_limited: bool
 
 
 def utc_now() -> datetime:
@@ -163,7 +162,6 @@ def build_usage_status(usage, now: datetime | None = None) -> UsageStatus:
             percent=0,
             reset_at=None,
             reset_in=None,
-            is_limited=True,
         )
 
     ensure_active_window(usage, now)
@@ -177,13 +175,12 @@ def build_usage_status(usage, now: datetime | None = None) -> UsageStatus:
         percent=min(round((used / FREE_DAILY_LIMIT) * 100), 100),
         reset_at=reset_at,
         reset_in=format_reset_in(reset_at, now),
-        is_limited=True,
     )
 
 
 def get_usage_status(usuario=None, session_id=None) -> UsageStatus:
     if is_pro_user(usuario):
-        return UsageStatus(0, None, "Ilimitado", 100, None, None, False)
+        return UsageStatus(0, None, "Ilimitado", 100, None, None)
     if usuario is None and session_id is None:
         return build_usage_status(None)
     return build_usage_status(

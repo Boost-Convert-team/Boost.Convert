@@ -121,19 +121,11 @@ small,
 .toggle-panel button,
 .converter-option-field label,
 .converter-option-field input,
-.form-field label,
-.form-field input,
-.proof-item span,
-.upload-title p,
 .upload-content span,
 .file-preview,
-.category-pill,
 .tool-card span,
 .tool-link,
-.account-card p,
-.plan-card p,
-.status-card p,
-.status-pill {
+.account-card p {
     font-family: var(--font-ui);
     font-weight: var(--weight-ui);
 }
@@ -144,10 +136,8 @@ label,
 .topnav a,
 .text-link,
 .eyebrow,
-.category-pill,
 .tools-sidebar a,
-.tool-link,
-.status-pill {
+.tool-link {
     font-weight: var(--weight-ui-medium);
 }
 
@@ -201,10 +191,6 @@ label,
     font-weight: var(--weight-hero);
 }
 
-.section-heading .accent {
-    color: var(--orange-deep);
-}
-
 .section-heading p {
     margin: 0 auto;
     max-width: 600px;
@@ -213,9 +199,7 @@ label,
     line-height: 1.65;
 }
 
-.proof-icon,
 .tool-icon,
-.account-icon,
 .mini-icon {
     display: grid;
     place-items: center;
@@ -227,19 +211,14 @@ label,
     box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-.proof-icon svg,
 .tool-icon svg,
-.account-icon svg,
 .mini-icon svg {
     width: 21px;
     height: 21px;
 }
 
 .tool-card,
-.account-card,
-.status-card,
-.plan-card,
-.auth-card {
+.account-card {
     border: 1px solid rgba(234, 223, 211, .72);
     border-radius: var(--radius);
     background: rgba(255, 255, 255, .64);
@@ -253,10 +232,7 @@ label,
 }
 
 .tool-card:hover,
-.account-card:hover,
-.status-card:hover,
-.plan-card:hover,
-.auth-card:hover {
+.account-card:hover {
     transform: translateY(-2px);
     border-color: rgba(240, 138, 36, .18);
     background: rgba(255, 255, 255, .82);
@@ -333,15 +309,6 @@ label,
 @keyframes spin {
     to {
         transform: rotate(360deg);
-    }
-}
-
-@keyframes softFloat {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-3px);
     }
 }
 

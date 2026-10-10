@@ -19,23 +19,11 @@ import re
 from types import MappingProxyType
 from typing import Any, Literal, Mapping
 
+from Blueprints.main.seo_helpers import public_url
+
 
 SeoStatus = Literal["draft", "indexable", "noindex", "retired"]
 UPDATED_AT = date(2026, 7, 11)
-
-
-@dataclass(frozen=True, slots=True)
-class BrandSeo:
-    """Canonical brand identity used by the SEO layer."""
-
-    name: str
-    legal_name: str
-    origin: str
-    locale: str
-    language: str
-    country: str
-    default_title: str
-    default_description: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,28 +70,9 @@ class ToolSeo:
     def path(self) -> str:
         return f"/tools/{self.slug}"
 
-    # Public vocabulary used by the content workflow. The stored field names
-    # stay backward compatible with the existing rendering layer.
-    @property
-    def categoria(self) -> str:
-        return self.category
-
     @property
     def meta_description(self) -> str:
         return self.description
-
-    @property
-    def beneficios(self) -> tuple[str, ...]:
-        return self.benefits
-
-    @property
-    def como_usar(self) -> tuple[HowToStep, ...]:
-        return self.how_to
-
-
-# Canonical name for the independent SEO content layer. ``ToolSeo`` remains
-# available so current integrations do not need an architectural refactor.
-ToolSEO = ToolSeo
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,22 +124,6 @@ class PageSeo:
     updated_at: date
     status: SeoStatus
     robots: str = "index, follow"
-
-
-BRAND = BrandSeo(
-    name="BoostConvert",
-    legal_name="BoostConvert",
-    origin="https://boostconvert.com.br",
-    locale="pt_BR",
-    language="pt-BR",
-    country="BR",
-    default_title="BoostConvert | Conversores de Arquivos Online",
-    default_description=(
-        "Converta documentos, imagens, vídeos e áudios online com as ferramentas "
-        "do BoostConvert."
-    ),
-)
-BRAND_ORIGIN = BRAND.origin
 
 
 _CATEGORIES = {
@@ -1416,15 +1369,6 @@ def normalize_slug(value: str) -> str:
     return slug
 
 
-def public_url(path: str = "") -> str:
-    """Build a public URL without depending on Flask, a request, or app config."""
-
-    clean_path = str(path or "").strip()
-    if not clean_path:
-        return BRAND.origin
-    return f"{BRAND.origin}/{clean_path.lstrip('/')}"
-
-
 def _format_label(value: str) -> str:
     key = value.strip().lower()
     return _FORMAT_LABELS.get(key, key.replace("-", " ").upper())
@@ -1635,8 +1579,6 @@ to_dict = as_serializable_dict
 
 
 __all__ = (
-    "BRAND",
-    "BRAND_ORIGIN",
     "CATEGORIES",
     "GUIDES",
     "HUBS",
@@ -1645,7 +1587,6 @@ __all__ = (
     "PRIORITY_TOOL_SLUGS",
     "TOOL_SEO",
     "TOOLS_SEO",
-    "BrandSeo",
     "CategorySeo",
     "FaqItem",
     "GuideSeo",
@@ -1659,6 +1600,5 @@ __all__ = (
     "get_page_seo",
     "get_tool_seo",
     "normalize_slug",
-    "public_url",
     "to_dict",
 )

@@ -8,7 +8,7 @@ from collections.abc import Iterable, Sequence
 from datetime import date, datetime, time
 from pathlib import Path
 
-import fitz
+import pymupdf
 from docx import Document
 from docx.oxml.ns import qn
 from docx.table import _Cell
@@ -18,8 +18,8 @@ from openpyxl.utils import get_column_letter
 
 PathLike = str | os.PathLike[str]
 
-A4 = fitz.paper_rect("a4")
-A4_LANDSCAPE = fitz.Rect(0, 0, A4.height, A4.width)
+A4 = pymupdf.paper_rect("a4")
+A4_LANDSCAPE = pymupdf.Rect(0, 0, A4.height, A4.width)
 MARGIN = 42
 TEXT_COLOR = (0.12, 0.14, 0.18)
 BORDER_COLOR = (0.78, 0.80, 0.84)
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class PdfWriter:
-    def __init__(self, document: fitz.Document, page_rect: fitz.Rect = A4):
+    def __init__(self, document: pymupdf.Document, page_rect: pymupdf.Rect = A4):
         self.document = document
         self.page_rect = page_rect
         self.page = self.document.new_page(width=page_rect.width, height=page_rect.height)
@@ -53,7 +53,7 @@ class PdfWriter:
         height = max(32, estimate_text_height(text, size, self.usable_width))
         self.ensure_space(height)
         self.page.insert_textbox(
-            fitz.Rect(MARGIN, self.y, self.page_rect.width - MARGIN, self.y + height),
+            pymupdf.Rect(MARGIN, self.y, self.page_rect.width - MARGIN, self.y + height),
             text,
             fontsize=size,
             fontname="hebo",
@@ -70,7 +70,7 @@ class PdfWriter:
         height = max(28, estimate_text_height(text, size, self.usable_width) + 8)
         self.ensure_space(height)
         self.page.insert_textbox(
-            fitz.Rect(MARGIN, self.y, self.page_rect.width - MARGIN, self.y + height),
+            pymupdf.Rect(MARGIN, self.y, self.page_rect.width - MARGIN, self.y + height),
             text,
             fontsize=size,
             fontname="helv",
@@ -97,7 +97,7 @@ class PdfWriter:
             x = MARGIN
             fill = HEADER_FILL if header and row_index == 0 else None
             for value in row_values:
-                rect = fitz.Rect(x, self.y, x + column_width, self.y + row_height)
+                rect = pymupdf.Rect(x, self.y, x + column_width, self.y + row_height)
                 self.page.draw_rect(rect, color=BORDER_COLOR, fill=fill, width=0.45)
                 self.page.insert_textbox(
                     rect + (5, 5, -5, -4),
@@ -127,7 +127,7 @@ def convert_docx_to_pdf_fallback(input_path: PathLike, output_path: PathLike) ->
         except Exception:
             logger.debug("Fixed-layout DOCX rendering was unavailable.", exc_info=True)
 
-    pdf = fitz.open()
+    pdf = pymupdf.open()
     writer = PdfWriter(pdf)
 
     if source.core_properties.title:
@@ -478,7 +478,7 @@ def _emu_to_points(value) -> float:
 
 def convert_xlsx_to_pdf_fallback(input_path: PathLike, output_path: PathLike) -> None:
     workbook = load_workbook(input_path, data_only=True)
-    pdf = fitz.open()
+    pdf = pymupdf.open()
 
     for sheet in workbook.worksheets:
         if sheet.sheet_state != "visible":
@@ -550,7 +550,7 @@ def draw_sheet_table(writer: PdfWriter, sheet, rows: Sequence[Sequence[Cell]]) -
         x = MARGIN
         for column_index, cell in enumerate(row):
             width = widths[column_index]
-            rect = fitz.Rect(x, writer.y, x + width, writer.y + row_height)
+            rect = pymupdf.Rect(x, writer.y, x + width, writer.y + row_height)
             fill = get_cell_fill(cell, row_index)
             writer.page.draw_rect(rect, color=BORDER_COLOR, fill=fill, width=0.45)
             writer.page.insert_textbox(
@@ -617,7 +617,7 @@ def normalize_text(value) -> str:
     return str(value or "").replace("\t", " ").strip()
 
 
-def save_pdf(pdf: fitz.Document, output_path: PathLike) -> None:
+def save_pdf(pdf: pymupdf.Document, output_path: PathLike) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     pdf.save(path)

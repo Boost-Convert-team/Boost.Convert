@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import fitz
+import pymupdf
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -134,7 +134,7 @@ class PdfToDocxServiceTests(unittest.TestCase):
             source = temp_path / "source.pdf"
             output = temp_path / "output.docx"
 
-            pdf = fitz.open()
+            pdf = pymupdf.open()
             for page_number in range(2):
                 page = pdf.new_page(width=300, height=420)
                 page.insert_text((30, 40), f"Pagina {page_number + 1}", fontsize=12)
