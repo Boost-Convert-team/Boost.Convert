@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 
 {% block title %}Planos BoostConvert | Free e PRO para converter arquivos{% endblock %}
-{% block meta_description %}Compare Free e BoostConvert PRO: conversoes a cada 24h, arquivos por envio e uploads maiores para quem converte todos os dias.{% endblock %}
+{% block meta_description %}Compare Free e BoostConvert PRO: conversoes a cada 24h, arquivos por envio, quantos PDFs juntar e uploads maiores para quem converte todos os dias.{% endblock %}
 
 {% block content %}
 <main class="pricing-page">
-    {% if request.args.get('checkout') == 'error' %}
-    <p class="pricing-notice" role="alert">O pagamento está temporariamente indisponível. Tente novamente em instantes.</p>
-    {% endif %}
+    {% with messages = get_flashed_messages(category_filter=["plan_limit"]) %}
+    {% for message in messages %}
+    <p class="pricing-notice" role="status">{{ message }}</p>
+    {% endfor %}
+    {% endwith %}
     <section class="pricing-hero" aria-labelledby="pricing-title">
         <div class="pricing-copy reveal">
             <div class="eyebrow pricing-eyebrow">
@@ -15,7 +17,7 @@
                 Planos com limites claros
             </div>
             <h1 id="pricing-title">Converta no <span>ritmo do seu trabalho</span></h1>
-            <p>Use o Free para demandas pontuais. Assine o BoostConvert PRO mensal para tirar a trava di&aacute;ria e enviar arquivos maiores.</p>
+            <p>Use o Free para demandas pontuais. O BoostConvert PRO tira a trava di&aacute;ria, junta mais arquivos de uma vez e aceita uploads maiores.</p>
         </div>
 
         <div class="pricing-stage reveal" aria-label="Planos dispon&iacute;veis">
@@ -35,12 +37,14 @@
                 </div>
 
                 <ul class="plan-list" aria-label="Recursos do plano Free">
-                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es em 24h</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> 2 arquivos por envio</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 50 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 25 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 100 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 250 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> {{ free.daily_conversions }} convers&otilde;es em 24h</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Juntar at&eacute; {{ free.merge_pdf_files }} PDFs</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; {{ free.images_to_pdf_files }} imagens em um PDF</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> {{ free.files_per_upload }} arquivos por envio nas outras ferramentas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; {{ free.upload_labels.documents }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; {{ free.upload_labels.images }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; {{ free.upload_labels.audios }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; {{ free.upload_labels.videos }}</li>
                 </ul>
 
                 <a class="button button-secondary plan-button" href="{{ url_for('home.tools') }}">Converter gr&aacute;tis</a>
@@ -56,29 +60,31 @@
                     <p>Para quem converte arquivos todos os dias</p>
                 </div>
 
-                <div class="plan-price" aria-label="R$ {{ config.PRO_PLAN_PRICE_DISPLAY }} por m&ecirc;s">
+                <div class="plan-price" aria-label="R$ {{ pro_price }} por m&ecirc;s">
                     <div class="plan-price-current">
                         <b>R$</b>
-                        <strong>{{ config.PRO_PLAN_PRICE_DISPLAY }}</strong>
+                        <strong>{{ pro_price }}</strong>
                         <small>/ m&ecirc;s</small>
                     </div>
                 </div>
 
                 <ul class="plan-list" aria-label="Recursos do BoostConvert PRO">
                     <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> 15 arquivos por envio</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 300 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 150 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 500 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 2 GB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Juntar at&eacute; {{ pro.merge_pdf_files }} PDFs</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; {{ pro.images_to_pdf_files }} imagens em um PDF</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> {{ pro.files_per_upload }} arquivos por envio nas outras ferramentas</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; {{ pro.upload_labels.documents }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; {{ pro.upload_labels.images }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; {{ pro.upload_labels.audios }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; {{ pro.upload_labels.videos }}</li>
                 </ul>
 
                 <div class="plan-action">
-                    <a class="button button-primary plan-button" href="{{ url_for('payments.checkout') }}">
-                        Ativar BoostConvert PRO
-                    </a>
+                    <button class="button button-primary plan-button" type="button" disabled>
+                        {% if is_pro %}Seu plano atual{% else %}Em breve{% endif %}
+                    </button>
                 </div>
-                <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> Volume alto. Convers&otilde;es ilimitadas.</p>
+                <p class="plan-note"><i data-lucide="zap" aria-hidden="true"></i> {% if is_pro %}Voc&ecirc; j&aacute; tem todos os limites do PRO.{% else %}Novas assinaturas abrem em breve.{% endif %}</p>
             </article>
         </div>
 
@@ -86,15 +92,15 @@
             <article>
                 <span><i data-lucide="shield-check" aria-hidden="true"></i></span>
                 <div>
-                    <h2>Pagamento 100% seguro</h2>
-                    <p>Seus dados protegidos</p>
+                    <h2>Arquivos apagados automaticamente</h2>
+                    <p>Uploads e resultados saem do servidor em {{ config.CONVERSION_FILE_RETENTION_MINUTES }} minutos</p>
                 </div>
             </article>
             <article>
-                <span><i data-lucide="history" aria-hidden="true"></i></span>
+                <span><i data-lucide="mouse-pointer-click" aria-hidden="true"></i></span>
                 <div>
-                    <h2>Pagamento seguro por cartão</h2>
-                    <p>Checkout protegido pelo Mercado Pago dentro do BoostConvert</p>
+                    <h2>Comece sem cadastro</h2>
+                    <p>O plano Free funciona sem criar conta</p>
                 </div>
             </article>
             <article>

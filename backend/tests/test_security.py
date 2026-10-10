@@ -34,8 +34,8 @@ class SecurityMiddlewareTests(unittest.TestCase):
         response = self.client.get("/")
 
         content_security_policy = response.headers["Content-Security-Policy"]
-        self.assertIn("https://sdk.mercadopago.com", content_security_policy)
-        self.assertIn("frame-src https://*.mercadopago.com", content_security_policy)
+        self.assertNotIn("mercadopago", content_security_policy)
+        self.assertIn("frame-src 'none'", content_security_policy)
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertIn("geolocation=()", response.headers["Permissions-Policy"])
@@ -59,27 +59,15 @@ class SecurityMiddlewareTests(unittest.TestCase):
         self.assertTrue(is_weak_secret_key("short"))
         self.assertFalse(is_weak_secret_key("a-secure-test-secret-key-with-32-chars"))
 
-    def test_payment_webhook_requires_secret(self) -> None:
-        self.app.config.update(MERCADOPAGO_WEBHOOK_SECRET=None)
-
-        response = self.client.post(
-            "/webhooks/mercado-pago?data.id=123",
-            json={
-                "id": 1,
-                "type": "payment",
-                "action": "updated",
-                "data": {"id": "123"},
-            },
-            headers={"X-Signature": "invalid"},
-        )
-
-        self.assertEqual(response.status_code, 503)
-
-    def test_private_checkout_route_requires_login_with_valid_csrf(self) -> None:
-        response = self.client.post("/api/payments/checkout", data=self.csrf_data())
-
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/login", response.headers["Location"])
+    def test_payment_routes_no_longer_exist(self) -> None:
+        for method, path in (
+            ("get", "/checkout-pro"),
+            ("post", "/api/payments/checkout"),
+            ("post", "/webhooks/mercado-pago"),
+        ):
+            with self.subTest(path=path):
+                response = getattr(self.client, method)(path, data=self.csrf_data())
+                self.assertEqual(response.status_code, 404)
 
     def csrf_data(self, data: dict[str, str] | None = None) -> dict[str, str]:
         token = "test-csrf-token-with-enough-length-123"

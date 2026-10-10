@@ -5,8 +5,9 @@ import os
 from flask import session
 from flask_login import current_user
 
-from models import ConversionJob, Subscription
-from Blueprints.services.subscription.access_service import FREE_DAILY_LIMIT, as_utc, get_usage_status, is_pro_user, utc_now
+from models import ConversionJob
+from Blueprints.services.access.access_service import FREE_PLAN, PRO_PLAN, as_utc, get_usage_status, is_pro_user, utc_now
+from Blueprints.services.convertions_services.conversion_rules.conversion_limits import get_plan_limits
 
 
 STATUS_LABELS = {
@@ -34,12 +35,7 @@ def get_authenticated_workspace_identity():
     usage_status = get_usage_status(usuario=current_user)
     is_pro = is_pro_user(current_user)
     plan = "BoostConvert PRO" if is_pro else "FREE"
-    can_cancel_subscription = Subscription.query.filter(
-        Subscription.user_id == current_user.id,
-        Subscription.provider == "mercado_pago",
-        Subscription.provider_subscription_id.isnot(None),
-        Subscription.status.in_({"active", "paused", "pending"}),
-    ).first() is not None
+    limits = get_plan_limits()[PRO_PLAN if is_pro else FREE_PLAN]
     return {
         "jobs_query": ConversionJob.query.filter_by(user_id=current_user.id),
         "profile": {
@@ -47,10 +43,10 @@ def get_authenticated_workspace_identity():
             "email": current_user.email,
             "plan": plan,
             "is_pro": is_pro,
-            "can_cancel_subscription": can_cancel_subscription,
+            "limits": limits,
             "daily_used": usage_status.used,
-            "daily_limit": None if is_pro else FREE_DAILY_LIMIT,
-            "daily_remaining": usage_status.remaining if not is_pro else "Ilimitado",
+            "daily_limit": limits["daily_conversions"],
+            "daily_remaining": usage_status.remaining,
             "daily_percent": usage_status.percent,
             "daily_reset_in": usage_status.reset_in,
             "google_connected": bool(current_user.google_id),
@@ -61,6 +57,7 @@ def get_anonymous_workspace_identity():
     session_id = session.get("anon_id")
     usage_status = get_usage_status(session_id=session_id) if session_id else get_usage_status()
     jobs_query = ConversionJob.query.filter_by(session_id=session_id) if session_id else ConversionJob.query.filter(False)
+    limits = get_plan_limits()[FREE_PLAN]
     return {
         "jobs_query": jobs_query,
         "profile": {
@@ -68,9 +65,9 @@ def get_anonymous_workspace_identity():
             "email": "Entre para sincronizar seu workspace",
             "plan": "FREE",
             "is_pro": False,
-            "can_cancel_subscription": False,
+            "limits": limits,
             "daily_used": usage_status.used,
-            "daily_limit": FREE_DAILY_LIMIT,
+            "daily_limit": limits["daily_conversions"],
             "daily_remaining": usage_status.remaining,
             "daily_percent": usage_status.percent,
             "daily_reset_in": usage_status.reset_in,

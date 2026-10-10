@@ -18,7 +18,8 @@ from Blueprints.services.convertions_services.runtime.file_cleanup import (
 from Blueprints.services.convertions_services.runtime.media_dependencies import (
     configure_media_dependencies,
 )
-from config import Config, validate_payment_config
+from commands import register_cli
+from config import Config
 from error_pages import register_error_handlers
 from extensions import db, lm, oauth
 from flask_migrate import Migrate
@@ -38,7 +39,6 @@ def create_app() -> Flask:
     )
     app.config.from_object(Config)
     app.secret_key = app.config["SECRET_KEY"]
-    validate_payment_config(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -126,4 +126,5 @@ def create_app() -> Flask:
 
     register_blueprints(app)
     register_error_handlers(app)
+    register_cli(app)
     return app

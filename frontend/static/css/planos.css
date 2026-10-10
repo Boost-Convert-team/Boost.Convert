@@ -343,19 +343,22 @@
 }
 
 .plan-action .plan-button:disabled {
-    cursor: wait;
+    cursor: default;
     opacity: .72;
 }
 
-.plan-checkout-message {
-    min-height: 18px;
-    margin: 8px 0 0;
-    color: #9d321c;
+.pricing-notice {
+    width: min(1120px, calc(100% - 32px));
+    margin: 24px auto 0;
+    padding: 14px 18px;
+    border: 1px solid #f3c99b;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: #8a4b0f;
     font-family: var(--font-ui);
-    font-size: 13px;
-    line-height: 1.35;
-    font-weight: 700;
-    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
 }
 
 .plan-note {

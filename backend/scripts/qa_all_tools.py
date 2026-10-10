@@ -49,7 +49,6 @@ def main():
                 ,senha=None
                 ,nome="QA"
                 ,plano="pro"
-                ,status_assinatura="active"
             )
             db.session.add(user)
             db.session.commit()

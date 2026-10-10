@@ -14,7 +14,6 @@
 @import url("./home/ecosystem.css");
 @import url("./commerce-interactions.css");
 @import url("./page-headers.css");
-@import url("./checkout.css");
 
 .home-page .hero-upload-actions {
     display: flex;

@@ -53,8 +53,6 @@ GUIDE_SLUGS = (
 PRIVATE_PATH_PREFIXES = (
     "/api/",
     "/cadastro",
-    "/checkout",
-    "/checkout-pro",
     "/conta",
     "/convert/",
     "/conversions/",
@@ -62,8 +60,6 @@ PRIVATE_PATH_PREFIXES = (
     "/login",
     "/logout",
     "/registrar",
-    "/webhook",
-    "/webhooks/",
 )
 SITEMAP_NAMESPACE = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 RELATED_SECTION_RE = re.compile(
@@ -189,7 +185,6 @@ class SeoContractTests(unittest.TestCase):
         # this module neither reads an external DB nor changes sibling suites.
         overrides = {
             "APP_ENV": "testing",
-            "BASE_URL": PUBLIC_ORIGIN,
             "FORCE_HTTPS": False,
             "SESSION_COOKIE_SECURE": False,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
@@ -323,7 +318,7 @@ class SeoContractTests(unittest.TestCase):
         private_paths = (
             "/login",
             "/dashboard",
-            "/checkout-pro",
+            "/conta",
             "/api/conversion-options?extension=pdf",
         )
         for path in private_paths:

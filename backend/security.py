@@ -5,21 +5,17 @@ import secrets
 from dataclasses import dataclass
 from math import ceil
 from time import monotonic
-from uuid import UUID
 
 from flask import Flask, Response, abort, current_app, redirect, request, session
-from flask_login import current_user
 from werkzeug.exceptions import TooManyRequests
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+from Blueprints.main.seo_helpers import PRIVATE_PATH_PREFIXES
 
 CSRF_FIELD_NAME = "_csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_SESSION_KEY = "_boost_csrf_token"
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
-CSRF_EXEMPT_ENDPOINTS = {
-    "webhook.legacy_webhook_disabled",
-    "webhook.receive_mercado_pago_webhook",
-}
 
 
 @dataclass(frozen=True)
@@ -28,50 +24,16 @@ class RateLimitRule:
     window_seconds: int
 
 
-@dataclass(frozen=True)
-class RateLimitHit:
-    occurred_at: float
-    idempotency_token: str | None = None
-
-
-RATE_LIMIT_HITS: dict[str, list[RateLimitHit]] = {}
-RATE_LIMIT_RAW_HITS: dict[str, list[float]] = {}
+RATE_LIMIT_HITS: dict[str, list[float]] = {}
 AUTH_RATE_LIMITS = {
     "auth.login": RateLimitRule(5, 300),
     "auth.registrar": RateLimitRule(5, 300),
 }
 ENDPOINT_RATE_LIMITS = {
-    "payments.create_checkout": RateLimitRule(10, 60),
-    "payments.cancel_subscription": RateLimitRule(5, 60),
     "home.conversion_download": RateLimitRule(120, 60),
     "home.conversion_batch_download": RateLimitRule(60, 60),
 }
-PAYMENT_CREATION_ENDPOINTS = {
-    "payments.create_checkout",
-}
-PAYMENT_CREATION_RAW_LIMIT = RateLimitRule(30, 60)
 CONVERSION_RATE_LIMIT = RateLimitRule(30, 60)
-
-# Runtime, account and processing URLs are useful to the product but have no
-# standalone search value.  Keeping the policy here also covers JSON and error
-# responses where an HTML meta tag is not available.
-NOINDEX_PATH_PREFIXES = (
-    "/api/",
-    "/cadastro",
-    "/checkout",
-    "/checkout-pro",
-    "/conta",
-    "/convert/",
-    "/conversions/",
-    "/dashboard",
-    "/login",
-    "/logout",
-    "/pagamento",
-    "/registrar",
-    "/webhook",
-    "/webhooks/",
-)
-
 
 def init_security(app: Flask) -> None:
     """Attach security middleware to the Flask app.
@@ -155,9 +117,7 @@ def enforce_csrf_token() -> None:
 def is_csrf_required() -> bool:
     if not current_app.config.get("CSRF_ENABLED", True):
         return False
-    if request.method not in CSRF_METHODS:
-        return False
-    return request.endpoint not in CSRF_EXEMPT_ENDPOINTS
+    return request.method in CSRF_METHODS
 
 
 def get_submitted_csrf_token() -> str:
@@ -178,31 +138,11 @@ def enforce_rate_limit() -> None:
     if rule is None or not current_app.config.get("RATE_LIMIT_ENABLED", True):
         return
 
-    key = get_rate_limit_key()
     now = monotonic()
-    if request.endpoint in PAYMENT_CREATION_ENDPOINTS:
-        raw_hits = get_recent_raw_rate_limit_hits(
-            key,
-            PAYMENT_CREATION_RAW_LIMIT.window_seconds,
-            now,
-        )
-        if len(raw_hits) >= PAYMENT_CREATION_RAW_LIMIT.max_requests:
-            raise_rate_limit(raw_hits, PAYMENT_CREATION_RAW_LIMIT.window_seconds, now)
-        raw_hits.append(now)
-
-    hits = get_recent_rate_limit_hits(key, rule.window_seconds, now)
-    idempotency_token = get_payment_idempotency_token()
-    if idempotency_token and any(
-        hit.idempotency_token == idempotency_token for hit in hits
-    ):
-        return
+    hits = get_recent_rate_limit_hits(get_rate_limit_key(), rule.window_seconds, now)
     if len(hits) >= rule.max_requests:
-        raise_rate_limit(
-            [hit.occurred_at for hit in hits],
-            rule.window_seconds,
-            now,
-        )
-    hits.append(RateLimitHit(now, idempotency_token))
+        raise_rate_limit(hits, rule.window_seconds, now)
+    hits.append(now)
 
 
 def get_rate_limit_rule() -> RateLimitRule | None:
@@ -214,45 +154,19 @@ def get_rate_limit_rule() -> RateLimitRule | None:
 
 
 def get_rate_limit_key() -> str:
-    endpoint_id = request.endpoint or request.path
-    if endpoint_id.startswith("payments.") and current_user.is_authenticated:
-        client_id = f"user:{current_user.get_id()}"
-    else:
-        client_id = request.remote_addr or "unknown"
-    return f"{client_id}:{endpoint_id}"
+    return f"{request.remote_addr or 'unknown'}:{request.endpoint or request.path}"
 
 
 def get_recent_rate_limit_hits(
     key: str,
     window_seconds: int,
     now: float | None = None,
-) -> list[RateLimitHit]:
+) -> list[float]:
     now = monotonic() if now is None else now
     cutoff = now - window_seconds
-    hits = [hit for hit in RATE_LIMIT_HITS.get(key, []) if hit.occurred_at >= cutoff]
+    hits = [hit for hit in RATE_LIMIT_HITS.get(key, []) if hit >= cutoff]
     RATE_LIMIT_HITS[key] = hits
     return hits
-
-
-def get_recent_raw_rate_limit_hits(
-    key: str,
-    window_seconds: int,
-    now: float,
-) -> list[float]:
-    cutoff = now - window_seconds
-    hits = [hit for hit in RATE_LIMIT_RAW_HITS.get(key, []) if hit >= cutoff]
-    RATE_LIMIT_RAW_HITS[key] = hits
-    return hits
-
-
-def get_payment_idempotency_token() -> str | None:
-    if request.endpoint not in PAYMENT_CREATION_ENDPOINTS:
-        return None
-    raw_token = (request.headers.get("X-Idempotency-Key") or "").strip()
-    try:
-        return str(UUID(raw_token))
-    except (ValueError, AttributeError):
-        return None
 
 
 def raise_rate_limit(hits: list[float], window_seconds: int, now: float) -> None:
@@ -271,7 +185,6 @@ def clear_rate_limit_state() -> None:
     Example: clear_rate_limit_state()
     """
     RATE_LIMIT_HITS.clear()
-    RATE_LIMIT_RAW_HITS.clear()
 
 
 def apply_security_headers(response: Response) -> Response:
@@ -302,19 +215,19 @@ def should_noindex_response(response: Response) -> bool:
     path = request.path.rstrip("/") or "/"
     return any(
         path == prefix.rstrip("/") or path.startswith(f"{prefix.rstrip('/')}/")
-        for prefix in NOINDEX_PATH_PREFIXES
+        for prefix in PRIVATE_PATH_PREFIXES
     )
 
 
 def build_content_security_policy() -> str:
     directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://unpkg.com https://sdk.mercadopago.com https://*.mlstatic.com",
+        "script-src 'self' 'unsafe-inline' https://unpkg.com",
         "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-        "img-src 'self' data: https://*.mercadopago.com https://*.mercadopago.com.br https://*.mlstatic.com",
+        "img-src 'self' data:",
         "font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
-        "connect-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br https://*.mlstatic.com",
-        "frame-src https://*.mercadopago.com https://*.mercadopago.com.br",
+        "connect-src 'self'",
+        "frame-src 'none'",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

@@ -16,7 +16,7 @@ from Blueprints.services.convertions_services.validation.file_security import (
 )
 from Blueprints.services.privacy.conversion_options import get_persistable_conversion_options, get_runtime_conversion_options
 from Blueprints.services.privacy.file_retention import is_inside_root
-from Blueprints.services.subscription.access_service import UpgradeRequiredError, is_pro_user
+from Blueprints.services.access.access_service import UpgradeRequiredError, is_pro_user
 
 def create_single_conversion_job(file, usuario, session_id, allowed_extensions, output_extension, tool_name, options):
     filename = get_secure_filename(file)

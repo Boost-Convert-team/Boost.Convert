@@ -3,9 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime
 from typing import Any
-from urllib.parse import urlsplit
 
-from flask import current_app
 
 PUBLIC_ORIGIN = "https://boostconvert.com.br"
 SITE_NAME = "BoostConvert"
@@ -13,30 +11,28 @@ DEFAULT_DESCRIPTION = (
     "Converta PDF, documentos, imagens, vídeos e áudios online no BoostConvert. "
     "Use ferramentas no navegador, sem instalar programas."
 )
+# Runtime, account and processing URLs are useful to the product but have no
+# standalone search value. security.py also applies this list to JSON and error
+# responses, where an HTML meta tag is not available.
 PRIVATE_PATH_PREFIXES = (
     "/api/",
     "/cadastro",
-    "/checkout",
-    "/checkout-pro",
     "/conta",
     "/convert/",
     "/conversions/",
     "/dashboard",
     "/login",
     "/logout",
-    "/pagamento",
     "/registrar",
-    "/webhook",
-    "/webhooks/",
 )
 
 
 def get_public_origin() -> str:
-    """Return the single production origin used by every SEO signal."""
-    configured = str(current_app.config.get("BASE_URL") or PUBLIC_ORIGIN).rstrip("/")
-    parsed = urlsplit(configured)
-    if parsed.scheme == "https" and parsed.hostname == "boostconvert.com.br":
-        return PUBLIC_ORIGIN
+    """Return the single production origin used by every SEO signal.
+
+    It never follows the inbound Host, which varies behind nginx and in health
+    checks, so canonicals, Open Graph URLs and the sitemap always point at production.
+    """
     return PUBLIC_ORIGIN
 
 

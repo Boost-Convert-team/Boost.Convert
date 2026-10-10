@@ -5,17 +5,18 @@ from sqlalchemy import text
 
 from extensions import db
 from models import DailyUsage
-from Blueprints.services.subscription.subscription_service import (
-    has_active_pro_subscription,
-)
 
+
+FREE_PLAN = "free"
+PRO_PLAN = "pro"
+PLANS = (FREE_PLAN, PRO_PLAN)
 
 FREE_DAILY_LIMIT = 10
 FREE_USAGE_WINDOW = timedelta(hours=24)
 
 
 class UpgradeRequiredError(PermissionError):
-    """Raised when the user must choose a paid plan to continue."""
+    """Raised when a Free user hits a limit that only the PRO plan lifts."""
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,8 @@ def as_utc(value: datetime | None) -> datetime | None:
 
 
 def is_pro_user(usuario) -> bool:
-    return has_active_pro_subscription(usuario)
+    """PRO is the plan stored on the account; it is granted with `flask set-plan`."""
+    return usuario is not None and getattr(usuario, "plano", None) == PRO_PLAN
 
 
 def get_usage_identity(usuario=None, session_id=None):

@@ -436,8 +436,8 @@
             <span class="eyebrow"><i data-lucide="star" aria-hidden="true"></i> Planos</span>
             <h2>Planos para converter no <span>seu ritmo</span></h2>
             <p>
-                Free para demandas pontuais. BoostConvert PRO para tirar a trava di&aacute;ria
-                e enviar arquivos maiores.
+                Free para demandas pontuais. BoostConvert PRO para tirar a trava di&aacute;ria,
+                juntar mais arquivos de uma vez e enviar arquivos maiores.
             </p>
             <a class="text-link" href="{{ url_for('main.planos') }}">Comparar planos <i data-lucide="arrow-right" aria-hidden="true"></i></a>
         </div>
@@ -459,12 +459,12 @@
                 </div>
 
                 <ul>
-                    <li><i data-lucide="check" aria-hidden="true"></i> 10 convers&otilde;es em 24h</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> 2 arquivos por envio</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 50 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 25 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 100 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 250 MB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> {{ free.daily_conversions }} convers&otilde;es em 24h</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Juntar at&eacute; {{ free.merge_pdf_files }} PDFs</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; {{ free.images_to_pdf_files }} imagens em um PDF</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; {{ free.upload_labels.documents }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; {{ free.upload_labels.images }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; {{ free.upload_labels.videos }}</li>
                 </ul>
 
                 <a class="button button-secondary home-plan-button" href="{{ url_for('auth.registrar') }}">Converter gr&aacute;tis</a>
@@ -480,21 +480,21 @@
                     <p>Para quem converte arquivos todos os dias</p>
                 </div>
 
-                <div class="home-plan-price" aria-label="R$ {{ config.PRO_PLAN_PRICE_DISPLAY }} por m&ecirc;s">
+                <div class="home-plan-price" aria-label="R$ {{ pro_price }} por m&ecirc;s">
                     <div class="home-plan-price-current">
                         <b>R$</b>
-                        <strong>{{ config.PRO_PLAN_PRICE_DISPLAY }}</strong>
+                        <strong>{{ pro_price }}</strong>
                         <small>/ m&ecirc;s</small>
                     </div>
                 </div>
 
                 <ul>
                     <li><i data-lucide="check" aria-hidden="true"></i> Convers&otilde;es ilimitadas</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> 15 arquivos por envio</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; 300 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; 150 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> &Aacute;udios at&eacute; 500 MB</li>
-                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; 2 GB</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Juntar at&eacute; {{ pro.merge_pdf_files }} PDFs</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> At&eacute; {{ pro.images_to_pdf_files }} imagens em um PDF</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Docs at&eacute; {{ pro.upload_labels.documents }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> Imagens at&eacute; {{ pro.upload_labels.images }}</li>
+                    <li><i data-lucide="check" aria-hidden="true"></i> V&iacute;deos at&eacute; {{ pro.upload_labels.videos }}</li>
                 </ul>
 
                 <a class="button button-primary home-plan-button" href="{{ url_for('main.planos') }}">Ver BoostConvert PRO</a>

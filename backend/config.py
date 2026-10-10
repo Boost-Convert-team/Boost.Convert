@@ -1,7 +1,6 @@
 import os
 import secrets
 from datetime import timedelta
-from decimal import Decimal
 from pathlib import Path
 
 from sqlalchemy.engine import URL
@@ -142,23 +141,6 @@ class Config:
     CSRF_ENABLED = get_bool_env("CSRF_ENABLED", True)
     RATE_LIMIT_ENABLED = get_bool_env("RATE_LIMIT_ENABLED", True)
     HSTS_MAX_AGE_SECONDS = get_int_env("HSTS_MAX_AGE_SECONDS", 31536000)
-    MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY")
-    MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
-    MERCADOPAGO_WEBHOOK_URL = os.getenv("MERCADOPAGO_WEBHOOK_URL")
-    MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET")
-    MERCADOPAGO_REQUEST_TIMEOUT_SECONDS = 10.0
-    PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS = get_int_env(
-        "PAYMENT_CHECKOUT_CREATION_TIMEOUT_SECONDS", 120
-    )
-    PRO_PLAN_PRICE = Decimal("25.90")
-    PRO_PLAN_PRICE_DISPLAY = "25,90"
-    # Public SEO origin.  This must not depend on the inbound Host or proxy
-    # scheme because those values may vary behind nginx and during health
-    # checks.  All canonicals, Open Graph URLs and sitemap entries use it.
-    BASE_URL = (
-        os.getenv("BASE_URL")
-        or ("" if is_production_environment() else "https://boostconvert.com.br")
-    ).rstrip("/")
     SEND_FILE_MAX_AGE_DEFAULT = timedelta(days=365)
     CONVERSION_FILE_RETENTION_MINUTES = get_int_env(
         "CONVERSION_FILE_RETENTION_MINUTES", 15
@@ -181,32 +163,3 @@ def should_auto_create_db(app):
     if os.getenv("AUTO_CREATE_DB") == "0":
         return False
     return False
-
-
-def validate_payment_config(app):
-    """Fail closed when production billing configuration is incomplete."""
-    required = (
-        "MERCADOPAGO_PUBLIC_KEY",
-        "MERCADOPAGO_ACCESS_TOKEN",
-        "MERCADOPAGO_WEBHOOK_URL",
-        "MERCADOPAGO_WEBHOOK_SECRET",
-    )
-    missing = [name for name in required if not str(app.config.get(name) or "").strip()]
-    if not missing:
-        if app.config.get("APP_ENV") in {"production", "prod"} and not str(
-            app.config.get("BASE_URL") or ""
-        ).startswith("https://"):
-            raise RuntimeError(
-                "BASE_URL HTTPS é obrigatória para pagamentos em produção."
-            )
-        if app.config.get("APP_ENV") in {"production", "prod"} and not str(
-            app.config.get("MERCADOPAGO_WEBHOOK_URL") or ""
-        ).startswith("https://"):
-            raise RuntimeError(
-                "MERCADOPAGO_WEBHOOK_URL HTTPS é obrigatória em produção."
-            )
-        return
-    if app.config.get("APP_ENV") in {"production", "prod"}:
-        raise RuntimeError("Configuracao de pagamento ausente: " + ", ".join(missing))
-    for field in missing:
-        app.logger.warning("payment_config_missing field=%s", field)

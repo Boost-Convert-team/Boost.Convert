@@ -1,7 +1,11 @@
 import os
 
-from Blueprints.services.subscription.subscription_service import (
-    has_active_pro_subscription,
+from Blueprints.services.access.access_service import (
+    FREE_DAILY_LIMIT,
+    FREE_PLAN,
+    PLANS,
+    PRO_PLAN,
+    is_pro_user,
 )
 
 
@@ -33,11 +37,20 @@ CONVERSION_CATEGORIES = {
 }
 
 UPLOAD_LIMITS_MB = {
-    "free": {"documents": 50, "images": 25, "audios": 100, "videos": 250},
-    "pro": {"documents": 300, "images": 150, "audios": 500, "videos": 2048},
+    FREE_PLAN: {"documents": 50, "images": 25, "audios": 100, "videos": 250},
+    PRO_PLAN: {"documents": 300, "images": 150, "audios": 500, "videos": 2048},
 }
 
-MULTI_FILE_LIMITS = {"free": 2, "pro": 15}
+# Files per upload for tools that convert each file separately.
+MULTI_FILE_LIMITS = {FREE_PLAN: 2, PRO_PLAN: 15}
+
+# Tools that combine many files into one result get their own, larger limits.
+# They stay 20-30% above iLovePDF (Merge PDF: 25 Free / 500 Premium,
+# Image to PDF: 20 Free / 80 Premium on ilovepdf.com/pricing, October 2026).
+TOOL_FILE_COUNT_LIMITS = {
+    "pdf_merge": {FREE_PLAN: 32, PRO_PLAN: 650},
+    "images_to_pdf": {FREE_PLAN: 25, PRO_PLAN: 100},
+}
 
 SPECIAL_ROUTE_EXTENSIONS = {
     "/convert/pdf-merge": ("pdf", "pdf"),
@@ -61,7 +74,7 @@ CATEGORY_LABELS = {
 
 
 def get_plan_name(usuario) -> str:
-    return "pro" if has_active_pro_subscription(usuario) else "free"
+    return PRO_PLAN if is_pro_user(usuario) else FREE_PLAN
 
 
 def get_conversion_category(input_extension: str, output_extension: str) -> str:
@@ -112,9 +125,13 @@ def validate_upload_size(file, usuario, input_extension: str, output_extension: 
     )
 
 
-def validate_multi_file_count(files, usuario):
+def get_file_count_limits(tool_name: str | None) -> dict[str, int]:
+    return TOOL_FILE_COUNT_LIMITS.get(tool_name, MULTI_FILE_LIMITS)
+
+
+def validate_multi_file_count(files, usuario, tool_name: str | None = None):
     plan_name = get_plan_name(usuario)
-    limit = MULTI_FILE_LIMITS[plan_name]
+    limit = get_file_count_limits(tool_name)[plan_name]
     if len(files) <= limit:
         return True, None
 
@@ -141,26 +158,43 @@ def format_limit_mb(limit_mb: int) -> str:
     return f"{limit_mb} MB"
 
 
-def get_free_daily_limit() -> int:
-    from Blueprints.services.subscription.access_service import FREE_DAILY_LIMIT
-
-    return FREE_DAILY_LIMIT
+def get_tool_name(route: str) -> str:
+    """`/convert/pdf-merge` is handled by the tool named `pdf_merge`."""
+    return route.replace("/convert/", "", 1).replace("-", "_")
 
 
 def get_tool_limit_info(tool: dict[str, object]) -> dict[str, object]:
-    input_extension, output_extension = get_tool_extensions(str(tool["route"]))
+    route = str(tool["route"])
+    input_extension, output_extension = get_tool_extensions(route)
     category = get_conversion_category(input_extension, output_extension)
-    free_limit = UPLOAD_LIMITS_MB["free"][category]
-    pro_limit = UPLOAD_LIMITS_MB["pro"][category]
+    free_limit = UPLOAD_LIMITS_MB[FREE_PLAN][category]
+    pro_limit = UPLOAD_LIMITS_MB[PRO_PLAN][category]
+    file_count_limits = get_file_count_limits(get_tool_name(route))
     return {
         "category": category,
         "category_label": CATEGORY_LABELS.get(category, category),
-        "free_daily_limit": get_free_daily_limit(),
+        "free_daily_limit": FREE_DAILY_LIMIT,
         "free_upload_limit_mb": free_limit,
         "free_upload_limit_label": format_limit_mb(free_limit),
         "pro_upload_limit_mb": pro_limit,
         "pro_upload_limit_label": format_limit_mb(pro_limit),
-        "is_multiple": True,
-        "free_file_count_limit": MULTI_FILE_LIMITS["free"],
-        "pro_file_count_limit": MULTI_FILE_LIMITS["pro"],
+        "free_file_count_limit": file_count_limits[FREE_PLAN],
+        "pro_file_count_limit": file_count_limits[PRO_PLAN],
+    }
+
+
+def get_plan_limits() -> dict[str, dict[str, object]]:
+    """Limits shown on the pricing and account pages, from the same constants the uploads enforce."""
+    return {
+        plan: {
+            "daily_conversions": FREE_DAILY_LIMIT if plan == FREE_PLAN else None,
+            "files_per_upload": MULTI_FILE_LIMITS[plan],
+            "merge_pdf_files": TOOL_FILE_COUNT_LIMITS["pdf_merge"][plan],
+            "images_to_pdf_files": TOOL_FILE_COUNT_LIMITS["images_to_pdf"][plan],
+            "upload_labels": {
+                category: format_limit_mb(limit_mb)
+                for category, limit_mb in UPLOAD_LIMITS_MB[plan].items()
+            },
+        }
+        for plan in PLANS
     }

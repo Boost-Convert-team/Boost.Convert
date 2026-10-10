@@ -1,4 +1,4 @@
-from flask import current_app, redirect, url_for
+from flask import current_app, flash, redirect, url_for
 from extensions import db
 from Blueprints.handlers.conversion_error_pages import render_conversion_error_response
 from Blueprints.services.convertions_services.conversion_rules.conversion_limits import (
@@ -8,13 +8,13 @@ from Blueprints.services.convertions_services.upload_flow.job_factory import cre
 from Blueprints.services.convertions_services.upload_flow.job_submission import submit_jobs
 from Blueprints.services.convertions_services.upload_flow.request_context import get_conversion_request_context, get_uploaded_files
 from Blueprints.services.privacy.audit import create_conversion_audit
-from Blueprints.services.subscription.access_service import UpgradeRequiredError, is_pro_user, reserve_tool_usage
+from Blueprints.services.access.access_service import UpgradeRequiredError, is_pro_user, reserve_tool_usage
 
 def handle_conversion(allowed_extension, convert_function, output_extension, tool_name):
     try:
         context = get_conversion_request_context()
         files = get_valid_upload_files()
-        validate_uploaded_file_count(files, context.usuario)
+        validate_uploaded_file_count(files, context.usuario, tool_name)
         reserve_usage(context, amount=len(files))
         
         jobs = [
@@ -42,7 +42,7 @@ def handle_pdf_collection_conversion(convert_function, output_extension, tool_na
         if len(files) < 2:
             return render_conversion_error_response(ValueError("Envie pelo menos dois arquivos PDF."), 400)
 
-        validate_uploaded_file_count(files, context.usuario)
+        validate_uploaded_file_count(files, context.usuario, tool_name)
         reserve_usage(context, amount=1)
 
         job = create_pdf_collection_job(
@@ -68,7 +68,7 @@ def handle_file_collection_conversion(allowed_extensions, convert_function, outp
         if len(files) < 1:
             return render_conversion_error_response(ValueError("Envie pelo menos um arquivo."), 400)
 
-        validate_uploaded_file_count(files, context.usuario)
+        validate_uploaded_file_count(files, context.usuario, tool_name)
         reserve_usage(context, amount=1)
 
         job = create_file_collection_job(
@@ -94,8 +94,8 @@ def get_valid_upload_files():
     if not files: raise ValueError("Nenhum arquivo enviado")
     return files
 
-def validate_uploaded_file_count(files, usuario):
-    count_valid, count_message = validate_multi_file_count(files, usuario)
+def validate_uploaded_file_count(files, usuario, tool_name):
+    count_valid, count_message = validate_multi_file_count(files, usuario, tool_name)
 
     if count_valid: return
     if not is_pro_user(usuario): raise UpgradeRequiredError(count_message)
@@ -130,6 +130,7 @@ def handle_conversion_error(exc, refused_log_message, internal_log_message):
 
     if isinstance(exc, UpgradeRequiredError):
         current_app.logger.info(refused_log_message, type(exc).__name__)
+        flash(str(exc), "plan_limit")
         return redirect(url_for("main.planos"))
 
     if isinstance(exc, PermissionError):

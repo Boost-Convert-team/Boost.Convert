@@ -10,6 +10,7 @@ from Blueprints.main.account_workspace import get_account_workspace
 from Blueprints.main.downloads import send_conversion_batch_zip, send_conversion_file
 from Blueprints.main.guide_content import GUIDE_CONTENT
 from Blueprints.main.job_access import get_accessible_job_or_404, get_accessible_jobs_from_ids, is_job_downloadable
+from Blueprints.main.planos import build_pricing_context
 from Blueprints.main.seo_catalog import (
     CATEGORIES,
     GUIDES,
@@ -333,7 +334,7 @@ def home():
         "home",
         schemas=(organization_schema(), website_schema()),
     )
-    return render_template("home.html", page=page, seo=seo)
+    return render_template("home.html", page=page, seo=seo, **build_pricing_context())
 
 
 @home_bp.route("/robots.txt")
